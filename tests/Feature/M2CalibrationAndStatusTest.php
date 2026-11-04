@@ -161,13 +161,13 @@ describe('EquipmentStatusService transitions (PRD §F4)', function () {
         expect($equipment->status)->toBe(EquipmentStatus::FitForUse);
     });
 
-    it('starts repair from fit for use and unfit', function (EquipmentStatus $from) {
+    it('starts repair from fit for use, unfit, calibration due and overdue', function (EquipmentStatus $from) {
         $equipment = makeEquipment(status: $from);
 
         $this->statusService->startRepair($equipment);
 
         expect($equipment->status)->toBe(EquipmentStatus::UnderRepair);
-    })->with([EquipmentStatus::FitForUse, EquipmentStatus::Unfit]);
+    })->with([EquipmentStatus::FitForUse, EquipmentStatus::Unfit, EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue]);
 
     it('finishes repair to calibration due when the type requires calibration', function () {
         $equipment = makeEquipment(status: EquipmentStatus::UnderRepair);
@@ -175,6 +175,46 @@ describe('EquipmentStatusService transitions (PRD §F4)', function () {
         $this->statusService->finishRepair($equipment);
 
         expect($equipment->status)->toBe(EquipmentStatus::CalibrationDue);
+    });
+
+    it('finishes repair to calibration due, not fit for use, while the certificate is still valid', function (EquipmentStatus $from) {
+        $equipment = makeEquipment(status: $from);
+        passedCalibration($equipment, '2026-12-01', '2027-12-01');
+
+        $this->statusService->startRepair($equipment);
+        $this->statusService->finishRepair($equipment);
+
+        expect($equipment->fresh()->status)->toBe(EquipmentStatus::CalibrationDue);
+    })->with([EquipmentStatus::FitForUse, EquipmentStatus::Unfit, EquipmentStatus::CalibrationDue]);
+
+    it('finishes repair to overdue through calibration due when the certificate has expired', function () {
+        $equipment = makeEquipment(status: EquipmentStatus::Overdue);
+        passedCalibration($equipment, '2026-01-01', '2027-01-01');
+
+        $this->statusService->startRepair($equipment);
+        $this->statusService->finishRepair($equipment);
+
+        expect($equipment->fresh()->status)->toBe(EquipmentStatus::Overdue)
+            ->and($equipment->statusHistories()->take(2)->pluck('to_status')->all())
+            ->toBe([EquipmentStatus::Overdue, EquipmentStatus::CalibrationDue]);
+    });
+
+    it('finishes repair to calibration due when there is no certificate yet', function () {
+        $equipment = makeEquipment();
+
+        $this->statusService->startRepair($equipment);
+        $this->statusService->finishRepair($equipment);
+
+        expect($equipment->fresh()->status)->toBe(EquipmentStatus::CalibrationDue);
+    });
+
+    it('never makes a type without required calibration overdue from a voluntary certificate', function () {
+        $equipment = makeEquipment(['requires_calibration' => false], EquipmentStatus::FitForUse);
+        passedCalibration($equipment, '2026-01-01', '2027-01-01');
+
+        $this->statusService->evaluate($equipment);
+
+        expect($equipment->status)->toBe(EquipmentStatus::FitForUse);
     });
 
     it('finishes repair to fit for use when the type does not require calibration', function () {
@@ -185,13 +225,13 @@ describe('EquipmentStatusService transitions (PRD §F4)', function () {
         expect($equipment->status)->toBe(EquipmentStatus::FitForUse);
     });
 
-    it('starts testing from calibration due and overdue', function (EquipmentStatus $from) {
+    it('starts testing from fit for use, calibration due and overdue', function (EquipmentStatus $from) {
         $equipment = makeEquipment(status: $from);
 
         $this->statusService->startTesting($equipment);
 
         expect($equipment->status)->toBe(EquipmentStatus::UnderTesting);
-    })->with([EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue]);
+    })->with([EquipmentStatus::FitForUse, EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue]);
 
     it('moves under testing to fit for use on pass and unfit on fail', function (bool $passed, EquipmentStatus $expected) {
         $equipment = makeEquipment(status: EquipmentStatus::UnderTesting);
@@ -213,12 +253,9 @@ describe('EquipmentStatusService transitions (PRD §F4)', function () {
         expect($equipment->fresh()->status)->toBe($from)
             ->and($equipment->statusHistories()->count())->toBe($historyCount);
     })->with([
-        'repair while calibration due' => ['startRepair', [], EquipmentStatus::CalibrationDue],
-        'repair while overdue' => ['startRepair', [], EquipmentStatus::Overdue],
         'repair while under testing' => ['startRepair', [], EquipmentStatus::UnderTesting],
         'repair twice' => ['startRepair', [], EquipmentStatus::UnderRepair],
         'finish repair that never started' => ['finishRepair', [], EquipmentStatus::FitForUse],
-        'test fit for use' => ['startTesting', [], EquipmentStatus::FitForUse],
         'test while under repair' => ['startTesting', [], EquipmentStatus::UnderRepair],
         'test unfit without repair' => ['startTesting', [], EquipmentStatus::Unfit],
         'test twice' => ['startTesting', [], EquipmentStatus::UnderTesting],
@@ -338,14 +375,71 @@ describe('CalibrationService (PRD §F2)', function () {
         expect(Calibration::count())->toBe(2);
     });
 
-    it('rejects equipment that is fit for use, under repair, unfit or inactive', function (EquipmentStatus $status, bool $isActive) {
+    it('recalibrates before H-30 and makes the new certificate the reference', function () {
+        $equipment = makeEquipment(status: EquipmentStatus::FitForUse);
+        passedCalibration($equipment, '2026-08-01', '2027-08-01'); // 198 days left
+
+        $calibration = app(CalibrationService::class)->record(calibrationData($equipment));
+
+        $equipment->refresh();
+
+        expect($equipment->status)->toBe(EquipmentStatus::FitForUse)
+            ->and($equipment->latestValidCalibration->is($calibration))->toBeTrue();
+
+        // The old certificate expiring no longer matters.
+        $this->travelTo('2027-08-02 00:10:00');
+        $this->statusService->evaluate($equipment);
+
+        expect($equipment->status)->toBe(EquipmentStatus::FitForUse);
+    });
+
+    it('uses the newest certificate as the reference even when it ends sooner', function () {
+        $equipment = makeEquipment(status: EquipmentStatus::FitForUse);
+        passedCalibration($equipment, '2026-12-01', '2027-12-01');
+
+        app(CalibrationService::class)->record(calibrationData($equipment, ['valid_until' => '2027-06-01']));
+
+        $this->travelTo('2027-06-02 00:10:00');
+        $this->statusService->evaluate($equipment);
+
+        expect($equipment->status)->toBe(EquipmentStatus::Overdue);
+    });
+
+    it('marks fit equipment unfit when an early recalibration fails, even with a valid certificate', function () {
+        $equipment = makeEquipment(status: EquipmentStatus::FitForUse);
+        passedCalibration($equipment, '2026-08-01', '2027-08-01');
+
+        app(CalibrationService::class)->record(calibrationData($equipment, ['result' => 'fail']));
+
+        expect($equipment->fresh()->status)->toBe(EquipmentStatus::Unfit);
+    });
+
+    it('recalibrates after repair, from calibration due and from overdue', function (string $validUntil, EquipmentStatus $afterRepair) {
+        $equipment = makeEquipment(status: EquipmentStatus::FitForUse);
+        passedCalibration($equipment, '2026-01-01', $validUntil);
+
+        $this->statusService->startRepair($equipment);
+        $this->statusService->finishRepair($equipment);
+        expect($equipment->fresh()->status)->toBe($afterRepair);
+
+        $calibration = app(CalibrationService::class)->record(calibrationData($equipment));
+
+        $equipment->refresh();
+
+        expect($equipment->status)->toBe(EquipmentStatus::FitForUse)
+            ->and($equipment->latestValidCalibration->is($calibration))->toBeTrue();
+    })->with([
+        'certificate still valid' => ['2027-06-01', EquipmentStatus::CalibrationDue],
+        'certificate expired' => ['2027-01-01', EquipmentStatus::Overdue],
+    ]);
+
+    it('rejects equipment that is under repair, unfit or inactive', function (EquipmentStatus $status, bool $isActive) {
         $equipment = makeEquipment(status: $status);
         $equipment->update(['is_active' => $isActive]);
 
         expect(fn () => app(CalibrationService::class)->record(calibrationData($equipment)))
             ->toThrow(ValidationException::class);
     })->with([
-        [EquipmentStatus::FitForUse, true],
         [EquipmentStatus::UnderRepair, true],
         [EquipmentStatus::Unfit, true],
         [EquipmentStatus::CalibrationDue, false],
@@ -441,6 +535,25 @@ describe('scheduled commands', function () {
         $this->artisan('calibration:send-reminders')->assertSuccessful();
 
         expect(CalibrationReminder::where('kind', 'h30')->count())->toBe(2);
+    });
+
+    it('sends reminders from the newest certificate only after an early recalibration', function () {
+        $this->seed(RoleAndPermissionSeeder::class);
+        Notification::fake();
+
+        $equipment = makeEquipment(status: EquipmentStatus::FitForUse);
+        passedCalibration($equipment, '2026-08-01', '2027-08-01');
+        app(CalibrationService::class)->record(calibrationData($equipment));
+
+        // 22 days before the old certificate ends: nothing is due anymore.
+        $this->travelTo('2027-07-10 07:00:00');
+        $this->artisan('calibration:send-reminders')->assertSuccessful();
+        expect(CalibrationReminder::count())->toBe(0);
+
+        // 30 days before the new certificate ends.
+        $this->travelTo('2027-12-11 07:00:00');
+        $this->artisan('calibration:send-reminders')->assertSuccessful();
+        expect(CalibrationReminder::sole()->cycle_valid_until->toDateString())->toBe('2028-01-10');
     });
 
     it('catches up with the most urgent reminder after a missed day', function () {
@@ -630,7 +743,7 @@ describe('Filament pages', function () {
         $this->get('/admin/jadwal-kalibrasi')->assertForbidden();
     });
 
-    it('offers start testing and record actions only to teknisi, only in the right status', function () {
+    it('offers start testing and record actions only to teknisi, not during repair', function () {
         $equipment = makeEquipment();
         $kepala = User::where('email', 'kepalaruangan@sigap-alkes.test')->first();
 
@@ -647,6 +760,13 @@ describe('Filament pages', function () {
         $this->flushSession();
         $equipment->forceFill(['status' => EquipmentStatus::FitForUse])->saveQuietly();
         $this->actingAs($this->teknisi)->get("/admin/equipment/{$equipment->id}")
+            ->assertSee('Mulai uji &amp; kalibrasi', false)
+            ->assertSee('Catat hasil kalibrasi');
+
+        $this->flushSession();
+        $equipment->forceFill(['status' => EquipmentStatus::UnderRepair])->saveQuietly();
+        $this->actingAs($this->teknisi)->get("/admin/equipment/{$equipment->id}")
+            ->assertDontSee('Mulai uji &amp; kalibrasi', false)
             ->assertDontSee('Catat hasil kalibrasi');
     });
 

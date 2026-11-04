@@ -29,7 +29,8 @@ class ViewEquipment extends ViewRecord
                 ->modalHeading('Mulai uji & kalibrasi')
                 ->modalDescription('Status alat akan berubah menjadi "Dalam uji & kalibrasi".')
                 ->visible(fn (Equipment $record): bool => $record->is_active
-                    && in_array($record->status, [EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue], true)
+                    && $record->status !== EquipmentStatus::UnderTesting
+                    && in_array($record->status, EquipmentStatus::CALIBRATABLE, true)
                     && CalibrationResource::canCreate())
                 ->action(function (Equipment $record) {
                     app(EquipmentStatusService::class)->startTesting($record, Auth::id());
