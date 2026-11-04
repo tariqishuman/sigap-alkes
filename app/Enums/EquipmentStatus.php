@@ -14,6 +14,9 @@ enum EquipmentStatus: string implements HasColor, HasLabel
     case UnderRepair = 'under_repair';
     case Unfit = 'unfit';
 
+    /** Statuses in which a calibration result can be recorded (PRD §F4). */
+    public const CALIBRATABLE = [self::CalibrationDue, self::Overdue, self::UnderTesting];
+
     public function getLabel(): string
     {
         return match ($this) {

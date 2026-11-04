@@ -72,6 +72,31 @@ class EquipmentInfolist
                             ->columnSpan(2),
                     ]),
 
+                Section::make('Kalibrasi')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('latestValidCalibration.certificate_number')
+                            ->label('Sertifikat Terakhir')
+                            ->placeholder('Belum ada sertifikat'),
+                        TextEntry::make('latestValidCalibration.valid_until')
+                            ->label('Berlaku s.d.')
+                            ->date('d M Y')
+                            ->placeholder('-'),
+                        TextEntry::make('days_until_due')
+                            ->label('Sisa Hari')
+                            ->state(function (Equipment $record): string {
+                                $validUntil = $record->latestValidCalibration?->valid_until;
+
+                                if (! $validUntil) {
+                                    return '-';
+                                }
+
+                                $daysLeft = (int) today()->diffInDays($validUntil, false);
+
+                                return $daysLeft >= 0 ? "{$daysLeft} hari" : 'Lewat '.abs($daysLeft).' hari';
+                            }),
+                    ]),
+
                 Section::make('Nilai Aset (Penyusutan Garis Lurus)')
                     ->description('Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.')
                     ->columns(4)

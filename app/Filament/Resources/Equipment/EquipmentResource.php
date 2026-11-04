@@ -7,6 +7,7 @@ use App\Filament\Resources\Equipment\Pages\CreateEquipment;
 use App\Filament\Resources\Equipment\Pages\EditEquipment;
 use App\Filament\Resources\Equipment\Pages\ListEquipment;
 use App\Filament\Resources\Equipment\Pages\ViewEquipment;
+use App\Filament\Resources\Equipment\RelationManagers\CalibrationsRelationManager;
 use App\Filament\Resources\Equipment\RelationManagers\StatusHistoriesRelationManager;
 use App\Filament\Resources\Equipment\Schemas\EquipmentForm;
 use App\Filament\Resources\Equipment\Schemas\EquipmentInfolist;
@@ -41,7 +42,7 @@ class EquipmentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery()->with(['room', 'equipmentType']);
+        $query = parent::getEloquentQuery()->with(['room', 'equipmentType', 'latestValidCalibration']);
         $user = Auth::user();
 
         if ($user && $user->hasRole(UserRole::KepalaRuangan->value)) {
@@ -69,6 +70,7 @@ class EquipmentResource extends Resource
     public static function getRelations(): array
     {
         return [
+            CalibrationsRelationManager::class,
             StatusHistoriesRelationManager::class,
         ];
     }
