@@ -41,6 +41,12 @@ class UserForm
                             ->multiple()
                             ->preload()
                             ->required(),
+                        Select::make('room_id')
+                            ->label('Ruangan (Khusus Kepala Ruangan)')
+                            ->relationship('room', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->nullable(),
                     ]),
             ]);
     }

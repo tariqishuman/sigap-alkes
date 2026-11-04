@@ -28,15 +28,16 @@ class UsersTable
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => UserRole::tryFrom($state)?->getLabel() ?? $state)
                     ->color(fn (string $state): string|array|null => UserRole::tryFrom($state)?->getColor() ?? 'gray'),
+                TextColumn::make('room.name')
+                    ->label('Ruangan')
+                    ->placeholder('-'),
                 TextColumn::make('created_at')
                     ->label('Terdaftar')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                //
-            ])
+            ->filters([])
             ->recordActions([
                 EditAction::make()
                     ->label('Ubah'),
