@@ -32,10 +32,19 @@
             text-align: center;
         }
         .brand {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
             font-size: 0.8125rem;
             font-weight: 600;
             color: #0E7C7B;
             margin-bottom: 1rem;
+        }
+        .brand img {
+            width: 1.5rem;
+            height: 1.5rem;
+            object-fit: contain;
         }
         .title {
             font-size: 1.25rem;
@@ -51,7 +60,10 @@
 </head>
 <body>
     <main class="card">
-        <div class="brand">SIGAP-Alkes</div>
+        <div class="brand">
+            <img src="{{ asset('images/logo-its.png') }}" alt="Logo ITS">
+            <span>SIGAP-Alkes</span>
+        </div>
         <h1 class="title">404 — Alat Tidak Ditemukan</h1>
         <p class="desc">Kode QR alat kesehatan tidak valid atau tidak terdaftar di sistem.</p>
     </main>

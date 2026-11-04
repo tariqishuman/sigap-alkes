@@ -31,11 +31,19 @@
             padding: 1.75rem 1.5rem;
         }
         .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             font-size: 0.8125rem;
             font-weight: 600;
             color: #0E7C7B;
             letter-spacing: 0.04em;
             margin-bottom: 1.25rem;
+        }
+        .brand img {
+            width: 1.5rem;
+            height: 1.5rem;
+            object-fit: contain;
         }
         .title {
             font-size: 1.5rem;
@@ -96,7 +104,10 @@
 </head>
 <body>
     <main class="card">
-        <div class="brand">SIGAP-Alkes</div>
+        <div class="brand">
+            <img src="{{ asset('images/logo-its.png') }}" alt="Logo ITS">
+            <span>SIGAP-Alkes</span>
+        </div>
 
         <h1 class="title">{{ $equipmentName }}</h1>
         <p class="room">{{ $roomName }}</p>
