@@ -6,6 +6,7 @@ use App\Models\Equipment;
 use App\Services\DepreciationCalculator;
 use App\Services\QrLabelService;
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -20,6 +21,12 @@ class EquipmentInfolist
                 Section::make('Informasi Alat & Status')
                     ->columns(3)
                     ->schema([
+                        ImageEntry::make('photo_path')
+                            ->label('Foto Alat')
+                            ->disk('public')
+                            ->defaultImageUrl(url('/images/equipment-placeholder.svg'))
+                            ->imageHeight(88)
+                            ->square(),
                         TextEntry::make('inventory_code')
                             ->label('Kode Inventaris')
                             ->fontFamily('mono')

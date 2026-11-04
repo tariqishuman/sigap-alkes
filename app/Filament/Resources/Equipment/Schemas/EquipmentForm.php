@@ -85,7 +85,9 @@ class EquipmentForm
                         FileUpload::make('photo_path')
                             ->label('Foto Alat')
                             ->image()
+                            ->disk('public')
                             ->directory('equipment-photos')
+                            ->visibility('public')
                             ->maxSize(2048),
                         Textarea::make('notes')
                             ->label('Catatan')

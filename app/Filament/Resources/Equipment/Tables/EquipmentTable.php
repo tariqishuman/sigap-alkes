@@ -12,6 +12,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -25,6 +26,12 @@ class EquipmentTable
     {
         return $table
             ->columns([
+                ImageColumn::make('photo_path')
+                    ->label('Foto')
+                    ->disk('public')
+                    ->defaultImageUrl(url('/images/equipment-placeholder.svg'))
+                    ->square()
+                    ->imageSize(44),
                 TextColumn::make('inventory_code')
                     ->label('Kode Inventaris')
                     ->searchable()
