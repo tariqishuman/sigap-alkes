@@ -1,0 +1,42 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+@theme {
+    --color-sigap-primary: #0E7C7B;
+    --color-sigap-ink: #1B2B30;
+    --color-sigap-muted: #6B7C80;
+    --color-sigap-line: #DDE7E6;
+    --color-sigap-tint: #EEF6F5;
+    --color-sigap-success: #2E9E6B;
+    --color-sigap-warning: #E0A23B;
+    --color-sigap-danger: #D9534F;
+}
+
+.fi-body {
+    background-color: var(--color-sigap-tint);
+    color: var(--color-sigap-ink);
+}
+
+.fi-section:not(.fi-section-not-contained):not(.fi-aside),
+.fi-section:not(.fi-section-not-contained).fi-aside > .fi-section-content-ctn,
+.fi-ta-ctn,
+.fi-wi-stats-overview-stat,
+.fi-simple-main {
+    border-radius: 0.75rem;
+    box-shadow: none;
+    border: 1px solid var(--color-sigap-line);
+    --tw-ring-shadow: 0 0 #0000;
+}
+
+.fi-section-header-description,
+.fi-wi-stats-overview-stat-description,
+.fi-wi-stats-overview-stat-label {
+    color: var(--color-sigap-muted);
+}
+
+.fi-wi-stats-overview-stat-value {
+    font-weight: 600;
+    color: var(--color-sigap-ink);
+}
