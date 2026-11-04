@@ -29,3 +29,17 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
    - `teknisi`: Hanya melihat daftar dan detail seluruh alat (`ViewAny:Equipment`, `View:Equipment`); tidak memiliki akses ke Data Master maupun tambah/ubah alat (mendapat HTTP 403).
    - `kepala_ruangan`: Hanya melihat daftar dan detail alat yang berada di `room_id` miliknya (`EquipmentResource::getEloquentQuery()` dan `EquipmentPolicy::view()`); mendapat HTTP 403 bila mengakses alat ruangan lain atau Data Master.
    - `manajemen`: Tidak memiliki akses ke halaman CRUD Data Master maupun kelola alat (mendapat HTTP 403).
+
+## M2 — Kalibrasi, Status, Pengingat (PRD F2 & F4)
+1. **Hasil dicatat setelah uji selesai**: `CalibrationService::record` hanya menerima alat berstatus *Perlu kalibrasi*, *Terlambat*, atau *Dalam uji & kalibrasi*. Bila alat belum ditandai "mulai diuji", status dilewatkan ke *Dalam uji & kalibrasi* lebih dulu supaya tetap mengikuti tabel §F4 (tercatat dua baris riwayat). Alat *Laik pakai* tidak bisa dikalibrasi ulang lebih awal sebelum H-30 karena transisinya tidak ada di tabel.
+2. **Aturan validasi tambahan di luar PRD**: `valid_until` harus setelah `tested_at`, dan saat pencatatan baru tidak boleh sudah lewat, agar sertifikat kedaluwarsa tidak menampilkan alat sebagai *Laik pakai*. Hasil *tidak lulus* tidak menyimpan nomor sertifikat, `valid_until`, maupun file.
+3. **Kalibrasi tidak bisa dihapus**: `CalibrationPolicy` tidak menyediakan aksi hapus karena kalibrasi menjadi dasar riwayat status. Koreksi lewat Ubah; alat dan hasil terkunci karena sudah memicu transisi.
+4. **Hak akses kalibrasi**: `teknisi` lihat, catat, dan ubah. `admin_ipsrs` dan `manajemen` hanya melihat daftar serta Jadwal Kalibrasi dan bisa mengekspor (PRD §3). `kepala_ruangan` tidak punya akses.
+5. **Pengingat memakai ambang, bukan tanggal persis**: tiap hari dikirim pengingat paling mendesak yang berlaku (sisa ≤30 → H-30, ≤7 → H-7, ≤0 → H-0), sekali per jenis per `valid_until`. Bila scheduler sempat mati, pengingat tetap terkirim saat berjalan lagi, dan jenis yang sudah lewat tidak dikirim. Sertifikat baru memulai siklus baru.
+6. **Alat yang tidak diberi pengingat**: alat nonaktif, tanpa sertifikat, jenis tidak wajib kalibrasi, serta yang berstatus *Dalam uji & kalibrasi*, *Dalam perbaikan*, atau *Tidak laik pakai* karena sedang ditangani.
+7. **File sertifikat disimpan di disk privat** (`local`) dan hanya bisa diunduh lewat aksi tabel setelah login.
+8. **Alat tanpa sertifikat tetap muncul di Jadwal Kalibrasi**, di urutan paling atas, karena justru paling perlu diajukan. Filter bulan menyembunyikannya.
+9. **Jadwal scheduler**: evaluasi status 00.10 WIB, pengingat 07.00 WIB.
+
+### Perlu konfirmasi
+- **Perbaikan alat *Perlu kalibrasi* / *Terlambat***: tabel §F4 hanya mengizinkan perbaikan dari *Laik pakai* dan *Tidak laik pakai*, sehingga alat yang rusak saat jatuh tempo ditolak oleh `startRepair`. Diikuti apa adanya; perlu diputuskan sebelum M3.

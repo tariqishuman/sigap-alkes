@@ -16,7 +16,7 @@ class PublicEquipmentController extends Controller
         }
 
         $equipment = Equipment::query()
-            ->with(['room'])
+            ->with(['room', 'latestValidCalibration'])
             ->where('qr_token', $qr_token)
             ->first();
 
@@ -55,7 +55,7 @@ class PublicEquipmentController extends Controller
         };
 
         $validUntilFormatted = 'Belum ada sertifikat';
-        if (method_exists($equipment, 'latestValidCalibration') && $equipment->latestValidCalibration?->valid_until) {
+        if ($equipment->latestValidCalibration?->valid_until) {
             $validUntilFormatted = $equipment->latestValidCalibration->valid_until->translatedFormat('d F Y');
         }
 

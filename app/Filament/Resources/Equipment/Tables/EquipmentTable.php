@@ -14,9 +14,11 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
@@ -54,7 +56,7 @@ class EquipmentTable
                 TextColumn::make('valid_until_display')
                     ->label('Berlaku s.d.')
                     ->state(function (Equipment $record): string {
-                        if (method_exists($record, 'latestValidCalibration') && $record->latestValidCalibration?->valid_until) {
+                        if ($record->latestValidCalibration?->valid_until) {
                             return $record->latestValidCalibration->valid_until->translatedFormat('d M Y');
                         }
 
@@ -78,6 +80,9 @@ class EquipmentTable
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(EquipmentStatus::class),
+                Filter::make('due_soon')
+                    ->label('Jatuh tempo ≤ 30 hari')
+                    ->query(fn (Builder $query) => $query->dueBetween(today(), today()->addDays(30))),
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif')
                     ->default(true),
