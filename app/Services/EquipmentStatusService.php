@@ -15,9 +15,17 @@ class EquipmentStatusService
      * Daily date-based rules: Laik pakai -> Perlu kalibrasi from H-30,
      * Perlu kalibrasi -> Terlambat once valid_until has passed.
      * Both checks run in order, so equipment missed by the scheduler still catches up.
+     * The newest passed certificate is the reference, even if it ends sooner than an older one.
      */
     public function evaluate(Equipment $equipment): void
     {
+        $equipment->loadMissing('equipmentType');
+
+        // A voluntary certificate on a type that needs no calibration never makes it overdue.
+        if (! $equipment->equipmentType->requires_calibration) {
+            return;
+        }
+
         $validUntil = $equipment->latestValidCalibration()->first()?->valid_until;
 
         if (! $validUntil) {
@@ -54,21 +62,32 @@ class EquipmentStatusService
 
     public function startRepair(Equipment $equipment, ?int $changedBy = null): StatusHistory
     {
-        return $this->transition($equipment, [EquipmentStatus::FitForUse, EquipmentStatus::Unfit], EquipmentStatus::UnderRepair, 'Perbaikan dimulai', $changedBy);
+        return $this->transition($equipment, [EquipmentStatus::FitForUse, EquipmentStatus::Unfit, EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue], EquipmentStatus::UnderRepair, 'Perbaikan dimulai', $changedBy);
     }
 
-    public function finishRepair(Equipment $equipment, ?int $changedBy = null): StatusHistory
+    /**
+     * Repaired equipment that requires calibration never returns directly to fit for use:
+     * it needs a new test, and the daily rule applies at once, so an expired certificate means overdue.
+     */
+    public function finishRepair(Equipment $equipment, ?int $changedBy = null): void
     {
         $equipment->loadMissing('equipmentType');
 
-        return $equipment->equipmentType->requires_calibration
-            ? $this->transition($equipment, [EquipmentStatus::UnderRepair], EquipmentStatus::CalibrationDue, 'Perbaikan selesai, wajib kalibrasi ulang', $changedBy)
-            : $this->transition($equipment, [EquipmentStatus::UnderRepair], EquipmentStatus::FitForUse, 'Perbaikan selesai', $changedBy);
+        if (! $equipment->equipmentType->requires_calibration) {
+            $this->transition($equipment, [EquipmentStatus::UnderRepair], EquipmentStatus::FitForUse, 'Perbaikan selesai', $changedBy);
+
+            return;
+        }
+
+        DB::transaction(function () use ($equipment, $changedBy) {
+            $this->transition($equipment, [EquipmentStatus::UnderRepair], EquipmentStatus::CalibrationDue, 'Perbaikan selesai, wajib kalibrasi ulang', $changedBy);
+            $this->evaluate($equipment);
+        });
     }
 
     public function startTesting(Equipment $equipment, ?int $changedBy = null): StatusHistory
     {
-        return $this->transition($equipment, [EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue], EquipmentStatus::UnderTesting, 'Alat mulai diuji', $changedBy);
+        return $this->transition($equipment, [EquipmentStatus::FitForUse, EquipmentStatus::CalibrationDue, EquipmentStatus::Overdue], EquipmentStatus::UnderTesting, 'Alat mulai diuji', $changedBy);
     }
 
     public function recordTestResult(Equipment $equipment, bool $passed, ?int $changedBy = null): StatusHistory
