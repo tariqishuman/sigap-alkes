@@ -97,8 +97,7 @@ class EquipmentInfolist
                             }),
                     ]),
 
-                Section::make('Nilai Aset (Penyusutan Garis Lurus)')
-                    ->description('Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.')
+                Section::make('Nilai Aset')
                     ->columns(4)
                     ->schema([
                         TextEntry::make('acquisition_date')
