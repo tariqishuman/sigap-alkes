@@ -164,6 +164,7 @@ Sebelum melakukan *commit* atau menyelesaikan *milestone*, pastikan seluruh peng
 - [ ] **M3 — Kerusakan, Perbaikan, & Mutasi (`PRD F3`)**: Laporan kerusakan oleh Kepala Ruangan, tindak lanjut perbaikan + pemakaian suku cadang oleh Teknisi, dan mutasi ruangan alat.
 - [ ] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* & Kepatuhan Kalibrasi, indikator *"Pertimbangkan ganti"*, *Dashboard* grafik & statistik lengkap, serta ekspor Excel/PDF & ASPAK.
 - [ ] **M5 — Seeder Sintetis & Finishing**: Seeder data sintetis lengkap (6 ruangan, 10 jenis alat, ±60 alat dengan riwayat 12 bulan terakhir tanpa data pasien) & finalisasi menyeluruh.
+- [ ] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 *(Future Roadmap / Todo)***: Pemetaan entitas operasional non-pasien ke resource standar HL7 FHIR R4 (`Equipment` $\rightarrow$ `Device`, `Room` $\rightarrow$ `Location`, `Calibration` $\rightarrow$ `DeviceMetric`, `TestingInstitution` $\rightarrow$ `Organization`), penyediaan REST API endpoint `/api/fhir/r4/*`, serta sinkronisasi status kelaikan alat ke SIMRS / SatuSehat.
 
 ---
 

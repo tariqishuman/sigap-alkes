@@ -48,5 +48,9 @@ M5 — Seeder & finishing
 - Seeder data sintetis: 6 ruangan, 10 jenis alat, ±60 alat dengan status bervariasi, riwayat kalibrasi & perbaikan 12 bulan terakhir. Tanpa data pasien.
 - Cek ulang semua permission per role, lengkapi test, tulis README (cara install & akun demo).
 
+M6 — Integrasi Interoperabilitas HL7 FHIR R4 (Future Todo)
+- Pemetaan model operasional (tanpa data pasien) ke standar HL7 FHIR R4: Equipment -> Device, Room -> Location, EquipmentType -> DeviceDefinition/CodeableConcept, Calibration -> DeviceMetric, TestingInstitution -> Organization.
+- Endpoint REST API FHIR (/api/fhir/r4/Device, /api/fhir/r4/Location) & webhook/job sinkronisasi status alat ke SIMRS.
+
 Mulai dari M0. Sebelum menulis kode, tunjukkan rencana singkat M0 (langkah + package yang akan diinstal).
 ```
