@@ -3,6 +3,7 @@
 use App\Enums\EquipmentStatus;
 use App\Enums\TestingInstitutionKind;
 use App\Filament\Resources\Equipment\EquipmentResource;
+use App\Filament\Resources\Equipment\Pages\ViewEquipment;
 use App\Models\Equipment;
 use App\Models\EquipmentType;
 use App\Models\Room;
@@ -14,6 +15,7 @@ use App\Services\QrLabelService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 it('assigns initial status via EquipmentStatusService and records status_histories on creation', function () {
     $room = Room::create([
@@ -338,6 +340,14 @@ it('generates QR label PDF for single and bulk equipment', function () {
     $pdfOutput = $service->generateLabelsPdf(collect([$eq1, $eq2]))->output();
 
     expect($pdfOutput)->toStartWith('%PDF-');
+
+    $this->seed(RoleAndPermissionSeeder::class);
+    $admin = User::where('email', 'admin@sigap-alkes.test')->firstOrFail();
+    $this->actingAs($admin);
+
+    Livewire::test(ViewEquipment::class, ['record' => $eq1->getRouteKey()])
+        ->callAction('print_qr')
+        ->assertFileDownloaded("label-qr-{$eq1->inventory_code}.pdf");
 });
 
 it('calculates straight-line depreciation accurately for PRD §F6 mandatory test case', function () {
