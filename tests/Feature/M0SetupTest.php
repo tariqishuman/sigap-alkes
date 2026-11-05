@@ -60,6 +60,9 @@ it('allows demo users to access the admin dashboard and enforces UserResource pe
     $this->flushSession();
     $this->actingAs($adminIpsrs)->get('/admin')->assertOk();
     $this->actingAs($adminIpsrs)->get('/admin/users')->assertOk();
+    $this->actingAs($adminIpsrs)->get("/admin/users/{$teknisi->id}/edit")->assertOk();
+    $this->actingAs($adminIpsrs)->get("/admin/users/{$superAdmin->id}/edit")->assertForbidden();
+    expect($adminIpsrs->can('delete', $superAdmin))->toBeFalse();
     $this->actingAs($adminIpsrs)->get('/admin/shield/roles')->assertForbidden();
 
     $this->flushSession();
