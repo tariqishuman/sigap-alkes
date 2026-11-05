@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Enums\UserRole;
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -14,6 +15,9 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->checkIfRecordIsSelectableUsing(
+                fn (User $record): bool => ! $record->hasRole(UserRole::SuperAdmin->value) && auth()->id() !== $record->id,
+            )
             ->columns([
                 TextColumn::make('name')
                     ->label('Nama')

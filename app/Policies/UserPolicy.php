@@ -2,6 +2,8 @@
 
 namespace App\Policies;
 
+use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
@@ -14,7 +16,7 @@ class UserPolicy
         return $authUser->can('ViewAny:User');
     }
 
-    public function view(AuthUser $authUser): bool
+    public function view(AuthUser $authUser, ?User $record = null): bool
     {
         return $authUser->can('View:User');
     }
@@ -24,14 +26,32 @@ class UserPolicy
         return $authUser->can('Create:User');
     }
 
-    public function update(AuthUser $authUser): bool
+    public function update(AuthUser $authUser, ?User $record = null): bool
     {
-        return $authUser->can('Update:User');
+        if (! $authUser->can('Update:User')) {
+            return false;
+        }
+
+        // Hanya super_admin yang boleh mengubah akun milik super_admin
+        if ($record?->hasRole(UserRole::SuperAdmin->value) && ! $authUser->hasRole(UserRole::SuperAdmin->value)) {
+            return false;
+        }
+
+        return true;
     }
 
-    public function delete(AuthUser $authUser): bool
+    public function delete(AuthUser $authUser, ?User $record = null): bool
     {
-        return $authUser->can('Delete:User');
+        if (! $authUser->can('Delete:User')) {
+            return false;
+        }
+
+        // Akun super_admin dan akun diri sendiri tidak boleh dihapus
+        if ($record !== null && ($record->hasRole(UserRole::SuperAdmin->value) || $authUser->getKey() === $record->getKey())) {
+            return false;
+        }
+
+        return true;
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -39,14 +59,22 @@ class UserPolicy
         return $authUser->can('DeleteAny:User');
     }
 
-    public function restore(AuthUser $authUser): bool
+    public function restore(AuthUser $authUser, ?User $record = null): bool
     {
         return $authUser->can('Restore:User');
     }
 
-    public function forceDelete(AuthUser $authUser): bool
+    public function forceDelete(AuthUser $authUser, ?User $record = null): bool
     {
-        return $authUser->can('ForceDelete:User');
+        if (! $authUser->can('ForceDelete:User')) {
+            return false;
+        }
+
+        if ($record !== null && ($record->hasRole(UserRole::SuperAdmin->value) || $authUser->getKey() === $record->getKey())) {
+            return false;
+        }
+
+        return true;
     }
 
     public function forceDeleteAny(AuthUser $authUser): bool
@@ -59,9 +87,17 @@ class UserPolicy
         return $authUser->can('RestoreAny:User');
     }
 
-    public function replicate(AuthUser $authUser): bool
+    public function replicate(AuthUser $authUser, ?User $record = null): bool
     {
-        return $authUser->can('Replicate:User');
+        if (! $authUser->can('Replicate:User')) {
+            return false;
+        }
+
+        if ($record?->hasRole(UserRole::SuperAdmin->value) && ! $authUser->hasRole(UserRole::SuperAdmin->value)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function reorder(AuthUser $authUser): bool
