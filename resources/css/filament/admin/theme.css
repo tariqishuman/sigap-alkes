@@ -74,29 +74,29 @@
     font-weight: 500;
 }
 
-.fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover {
+.fi-sidebar-item.fi-sidebar-item-has-url>.fi-sidebar-item-btn:hover {
     background-color: var(--color-sigap-tint);
 }
 
-.fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover > .fi-icon,
-.fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover > .fi-sidebar-item-label {
+.fi-sidebar-item.fi-sidebar-item-has-url>.fi-sidebar-item-btn:hover>.fi-icon,
+.fi-sidebar-item.fi-sidebar-item-has-url>.fi-sidebar-item-btn:hover>.fi-sidebar-item-label {
     color: var(--color-sigap-primary);
 }
 
-.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+.fi-sidebar-item.fi-active>.fi-sidebar-item-btn {
     background-color: #E3F3F2;
     box-shadow: inset 3px 0 0 0 var(--color-sigap-primary);
 }
 
-.fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon,
-.fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-sidebar-item-label {
+.fi-sidebar-item.fi-active>.fi-sidebar-item-btn>.fi-icon,
+.fi-sidebar-item.fi-active>.fi-sidebar-item-btn>.fi-sidebar-item-label {
     color: var(--color-sigap-primary);
     font-weight: 600;
 }
 
 /* Cards, Sections, & Tables */
 .fi-section:not(.fi-section-not-contained):not(.fi-aside),
-.fi-section:not(.fi-section-not-contained).fi-aside > .fi-section-content-ctn,
+.fi-section:not(.fi-section-not-contained).fi-aside>.fi-section-content-ctn,
 .fi-ta-ctn,
 .fi-wi-stats-overview-stat,
 .fi-simple-main {
