@@ -25,6 +25,7 @@ class RoleAndPermissionSeeder extends Seeder
             'TestingInstitution',
             'SparePart',
             'Equipment',
+            'Calibration',
         ];
 
         $actions = [
@@ -67,12 +68,16 @@ class RoleAndPermissionSeeder extends Seeder
         foreach (['ViewAny', 'View', 'Create', 'Update'] as $action) {
             $adminIpsrsPermissions[] = "{$action}:Equipment";
         }
+        $adminIpsrsPermissions[] = 'ViewAny:Calibration';
         $roles[UserRole::AdminIpsrs->value]->syncPermissions($adminIpsrsPermissions);
 
-        // 3. teknisi: Lihat semua alat (PRD §3)
+        // 3. teknisi: Lihat semua alat; catat kalibrasi (PRD §3)
         $roles[UserRole::Teknisi->value]->syncPermissions([
             'ViewAny:Equipment',
             'View:Equipment',
+            'ViewAny:Calibration',
+            'Create:Calibration',
+            'Update:Calibration',
         ]);
 
         // 4. kepala_ruangan: Lihat alat di ruangannya saja (PRD §3)
@@ -82,7 +87,9 @@ class RoleAndPermissionSeeder extends Seeder
         ]);
 
         // 5. manajemen: Lihat dashboard dan laporan; ekspor (PRD §3)
-        $roles[UserRole::Manajemen->value]->syncPermissions([]);
+        $roles[UserRole::Manajemen->value]->syncPermissions([
+            'ViewAny:Calibration',
+        ]);
 
         // Ruangan default untuk akun demo kepala ruangan
         $icuRoom = Room::firstOrCreate(

@@ -8,8 +8,8 @@ use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
-use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QrLabelService
 {
@@ -47,8 +47,16 @@ class QrLabelService
     /**
      * @param  Collection<int, Equipment>  $equipmentList
      */
-    public function downloadLabelsPdf(Collection $equipmentList, string $filename = 'label-qr-alkes.pdf'): Response
+    public function downloadLabelsPdf(Collection $equipmentList, string $filename = 'label-qr-alkes.pdf'): StreamedResponse
     {
-        return $this->generateLabelsPdf($equipmentList)->download($filename);
+        $pdfOutput = $this->generateLabelsPdf($equipmentList)->output();
+
+        return response()->streamDownload(
+            function () use ($pdfOutput): void {
+                echo $pdfOutput;
+            },
+            $filename,
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 }

@@ -24,7 +24,7 @@ Sumber: proposal Kelompok 3, mata kuliah Manajemen Data, Teknologi Kedokteran IT
 |---|---|---|
 | `super_admin` | Developer/pengelola sistem | Semua |
 | `admin_ipsrs` | Admin IPSRS | CRUD semua data master, alat, akun pengguna; cetak label QR |
-| `teknisi` | Teknisi elektromedis | Lihat semua alat; CRUD kalibrasi, perbaikan, mutasi alat |
+| `teknisi` | Teknisi elektromedis | Lihat semua alat; lihat, catat, dan ubah kalibrasi (tanpa hapus); CRUD perbaikan dan mutasi alat |
 | `kepala_ruangan` | Kepala ruangan / perawat | Lihat alat **di ruangannya saja**; buat laporan kerusakan |
 | `manajemen` | Manajemen RS / tim akreditasi | Lihat dashboard dan laporan; ekspor |
 | (publik, tanpa login) | Siapa pun yang scan QR | Hanya halaman status alat (nama, ruangan, status, berlaku s.d.) |
@@ -45,7 +45,9 @@ Role dikelola dengan **Filament Shield** (spatie/laravel-permission).
 
 ### F2. Jadwal dan pengingat kalibrasi
 - Catat hasil uji/kalibrasi: alat, lembaga penguji, tanggal uji, hasil (lulus/tidak lulus), nomor sertifikat, berlaku sampai, file sertifikat (PDF).
-- Jatuh tempo = `valid_until` dari kalibrasi lulus terakhir. Interval bawaan diambil dari jenis alat (`calibration_interval_months`, default 12) dan bisa diubah admin.
+- Kalibrasi ulang boleh dilakukan kapan saja, termasuk sebelum H-30 dan setelah perbaikan, selama alat aktif dan tidak sedang *Dalam perbaikan* atau *Tidak laik pakai*.
+- Kalibrasi **tidak bisa dihapus**, hanya bisa diedit. Saat diedit, alat dan hasil terkunci karena sudah memicu perubahan status.
+- Jatuh tempo = `valid_until` dari kalibrasi lulus terbaru (tanggal uji paling akhir). Sertifikat terbaru ini yang menjadi acuan status dan pengingat, walaupun masa berlakunya lebih pendek dari sertifikat sebelumnya. Interval bawaan diambil dari jenis alat (`calibration_interval_months`, default 12) dan bisa diubah admin.
 - Scheduler harian mengirim pengingat **H-30, H-7, dan H-0** ke teknisi dan admin IPSRS lewat **notifikasi database Filament + email**. Satu pengingat hanya terkirim sekali per siklus.
 - Halaman **Jadwal Kalibrasi**: daftar alat jatuh tempo per bulan, bisa difilter dan diekspor (untuk diajukan ke BPAFK/lab).
 
@@ -82,11 +84,11 @@ Aturan transisi (semua perubahan lewat satu service dan dicatat di `status_histo
 | Laik pakai | Hari ini ≥ `valid_until` − 30 hari | Perlu kalibrasi |
 | Laik pakai | Mutasi alat yang jenisnya `requires_installation = true`, atau reinstalasi | Perlu kalibrasi |
 | (alat baru) | Jenis wajib kalibrasi, belum ada sertifikat | Perlu kalibrasi |
-| Laik pakai / Tidak laik pakai | Perbaikan dimulai | Dalam perbaikan |
-| Dalam perbaikan | Perbaikan selesai, jenis wajib kalibrasi | Perlu kalibrasi |
+| Laik pakai / Tidak laik pakai / Perlu kalibrasi / Terlambat | Perbaikan dimulai | Dalam perbaikan |
+| Dalam perbaikan | Perbaikan selesai, jenis wajib kalibrasi | Hasil evaluasi kalibrasi: Perlu kalibrasi, atau Terlambat jika hari ini > `valid_until` |
 | Dalam perbaikan | Perbaikan selesai, jenis **tidak** wajib kalibrasi | Laik pakai |
 | Perlu kalibrasi | Hari ini > `valid_until` | Terlambat |
-| Perlu kalibrasi / Terlambat | Alat dikirim / mulai diuji | Dalam uji & kalibrasi |
+| Laik pakai / Perlu kalibrasi / Terlambat | Alat dikirim / mulai diuji | Dalam uji & kalibrasi |
 | Dalam uji & kalibrasi | Hasil lulus | Laik pakai |
 | Dalam uji & kalibrasi | Hasil tidak lulus | Tidak laik pakai |
 
