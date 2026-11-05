@@ -16,7 +16,7 @@ class PublicEquipmentController extends Controller
         }
 
         $equipment = Equipment::query()
-            ->with(['room', 'latestValidCalibration'])
+            ->with(['room', 'equipmentType', 'latestValidCalibration'])
             ->where('qr_token', $qr_token)
             ->first();
 
@@ -64,9 +64,15 @@ class PublicEquipmentController extends Controller
             ? 'hari ini'
             : ($updatedAt?->translatedFormat('d F Y') ?? '-');
 
+        $brandModel = trim(($equipment->brand ?? '').' '.($equipment->model ?? ''));
+
         return response()->view('public.equipment-status', [
+            'inventoryCode' => $equipment->inventory_code,
             'equipmentName' => $equipment->name,
+            'equipmentTypeName' => $equipment->equipmentType?->name ?? '-',
+            'brandModel' => $brandModel !== '' ? $brandModel : '-',
             'roomName' => $equipment->room?->name ?? '-',
+            'roomLocation' => collect([$equipment->room?->building, $equipment->room?->floor])->filter()->implode(' • '),
             'statusLabel' => Str::upper($status->getLabel()),
             'statusColors' => $statusBadgeColors,
             'isDangerousToUse' => $status->isDangerousToUse(),

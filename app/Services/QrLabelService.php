@@ -33,11 +33,15 @@ class QrLabelService
      */
     public function generateLabelsPdf(Collection $equipmentList): \Barryvdh\DomPDF\PDF
     {
-        $items = $equipmentList->map(fn (Equipment $equipment): array => [
-            'equipment' => $equipment,
-            'qr_data_uri' => $this->generateQrDataUri($equipment),
-            'public_url' => route('public.equipment.show', ['qr_token' => $equipment->qr_token]),
-        ]);
+        $items = $equipmentList->map(function (Equipment $equipment): array {
+            $equipment->loadMissing(['room', 'equipmentType']);
+
+            return [
+                'equipment' => $equipment,
+                'qr_data_uri' => $this->generateQrDataUri($equipment),
+                'public_url' => route('public.equipment.show', ['qr_token' => $equipment->qr_token]),
+            ];
+        });
 
         return Pdf::loadView('pdf.equipment-qr-labels', [
             'items' => $items,

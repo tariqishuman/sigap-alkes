@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $equipmentName }} — Status Alat | SIGAP-Alkes</title>
+    <title>{{ $equipmentName }} ({{ $inventoryCode }}) — Status Alat | RS When yh</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=poppins:400,500,600,700&display=swap" rel="stylesheet" />
     <style>
@@ -33,20 +33,38 @@
         .brand {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.5rem;
             font-size: 0.8125rem;
             font-weight: 600;
             color: #0E7C7B;
             letter-spacing: 0.04em;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .brand-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         .brand img {
             width: 1.5rem;
             height: 1.5rem;
             object-fit: contain;
         }
+        .inventory-pill {
+            display: inline-block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #0E7C7B;
+            background-color: #E3F3F2;
+            border: 1px solid #B8DFDC;
+            padding: 0.2rem 0.55rem;
+            border-radius: 0.375rem;
+            letter-spacing: 0.03em;
+        }
         .title {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 600;
             color: #1B2B30;
             line-height: 1.25;
@@ -55,7 +73,7 @@
         .room {
             font-size: 0.9375rem;
             color: #6B7C80;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
         .badge {
             display: inline-flex;
@@ -80,16 +98,34 @@
             line-height: 1.45;
             margin-bottom: 1.25rem;
         }
+        .identity-box {
+            background-color: #F8FBFB;
+            border: 1px solid #DDE7E6;
+            border-radius: 0.625rem;
+            padding: 0.875rem 1rem;
+            margin-bottom: 1.25rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem 1rem;
+        }
+        .identity-item-full {
+            grid-column: 1 / -1;
+        }
         .meta-label {
-            font-size: 0.8125rem;
+            font-size: 0.75rem;
             color: #6B7C80;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
         }
         .meta-value {
-            font-size: 1rem;
-            font-weight: 500;
+            font-size: 0.9375rem;
+            font-weight: 600;
             color: #1B2B30;
-            margin-bottom: 1.25rem;
+        }
+        .meta-value-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: #0E7C7B;
         }
         .divider {
             border: none;
@@ -105,12 +141,20 @@
 <body>
     <main class="card">
         <div class="brand">
-            <img src="{{ asset('images/logo-its.png') }}" alt="Logo ITS">
-            <span>SIGAP-Alkes</span>
+            <div class="brand-left">
+                <img src="{{ asset('images/logo-its.png') }}" alt="Logo ITS">
+                <span>RS When yh</span>
+            </div>
+            <span class="inventory-pill">ID: {{ $inventoryCode }}</span>
         </div>
 
         <h1 class="title">{{ $equipmentName }}</h1>
-        <p class="room">{{ $roomName }}</p>
+        <p class="room">
+            {{ $roomName }}
+            @if (! empty($roomLocation))
+                <span>({{ $roomLocation }})</span>
+            @endif
+        </p>
 
         <div
             class="badge"
@@ -126,8 +170,24 @@
             </div>
         @endif
 
-        <div class="meta-label">Sertifikat berlaku s.d.</div>
-        <div class="meta-value">{{ $validUntilFormatted }}</div>
+        <div class="identity-box">
+            <div>
+                <div class="meta-label">Kode Inventaris / ID Alat</div>
+                <div class="meta-value-mono">{{ $inventoryCode }}</div>
+            </div>
+            <div>
+                <div class="meta-label">Jenis Alat</div>
+                <div class="meta-value">{{ $equipmentTypeName }}</div>
+            </div>
+            <div>
+                <div class="meta-label">Merek / Tipe</div>
+                <div class="meta-value">{{ $brandModel }}</div>
+            </div>
+            <div>
+                <div class="meta-label">Sertifikat berlaku s.d.</div>
+                <div class="meta-value">{{ $validUntilFormatted }}</div>
+            </div>
+        </div>
 
         <hr class="divider">
 
