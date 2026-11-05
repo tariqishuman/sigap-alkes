@@ -1,12 +1,13 @@
 <p align="center">
-  <img src="public/images/logo-its.png" alt="Logo ITS" width="90" />
+  <img src="public/images/logo-its.png" alt="Logo ITS" width="84" />
 </p>
 
-<h1 align="center">🏥 SIGAP-Alkes</h1>
+<h1 align="center">SIGAP-Alkes</h1>
 
 <p align="center">
   <strong>Sistem Informasi Operasional Inventaris, Kalibrasi, Pemeliharaan, dan Nilai Aset Alat Kesehatan Rumah Sakit</strong><br/>
-  <em>Proyek Mata Kuliah Manajemen Data — Departemen Teknologi Kedokteran, Institut Teknologi Sepuluh Nopember (ITS) 2026</em>
+  Departemen Teknologi Kedokteran — Fakultas Kedokteran dan Kesehatan (FKK)<br/>
+  Institut Teknologi Sepuluh Nopember (ITS) Surabaya
 </p>
 
 <p align="center">
@@ -19,157 +20,173 @@
 
 ---
 
-## 👋 Kenalan Dulu Sama SIGAP-Alkes!
+## Ringkasan Proyek
 
-Halo semuanya! Selamat datang di repositori **SIGAP-Alkes** ✨
+**SIGAP-Alkes** adalah aplikasi web internal rumah sakit yang dirancang sebagai pendamping operasional harian bagi unit **IPSRS (Instalasi Pemeliharaan Sarana Rumah Sakit)** dan **Elektromedis**. Sistem ini memusatkan pencatatan inventaris alat kesehatan, pemantauan jadwal dan sertifikat kalibrasi, riwayat kerusakan dan perbaikan, mutasi antar-ruangan, hingga perhitungan nilai buku aset.
 
-Di banyak rumah sakit, pencatatan jadwal kalibrasi, riwayat perbaikan, sampai mutasi alat kesehatan (alkes) seringkali masih tersebar di file Excel atau buku manual. Akibatnya? Nggak jarang ada alat yang kelewat jadwal kalibrasinya karena nggak ada *reminder* otomatis, atau perawat di ruangan bingung apakah suatu alat masih **Laik Pakai** atau sebenarnya lagi bermasalah.
+Aplikasi ini dirancang untuk **melengkapi ASPAK Kemenkes** pada aspek operasional harian di rumah sakit, serta menjaga batas privasi secara ketat dengan **tidak menyimpan data pasien (non-RME)**.
 
-Nah, **SIGAP-Alkes** hadir buat menjawab *pain point* tersebut sebagai *operational companion* harian bagi tim **IPSRS (Instalasi Pemeliharaan Sarana Rumah Sakit)** dan unit **Elektromedis**. Catatan penting: aplikasi ini dirancang buat **melengkapi ASPAK**, bukan menggantikannya yaa!
-
-### 🎯 *Goals* Utama Aplikasi Ini:
-1. **Zero Overdue Calibration**: Nggak ada lagi ceritanya alkes telat dikalibrasi gara-gara lupa jadwal, soalnya ada pengingat otomatis (H-30, H-7, H-0).
-2. **Instant Status Check via QR**: Cukup *scan* stiker QR di bodi alat pakai HP (tanpa perlu login!), siapa pun langsung tahu alat itu **Laik Pakai**, **Perlu Kalibrasi**, atau **Tidak Laik Pakai**.
-3. **Single Source of Truth**: Riwayat kalibrasi, laporan kerusakan, perbaikan + suku cadang, sampai mutasi antar-ruangan tercatat rapi di satu tempat.
-4. **Asset Valuation & Analytics**: Manajemen RS bisa langsung pantau *uptime* alat, persentase kepatuhan kalibrasi, sampai **nilai buku aset (penyusutan garis lurus)** secara *real-time*.
+### Tujuan Utama
+1. **Kepatuhan Jadwal Kalibrasi**: Mencegah keterlambatan kalibrasi melalui evaluasi status harian dan pengingat otomatis pada H-30, H-7, dan H-0 sebelum masa berlaku sertifikat berakhir.
+2. **Transparansi Status Kelaikan via QR Code**: Memudahkan tenaga kesehatan di ruangan untuk memeriksa status kelaikan alat cukup dengan memindai label QR pada unit alat tanpa perlu login.
+3. **Rekam Jejak Audit Terpusat**: Mencatat riwayat perpindahan status, sertifikat kalibrasi, perbaikan, dan mutasi ruangan secara terstruktur dan tidak dapat dihapus sembarangan (*no hard-delete*).
+4. **Valuasi Aset Manajerial**: Menghitung penyusutan garis lurus (*straight-line depreciation*) dan nilai buku saat ini secara presisi untuk mendukung perencanaan penggantian unit.
 
 ---
 
-## 🛠️ Tech Stack yang Dipakai
+## Tampilan Antarmuka (Preview Sementara)
 
-Kita pakai *stack* modern yang bersih, cepat, dan *maintainable*:
+| Daftar Inventaris Alat Kesehatan | Detail Alat, QR & Nilai Aset |
+| :---: | :---: |
+| ![Daftar Inventaris Alat](docs/screenshots/inventaris-alat.png) | ![Detail Alat Kesehatan](docs/screenshots/detail-alat.png) |
 
-| Komponen | Versi / Pilihan | Keterangan |
-|---|---|---|
-| **Backend Framework** | Laravel 13.x (PHP ≥ 8.3) | Fondasi utama aplikasi, timezone `Asia/Jakarta`, locale `id` |
-| **Admin Panel & UI** | Filament 5.x + Livewire 4.x | Panel operasional di `/admin` dengan *custom theme* Tailwind CSS 4.x |
-| **Role & Permission** | `bezhansalleh/filament-shield` 4.x | Berbasis `spatie/laravel-permission` (RBAC ketat per *role*) |
-| **Audit Trail** | `spatie/laravel-activitylog` 5.x | Mencatat semua perubahan data penting secara otomatis |
-| **QR Code Generator** | `chillerlan/php-qrcode` | Generate QR SVG tajam untuk halaman publik & cetak label |
-| **PDF Engine** | `barryvdh/laravel-dompdf` | Cetak label QR ukuran 60×40 mm (satuan maupun massal di kertas A4) & laporan |
-| **Database** | MySQL 8 / MariaDB | Penyimpanan relasional utama (nominal uang `decimal(15,2)` + `bcmath`) |
-| **Testing & Code Style** | Pest 4.x & Laravel Pint | *Automated feature/unit testing* & standar kerapian kode |
+| Jadwal Kalibrasi | Halaman Pemeriksaan Status QR Publik |
+| :---: | :---: |
+| ![Jadwal Kalibrasi](docs/screenshots/jadwal-kalibrasi.png) | ![Status QR Publik](docs/screenshots/status-qr-publik.png) |
 
 ---
 
-## 👥 Pembagian Role & Hak Akses
+## Teknologi yang Digunakan
 
-Akses di dalam sistem diatur secara ketat lewat **Filament Shield** & **Laravel Policy** (jadi menu yang nggak relevan bakal otomatis disembunyikan, bukan cuma di-*disable*):
-
-| Role (`slug`) | Pengguna | Hak Akses Utama |
-|---|---|---|
-| `super_admin` | Developer / Pengelola Sistem | Akses penuh ke seluruh modul, pengaturan pengguna, dan manajemen *role* Shield. |
-| `admin_ipsrs` | Admin IPSRS | CRUD seluruh Data Master, Inventaris Alat, Akun Pengguna, serta cetak label QR PDF (satuan & massal). |
-| `teknisi` | Teknisi Elektromedis | Melihat seluruh alat; mencatat hasil uji/kalibrasi, tindak lanjut perbaikan, dan mutasi alat. |
-| `kepala_ruangan` | Kepala Ruangan / Perawat | **Hanya melihat alat yang berada di ruangannya sendiri** (`room_id`) dan membuat laporan kerusakan. |
-| `manajemen` | Manajemen RS / Tim Akreditasi | Melihat *dashboard* eksekutif, analitik *uptime*, kepatuhan kalibrasi, nilai aset, dan ekspor laporan. |
-| *Publik (Tanpa Login)* | Siapa pun yang *scan* QR | Hanya melihat halaman status publik `/alat/{qr_token}` (nama alat, ruangan, status, masa berlaku sertifikat). **Dijamin aman**, tidak membocorkan harga perolehan, nilai residu, maupun data internal! |
-
----
-
-## ✨ Fitur-Fitur Utama & Aturan Bisnis
-
-### 1. 📦 Inventaris Alat & Label QR (`F1`)
-- Pencatatan komprehensif: kode inventaris unik, nama alat, jenis alat, ruangan, merek/tipe/nomor seri, tanggal & harga perolehan, nilai residu opsional, foto alat, serta catatan.
-- Setiap alat otomatis memiliki `qr_token` berbasis **UUID** (nggak bisa ditebak secara urut) yang terhubung ke halaman status publik `/alat/{qr_token}`.
-- **No Hard-Delete Policy**: Alat kesehatan tidak pernah dihapus permanen dari database demi menjaga keutuhan riwayat audit; alat yang dihapuskan cukup dinonaktifkan (`is_active = false`).
-- **Cetak Label QR (PDF)**: Mendukung cetak satuan maupun *bulk action* dalam format hitam-putih 60 × 40 mm yang siap ditempel pada fisik alat.
-
-### 2. 🔄 Otomatisasi Status Alat (`F4`)
-Status alat **tidak pernah diubah manual secara sembarangan**, melainkan dikelola sepenuhnya lewat `EquipmentStatusService` dan selalu tercatat di tabel `status_histories`:
-- 🟢 **`fit_for_use` (Laik pakai)**
-- 🟡 **`calibration_due` (Perlu kalibrasi)** — otomatis aktif saat alat baru wajib kalibrasi belum punya sertifikat, mendekati H-30 jatuh tempo, selesai diperbaiki, atau habis dimutasi (untuk alat yang wajib instalasi ulang).
-- 🔴 **`overdue` (Terlambat)** — melewati tanggal `valid_until` sertifikat kalibrasi.
-- 🔵 **`under_testing` (Dalam uji & kalibrasi)** — sedang dalam proses pengujian/kalibrasi.
-- ⚪ **`under_repair` (Dalam perbaikan)** — sedang ditangani teknisi.
-- 🔴 **`unfit` (Tidak laik pakai)** — dinyatakan tidak lulus uji/kalibrasi.
-
-> ⚠️ **Peringatan Keselamatan di Halaman Publik QR**: Jika alat berstatus **Terlambat** atau **Tidak laik pakai**, halaman scan QR di HP akan menampilkan *banner* merah tegas: *"Jangan gunakan alat ini. Hubungi IPSRS."*
-
-### 3. 💰 Nilai Aset & Penyusutan Garis Lurus (`F6`)
-Menggunakan metode **Garis Lurus (*Straight-Line Depreciation*)** dengan presisi `bcmath`:
-- **Penyusutan per Tahun**: `P = (HP − NR) / MM`
-- **Nilai Buku Saat Ini**: `NB = max(NR, HP − (P × n))`
-  *(dengan `HP` = Harga Perolehan, `NR` = Nilai Residu, `MM` = Masa Manfaat dalam tahun, dan `n` = umur pakai berdasarkan bulan penuh sejak tanggal perolehan ÷ 12)*.
-- Dilengkapi *disclaimer* transparan bahwa nilai buku pada sistem merupakan estimasi manajerial operasional dan bukan pengganti pembukuan akuntansi resmi RS.
+| Komponen | Spesifikasi | Keterangan |
+| :--- | :--- | :--- |
+| **Backend Framework** | Laravel 13.x (PHP ≥ 8.3) | Konfigurasi lokal Indonesia (`id`) dan zona waktu `Asia/Jakarta` |
+| **Panel Operasional** | Filament 5.x + Livewire 4.x | Antarmuka admin di `/admin` dengan tema kustom Tailwind CSS 4.x |
+| **Otorisasi & Peran** | `bezhansalleh/filament-shield` 4.x | Kontrol akses berbasis peran (*Role-Based Access Control*) di atas `spatie/laravel-permission` |
+| **Log Aktivitas** | `spatie/laravel-activitylog` 5.x | Pencatatan jejak perubahan data master dan operasional |
+| **Generator QR Code** | `chillerlan/php-qrcode` | Pembuatan kode QR berformat SVG untuk halaman publik dan label cetak |
+| **Generator PDF** | `barryvdh/laravel-dompdf` | Pencetakan label QR ukuran 60 × 40 mm (satuan maupun massal di kertas A4) |
+| **Basis Data** | MySQL 8 / MariaDB | Penyimpanan relasional dengan tipe `decimal(15,2)` dan kalkulasi `bcmath` untuk nilai moneter |
+| **Pengujian & Standar Kode** | Pest 4.x & Laravel Pint | Pengujian fitur/unit otomatis dan pemformatan kode standar PSR-12/Laravel |
 
 ---
 
-## 🚀 Cara Instalasi & Menjalankan di Lokal
+## Pembagian Peran & Hak Akses
 
-Pastikan di laptop/komputer kamu sudah terinstal **PHP ≥ 8.3**, **Composer**, **Node.js & NPM**, serta **MySQL / MariaDB** yaa!
+Setiap peran dibatasi menggunakan **Filament Shield** dan **Laravel Policy**:
+
+| Peran (`slug`) | Pengguna | Cakupan Hak Akses |
+| :--- | :--- | :--- |
+| `super_admin` | Pengelola Sistem | Akses penuh ke seluruh modul, manajemen pengguna, dan pengaturan izin peran. |
+| `admin_ipsrs` | Admin IPSRS | Mengelola seluruh data master, inventaris alat, akun pengguna staf, serta mencetak label QR PDF. |
+| `teknisi` | Teknisi Elektromedis | Melihat seluruh alat, memulai pengujian, serta mencatat hasil kalibrasi, perbaikan, dan mutasi. |
+| `kepala_ruangan` | Kepala Ruangan | Hanya dapat melihat daftar dan detail alat yang berada di ruangannya sendiri (`room_id`). |
+| `manajemen` | Manajemen RS | Mengakses *dashboard*, jadwal kalibrasi, serta laporan eksekutif dan nilai aset. |
+| *Publik (Tanpa Login)* | Pemindai QR | Mengakses halaman `/alat/{qr_token}` yang menampilkan kode inventaris, nama alat, ruangan, status kelaikan, dan masa berlaku sertifikat tanpa mengekspos nilai finansial atau catatan internal. |
+
+---
+
+## Fitur Utama & Aturan Bisnis
+
+### 1. Inventaris Alat & Label QR (`F1`)
+- Mencatat kode inventaris unik, nama alat, jenis alat, ruangan, merek/tipe, nomor seri, tanggal dan harga perolehan, nilai residu opsional, foto unit, serta catatan teknis.
+- Setiap unit otomatis memperoleh `qr_token` berbentuk **UUID** yang mengarah ke halaman pemeriksaan status publik `/alat/{qr_token}`.
+- **Kebijakan Tanpa Hapus Permanen**: Rekaman alat kesehatan tidak dapat dihapus permanen (*hard-delete*); unit yang sudah dipensiunkan dinonaktifkan melalui penanda `is_active = false`.
+- **Cetak Label QR PDF**: Tersedia aksi cetak label satuan maupun massal berukuran 60 × 40 mm hitam-putih yang memuat QR code, kode inventaris, nama alat, tipe, dan lokasi ruangan.
+
+### 2. Siklus Status Kelaikan Alat (`F4`)
+Perubahan status alat dikelola terpusat melalui `EquipmentStatusService` dan selalu dicatat ke tabel `status_histories`:
+- **`fit_for_use` (Laik pakai)** — Sertifikat kalibrasi masih berlaku lebih dari 30 hari (atau alat tidak wajib kalibrasi) dan tidak sedang bermasalah.
+- **`calibration_due` (Perlu kalibrasi)** — Alat baru wajib kalibrasi yang belum memiliki sertifikat, masa berlaku sertifikat tersisa ≤ 30 hari, baru selesai diperbaiki, atau baru dimutasi (untuk jenis alat wajib instalasi).
+- **`overdue` (Terlambat)** — Masa berlaku sertifikat kalibrasi telah melewati tanggal hari ini.
+- **`under_testing` (Dalam uji & kalibrasi)** — Alat sedang dalam proses pengujian/kalibrasi.
+- **`under_repair` (Dalam perbaikan)** — Alat sedang dalam penanganan perbaikan oleh teknisi.
+- **`unfit` (Tidak laik pakai)** — Alat dinyatakan tidak lulus uji/kalibrasi.
+
+Apabila alat berstatus **Terlambat** atau **Tidak laik pakai**, halaman publik hasil pindai QR akan menampilkan peringatan keselamatan agar unit tidak digunakan pada pasien dan segera menghubungi IPSRS.
+
+### 3. Nilai Aset & Penyusutan Garis Lurus (`F6`)
+Perhitungan nilai buku menggunakan metode garis lurus (*straight-line depreciation*) berbasis `bcmath`:
+- **Penyusutan Tahunan**: $P = \frac{HP - NR}{MM}$
+- **Nilai Buku Saat Ini**: $NB = \max\left(NR,\; HP - \left(P \times \frac{\text{bulan penuh sejak perolehan}}{12}\right)\right)$
+
+---
+
+## Panduan Instalasi Lokal
+
+Pastikan lingkungan pengembangan telah memiliki **PHP ≥ 8.3** (dengan ekstensi `bcmath`, `gd`, `intl`, `mbstring`, `pdo_mysql`), **Composer**, **Node.js & NPM**, serta **MySQL / MariaDB**.
 
 ```bash
-# 1. Clone repositori ini
+# 1. Clone repositori
 git clone https://github.com/tariqishuman/sigap-alkes.git
 cd sigap-alkes
 
-# 2. Instal dependensi PHP & JavaScript
+# 2. Instal dependensi PHP dan JavaScript
 composer install
 npm install
 
-# 3. Salin konfigurasi environment & generate app key
+# 3. Salin file konfigurasi environment dan buat application key
 cp .env.example .env
 php artisan key:generate
 
-# 4. Sesuaikan konfigurasi DB_DATABASE, DB_USERNAME, dan DB_PASSWORD di file .env
-#    Lalu jalankan migrasi database beserta seeder akun demo
+# 4. Atur koneksi database (DB_DATABASE, DB_USERNAME, DB_PASSWORD) di file .env
+#    kemudian jalankan migrasi beserta seeder akun demo
 php artisan migrate --seed
 
-# 5. Buat symlink storage publik & build aset frontend (Tailwind 4 + Filament Theme)
+# 5. (Opsional) Isi database dengan data dummy inventaris & riwayat kalibrasi
+php artisan sigap:seed-dummy
+
+# 6. Buat symlink storage publik dan build aset frontend
 php artisan storage:link
 npm run build
 
-# 6. Jalankan server development
+# 7. Jalankan server lokal
 php artisan serve
 ```
 
-Setelah server jalan, langsung aja buka browser ke **`http://localhost:8000/admin`** 🎉
+Akses panel operasional melalui peramban di **`http://localhost:8000/admin`**.
+
+### Perintah Bantuan Data Dummy
+```bash
+# Mengisi data dummy operasional (6 ruangan, 10 jenis alat, 30 unit alkes, riwayat kalibrasi)
+php artisan sigap:seed-dummy
+
+# Menghapus seluruh data dummy (tetap mempertahankan 5 akun demo & role)
+php artisan sigap:clear-dummy
+```
 
 ---
 
-## 🔐 Akun Demo (Siap Pakai!)
+## Kredensial Akun Demo
 
-Setelah menjalankan `php artisan migrate --seed`, kamu bisa langsung login menggunakan salah satu akun demo berikut (semua akun menggunakan kata sandi: **`password`**):
+Seluruh akun demo menggunakan kata sandi **`password`**:
 
-| Role | Email Login | Kata Sandi | Catatan |
-|---|---|---|---|
-| **Super Admin** | `superadmin@sigap-alkes.test` | `password` | Akses penuh semua modul & *Role Shield* |
-| **Admin IPSRS** | `admin@sigap-alkes.test` | `password` | Kelola Data Master, Alat, Pengguna, & Cetak QR |
-| **Teknisi Elektromedis** | `teknisi@sigap-alkes.test` | `password` | Lihat semua alat & operasional teknis |
-| **Kepala Ruangan ICU** | `kepalaruangan@sigap-alkes.test` | `password` | Terhubung ke **Ruang ICU** (hanya melihat alat ICU) |
-| **Manajemen RS** | `manajemen@sigap-alkes.test` | `password` | Dashboard & Laporan Eksekutif |
+| Peran | Email | Kata Sandi | Keterangan |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `superadmin@sigap-alkes.test` | `password` | Akses penuh seluruh sistem & manajemen Role |
+| **Admin IPSRS** | `admin@sigap-alkes.test` | `password` | Pengelolaan data master, inventaris alat, & pengguna |
+| **Teknisi Elektromedis** | `teknisi@sigap-alkes.test` | `password` | Pencatatan pengujian & kalibrasi alat |
+| **Kepala Ruangan (ICU)** | `kepalaruangan@sigap-alkes.test` | `password` | Terbatas hanya pada alat di **Ruang ICU** |
+| **Manajemen RS** | `manajemen@sigap-alkes.test` | `password` | Pemantauan jadwal, *dashboard*, & laporan |
 
 ---
 
-## 🧪 Menjalankan Pengujian (Testing) & Format Kode
-
-Sebelum melakukan *commit* atau menyelesaikan *milestone*, pastikan seluruh pengujian otomatis hijau dan gaya penulisan kode sudah rapi:
+## Pengujian & Pemeriksaan Kualitas Kode
 
 ```bash
-# Menjalankan seluruh test suite dengan Pest
+# Menjalankan seluruh rangkaian pengujian otomatis (Pest)
 ./vendor/bin/pest
 
-# Merapikan format kode sesuai standar Laravel Pint
+# Memeriksa dan merapikan format penulisan kode (Laravel Pint)
 ./vendor/bin/pint
 ```
 
 ---
 
-## 🗺️ Peta Jalan Pengembangan (Milestones)
+## Peta Jalan Pengembangan (Milestones)
 
-- [x] **M0 — Setup**: Inisialisasi Laravel 13, Filament 5 Panel (`/admin`), tema kustom Teal rumah sakit + Logo ITS, Filament Shield 5 *role*, Activity Log, dan Seeder akun demo.
-- [x] **M1 — Data Master & Inventaris (`PRD F1`)**: CRUD Ruangan, Jenis Alat, Lembaga Penguji, Suku Cadang, Inventaris Alat (+ foto & kalkulasi nilai buku), halaman QR publik `/alat/{qr_token}`, cetak label QR PDF (satuan & massal), serta *scoping* khusus Kepala Ruangan.
-- [x] **M2 — Kalibrasi, Status, & Pengingat (`PRD F2 & F4`)**: Pencatatan kalibrasi, matriks transisi penuh `EquipmentStatusService`, scheduler harian evaluasi status (`sigap:evaluate-equipment-status`) & pengingat H-30/H-7/H-0 (`sigap:send-calibration-reminders`), serta halaman Jadwal Kalibrasi + ekspor.
-- [ ] **M3 — Kerusakan, Perbaikan, & Mutasi (`PRD F3`)**: Laporan kerusakan oleh Kepala Ruangan, tindak lanjut perbaikan + pemakaian suku cadang oleh Teknisi, dan mutasi ruangan alat.
-- [ ] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* & Kepatuhan Kalibrasi, indikator *"Pertimbangkan ganti"*, *Dashboard* grafik & statistik lengkap, serta ekspor Excel/PDF & ASPAK.
-- [ ] **M5 — Seeder Sintetis & Finishing**: Seeder data sintetis lengkap (6 ruangan, 10 jenis alat, ±60 alat dengan riwayat 12 bulan terakhir tanpa data pasien) & finalisasi menyeluruh.
-- [ ] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 *(Future Roadmap / Todo)***: Pemetaan entitas operasional non-pasien ke resource standar HL7 FHIR R4 (`Equipment` $\rightarrow$ `Device`, `Room` $\rightarrow$ `Location`, `Calibration` $\rightarrow$ `DeviceMetric`, `TestingInstitution` $\rightarrow$ `Organization`), penyediaan REST API endpoint `/api/fhir/r4/*`, serta sinkronisasi status kelaikan alat ke SIMRS / SatuSehat.
+- [x] **M0 — Setup**: Inisialisasi Laravel 13, Filament 5 Panel (`/admin`), konfigurasi peran Filament Shield, Activity Log, dan seeder akun demo.
+- [x] **M1 — Data Master & Inventaris (`PRD F1`)**: CRUD Ruangan, Jenis Alat, Lembaga Penguji, Suku Cadang, Inventaris Alat, halaman QR publik `/alat/{qr_token}`, cetak label QR PDF (satuan & massal), serta pembatasan akses per ruangan untuk Kepala Ruangan.
+- [x] **M2 — Kalibrasi, Status, & Pengingat (`PRD F2 & F4`)**: Pencatatan kalibrasi, mesin transisi `EquipmentStatusService`, penjadwalan evaluasi status harian & pengingat H-30/H-7/H-0, serta halaman Jadwal Kalibrasi beserta fitur ekspor.
+- [ ] **M3 — Kerusakan, Perbaikan, & Mutasi (`PRD F3`)**: Pelaporan kerusakan oleh Kepala Ruangan, pencatatan tindak lanjut perbaikan dan suku cadang oleh Teknisi, serta pencatatan mutasi ruangan.
+- [ ] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* dan Kepatuhan Kalibrasi, penanda rekomendasi penggantian aset, *Dashboard* analitik, serta ekspor laporan Excel/PDF dan format ASPAK.
+- [ ] **M5 — Seeder Sintetis & Finalisasi**: Penyempurnaan seeder data sintetis 12 bulan terakhir, audit menyeluruh hak akses per peran, dan finalisasi pengujian.
+- [ ] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 *(Future Todo)***: Pemetaan entitas non-pasien ke resource standar HL7 FHIR R4 (`Equipment` $\rightarrow$ `Device`, `Room` $\rightarrow$ `Location`, `Calibration` $\rightarrow$ `DeviceMetric`, `TestingInstitution` $\rightarrow$ `Organization`), penyediaan REST API `/api/fhir/r4/*`, serta sinkronisasi status kelaikan alat ke SIMRS / SatuSehat.
 
 ---
 
 <p align="center">
-  Dibuat dengan penuh semangat oleh <strong>Kelompok 3 — Manajemen Data</strong><br/>
-  Departemen Teknologi Kedokteran, Fakultas Teknologi Elektro dan Informatika Cerdas (FTEIC)<br/>
-  <strong>Institut Teknologi Sepuluh Nopember (ITS) Surabaya — 2026</strong> 🐊
+  Dikembangkan untuk Mata Kuliah <strong>Manajemen Data</strong><br/>
+  Departemen Teknologi Kedokteran — Fakultas Kedokteran dan Kesehatan (FKK)<br/>
+  <strong>Institut Teknologi Sepuluh Nopember (ITS) Surabaya — 2026</strong>
 </p>
