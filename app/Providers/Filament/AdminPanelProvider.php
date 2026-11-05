@@ -12,6 +12,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -38,6 +39,10 @@ class AdminPanelProvider extends PanelProvider
             ->font('Poppins')
             ->sidebarCollapsibleOnDesktop()
             ->databaseNotifications()
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn () => view('components.watermark-kelompok2'),
+            )
             ->colors([
                 'primary' => Color::hex('#0E7C7B'),
                 'success' => Color::hex('#2E9E6B'),

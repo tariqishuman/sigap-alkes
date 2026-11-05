@@ -133,5 +133,6 @@
 
         <div class="footer">Diperbarui: {{ $updatedAtFormatted }}</div>
     </main>
+    @include('components.watermark-kelompok2')
 </body>
 </html>
