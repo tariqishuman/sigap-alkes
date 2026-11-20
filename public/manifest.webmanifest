@@ -1,0 +1,25 @@
+{
+  "name": "SIGAP-Alkes — Sistem Manajemen Kalibrasi & Pemeliharaan Alat Kesehatan",
+  "short_name": "SIGAP-Alkes",
+  "description": "Pemantauan status, kalibrasi, pemeliharaan preventif, dan laporan kerusakan alat kesehatan.",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F4F7F7",
+  "theme_color": "#0E7C7B",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/images/brand/logo-mark.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/brand/logo-mark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

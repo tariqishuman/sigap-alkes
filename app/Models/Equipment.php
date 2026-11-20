@@ -126,6 +126,16 @@ class Equipment extends Model
     }
 
     /**
+     * Critical equipment = critical equipment type OR located in a critical area (ICU/IGD/OK/NICU).
+     */
+    public function isCritical(): bool
+    {
+        $this->loadMissing(['equipmentType', 'room']);
+
+        return (bool) ($this->equipmentType?->is_critical || $this->room?->is_critical_area);
+    }
+
+    /**
      * Cumulative repair cost across all repairs for this equipment, using bcmath (PRD §F3 & §F6).
      */
     public function totalRepairCost(): string

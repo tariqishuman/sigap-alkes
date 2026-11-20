@@ -2,8 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Enums\AlertTier;
 use App\Filament\Resources\DamageReports\DamageReportResource;
 use App\Models\User;
+use App\Notifications\Channels\WebPushChannel;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Notifications\Notification;
@@ -15,12 +17,40 @@ class UnsafeReportRateLimitNotification extends Notification
         public int $countInLastHour,
     ) {}
 
+    public function alertTier(): AlertTier
+    {
+        return AlertTier::Important;
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if ($notifiable instanceof User && $notifiable->shouldReceivePushForTier($this->alertTier())) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toWebPush(object $notifiable): array
+    {
+        return [
+            'title' => 'Batas laporan tidak aman terlampaui',
+            'body' => "{$this->reporter->name} mencoba mengirim lebih dari {$this->countInLastHour} laporan \"tidak aman dipakai\" dalam 1 jam terakhir.",
+            'url' => DamageReportResource::getUrl('index'),
+            'tag' => "rate-limit-{$this->reporter->id}",
+            'requireInteraction' => false,
+            'actions' => [
+                ['action' => 'open', 'title' => 'Lihat laporan'],
+            ],
+        ];
     }
 
     /**

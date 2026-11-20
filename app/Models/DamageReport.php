@@ -26,6 +26,9 @@ use Spatie\Activitylog\Support\LogOptions;
     'closed_without_repair_reason',
     'closed_by',
     'closed_at',
+    'acknowledged_by',
+    'acknowledged_at',
+    'escalated_at',
 ])]
 class DamageReport extends Model
 {
@@ -43,6 +46,8 @@ class DamageReport extends Model
             'marked_unfit_by_report' => 'boolean',
             'verified_at' => 'datetime',
             'closed_at' => 'datetime',
+            'acknowledged_at' => 'datetime',
+            'escalated_at' => 'datetime',
         ];
     }
 
@@ -64,6 +69,16 @@ class DamageReport extends Model
     public function closedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    public function acknowledgedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'acknowledged_by');
+    }
+
+    public function isAcknowledged(): bool
+    {
+        return $this->acknowledged_by !== null;
     }
 
     public function repair(): HasOne

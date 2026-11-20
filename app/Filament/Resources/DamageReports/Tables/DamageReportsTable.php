@@ -61,6 +61,9 @@ class DamageReportsTable
                     if ($notesCount > 0) {
                         $parts[] = "+{$notesCount} keterangan tambahan";
                     }
+                    if ($record->acknowledged_by !== null) {
+                        $parts[] = 'Ditangani oleh '.($record->acknowledgedByUser?->name ?? 'teknisi');
+                    }
 
                     return $parts !== [] ? implode(' • ', $parts) : null;
                 }),
@@ -114,6 +117,35 @@ class DamageReportsTable
             ->columns($columns)
             ->filters($filters)
             ->recordActions([
+                Action::make('acknowledge')
+                    ->label('Saya tangani')
+                    ->icon(Heroicon::OutlinedHandRaised)
+                    ->color('gray')
+                    ->visible(function (DamageReport $record): bool {
+                        $user = Auth::user();
+
+                        return $user !== null
+                            && $record->isActive()
+                            && ! $record->isAcknowledged()
+                            && app(DamageReportService::class)->canManageReportVerification($user);
+                    })
+                    ->action(function (DamageReport $record): void {
+                        $user = Auth::user();
+                        $result = app(DamageReportService::class)->acknowledge($record, $user);
+
+                        if ($result['acknowledged']) {
+                            Notification::make()
+                                ->success()
+                                ->title('Anda tercatat menangani laporan ini')
+                                ->send();
+                        } else {
+                            $owner = $result['report']->acknowledgedByUser?->name ?? 'teknisi lain';
+                            Notification::make()
+                                ->info()
+                                ->title("Sudah ditangani oleh {$owner}")
+                                ->send();
+                        }
+                    }),
                 Action::make('verify_unsafe')
                     ->label('Verifikasi')
                     ->icon(Heroicon::OutlinedShieldCheck)

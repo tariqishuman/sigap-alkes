@@ -2,8 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\AlertTier;
 use App\Filament\Resources\Equipment\EquipmentResource;
 use App\Models\Equipment;
+use App\Models\User;
+use App\Notifications\Channels\WebPushChannel;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Notifications\Notification;
@@ -28,12 +31,44 @@ class EquipmentOperationalNotification extends Notification
         public ?string $detail = null,
     ) {}
 
+    public function alertTier(): AlertTier
+    {
+        if (in_array($this->event, [self::EVENT_OVERDUE, self::EVENT_UNFIT], true)) {
+            return $this->equipment->isCritical() ? AlertTier::Critical : AlertTier::Important;
+        }
+
+        return AlertTier::Info;
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if ($notifiable instanceof User && $notifiable->shouldReceivePushForTier($this->alertTier())) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toWebPush(object $notifiable): array
+    {
+        return [
+            'title' => $this->title(),
+            'body' => $this->body(),
+            'url' => $this->actionUrl(),
+            'tag' => "equipment-{$this->equipment->id}-{$this->event}",
+            'requireInteraction' => $this->alertTier() === AlertTier::Critical,
+            'actions' => [
+                ['action' => 'open', 'title' => 'Lihat alat'],
+            ],
+        ];
     }
 
     public function title(): string

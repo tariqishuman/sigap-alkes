@@ -79,6 +79,7 @@ class AppSettings extends Page implements HasSchemas
             'reminder_days' => $daysText,
             'reminder_send_time' => $settings->get('reminder.send_time'),
             'reminder_email_enabled' => (bool) $settings->get('reminder.email_enabled', true),
+            'critical_escalation_minutes' => (int) $settings->get('reminder.critical_escalation_minutes', 15),
 
             'replace_threshold_percent' => $settings->replaceThresholdPercent(),
             'uptime_target_percent' => $settings->uptimeTargetPercent(),
@@ -170,6 +171,15 @@ class AppSettings extends Page implements HasSchemas
                                     ->label('Aktifkan pengiriman pengingat via email')
                                     ->helperText('Notifikasi dalam aplikasi tetap aktif.')
                                     ->columnSpanFull(),
+                                TextInput::make('critical_escalation_minutes')
+                                    ->label('Batas Eskalasi Laporan Kritis (Menit)')
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->maxValue(240)
+                                    ->default(15)
+                                    ->suffix('menit')
+                                    ->helperText('Laporan tidak aman pada alat/area kritis yang belum ditangani akan dieskalasi ke Admin IPSRS & Manajemen setelah batas ini.')
+                                    ->required(),
                             ]),
 
                         Tab::make('Nilai Aset')
@@ -392,6 +402,7 @@ class AppSettings extends Page implements HasSchemas
             'reminder.days' => ! empty($days) ? $days : [30, 7, 0],
             'reminder.send_time' => $state['reminder_send_time'] ?? '07:00',
             'reminder.email_enabled' => (bool) ($state['reminder_email_enabled'] ?? true),
+            'reminder.critical_escalation_minutes' => max(1, (int) ($state['critical_escalation_minutes'] ?? 15)),
 
             'asset.replace_threshold_percent' => (int) ($state['replace_threshold_percent'] ?? 50),
             'asset.uptime_target_percent' => max(1, min(100, (int) ($state['uptime_target_percent'] ?? 95))),

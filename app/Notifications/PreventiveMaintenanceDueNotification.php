@@ -2,8 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\AlertTier;
 use App\Filament\Pages\CalibrationSchedule;
 use App\Models\Equipment;
+use App\Models\User;
+use App\Notifications\Channels\WebPushChannel;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
@@ -17,12 +20,40 @@ class PreventiveMaintenanceDueNotification extends Notification
         public int $daysLeft,
     ) {}
 
+    public function alertTier(): AlertTier
+    {
+        return $this->daysLeft <= 0 ? AlertTier::Important : AlertTier::Info;
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if ($notifiable instanceof User && $notifiable->shouldReceivePushForTier($this->alertTier())) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toWebPush(object $notifiable): array
+    {
+        return [
+            'title' => $this->title(),
+            'body' => $this->body(),
+            'url' => CalibrationSchedule::getUrl(),
+            'tag' => "pm-due-{$this->equipment->id}-{$this->dueDate->format('Ymd')}",
+            'requireInteraction' => false,
+            'actions' => [
+                ['action' => 'open', 'title' => 'Buka jadwal'],
+            ],
+        ];
     }
 
     public function title(): string

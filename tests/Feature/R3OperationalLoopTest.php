@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AlertTier;
 use App\Enums\CalibrationResult;
 use App\Enums\DamageReportStatus;
 use App\Enums\EquipmentStatus;
@@ -15,6 +16,8 @@ use App\Models\PreventiveMaintenance;
 use App\Models\Room;
 use App\Models\TestingInstitution;
 use App\Models\User;
+use App\Notifications\Channels\WebPushChannel;
+use App\Notifications\CriticalReportEscalationNotification;
 use App\Notifications\DamageReportedNotification;
 use App\Notifications\EquipmentOperationalNotification;
 use App\Notifications\UnsafeReportRateLimitNotification;
@@ -649,5 +652,140 @@ describe('R3 Bagian 5 — Sertifikat kalibrasi (PDF)', function () {
         $this->actingAs($badanOther)->get($certUrl)->assertForbidden();
         expect($badanSame->can('update', $calibration))->toBeTrue()
             ->and($badanOther->can('update', $calibration))->toBeFalse();
+    });
+});
+
+describe('R3 Bagian 6 — Notifikasi push, alert tiers, Saya tangani, dan eskalasi', function () {
+    it('routes push channel by alert tier (critical vs normal equipment, user prefs, no push to magang, no cost in body)', function () {
+        Notification::fake();
+
+        $criticalType = EquipmentType::create([
+            'name' => 'Defibrilator Kritis',
+            'requires_calibration' => true,
+            'calibration_interval_months' => 12,
+            'requires_installation' => false,
+            'is_critical' => true,
+        ]);
+
+        $normalRoom = Room::create(['code' => 'R3-POLI', 'name' => 'Poli Umum', 'building' => 'Gedung B', 'floor' => 'Lt 1', 'is_critical_area' => false]);
+        $normalType = EquipmentType::create([
+            'name' => 'Timbangan Digital',
+            'requires_calibration' => false,
+            'calibration_interval_months' => 12,
+            'requires_installation' => false,
+            'is_critical' => false,
+        ]);
+
+        $criticalEq = makeR3Equipment($criticalType, $this->icuRoom, 'R3-CRIT-01', EquipmentStatus::FitForUse);
+        $normalEq = makeR3Equipment($normalType, $normalRoom, 'R3-NORM-01', EquipmentStatus::FitForUse);
+
+        // Teknisi disables Important push, keeps Critical always on
+        $this->teknisi->update(['push_pref_important' => false, 'push_pref_info' => false]);
+
+        $service = app(DamageReportService::class);
+
+        // 1. Unsafe report on CRITICAL equipment -> Critical tier -> push ALWAYS active for teknisi
+        $service->report([
+            'equipment_id' => $criticalEq->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Paddle defibrilator tidak mengeluarkan energi kejutan.',
+        ], $this->kepalaIcu);
+
+        Notification::assertSentTo(
+            $this->teknisi,
+            DamageReportedNotification::class,
+            fn ($n, $channels) => $n->alertTier() === AlertTier::Critical
+                && in_array(WebPushChannel::class, $channels, true)
+                && ($n->toWebPush($this->teknisi)['requireInteraction'] ?? false) === true
+                && ! str_contains($n->body(), 'Rp'),
+        );
+
+        // 2. Unsafe report on NORMAL equipment -> Important tier -> teknisi opted out of Important push, admin kept it on
+        $kepalaPoli = User::factory()->create(['name' => 'Kepala Poli', 'room_id' => $normalRoom->id]);
+        $kepalaPoli->assignRole(UserRole::KepalaRuangan->value);
+
+        $service->report([
+            'equipment_id' => $normalEq->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Layar timbangan berkedip dan tidak stabil saat ditimbang.',
+        ], $kepalaPoli);
+
+        Notification::assertSentTo(
+            $this->teknisi,
+            DamageReportedNotification::class,
+            fn ($n, $channels) => $n->damageReport->equipment_id === $normalEq->id
+                && $n->alertTier() === AlertTier::Important
+                && ! in_array(WebPushChannel::class, $channels, true),
+        );
+        Notification::assertSentTo(
+            $this->admin,
+            DamageReportedNotification::class,
+            fn ($n, $channels) => $n->damageReport->equipment_id === $normalEq->id
+                && in_array(WebPushChannel::class, $channels, true),
+        );
+
+        // 3. Magang NEVER receives WebPush even for Critical
+        expect($this->magang->shouldReceivePushForTier(AlertTier::Critical))->toBeFalse()
+            ->and($this->magang->shouldReceivePushForTier(AlertTier::Important))->toBeFalse();
+    });
+
+    it('records Saya tangani atomically only once for the first responder', function () {
+        Notification::fake();
+        $teknisi2 = User::factory()->create(['name' => 'Teknisi Kedua']);
+        $teknisi2->assignRole(UserRole::Teknisi->value);
+
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-ACK-01', EquipmentStatus::FitForUse);
+        $service = app(DamageReportService::class);
+        $report = $service->report([
+            'equipment_id' => $eq->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Alarm tekanan tinggi menyala terus menerus.',
+        ], $this->kepalaIcu);
+
+        $first = $service->acknowledge($report, $this->teknisi);
+        $second = $service->acknowledge($report, $teknisi2);
+
+        expect($first['acknowledged'])->toBeTrue()
+            ->and($second['acknowledged'])->toBeFalse()
+            ->and($report->fresh()->acknowledged_by)->toBe($this->teknisi->id);
+    });
+
+    it('escalates unacknowledged critical reports after 15 minutes ONCE to admin_ipsrs and manajemen', function () {
+        Notification::fake();
+        Carbon::setTestNow(Carbon::parse('2026-11-20 10:00:00'));
+
+        $this->icuRoom->update(['is_critical_area' => true]);
+        $manajemen = User::factory()->create(['name' => 'Direktur RS']);
+        $manajemen->assignRole(UserRole::Manajemen->value);
+
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-ESC-01', EquipmentStatus::FitForUse);
+        $report = app(DamageReportService::class)->report([
+            'equipment_id' => $eq->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Ventilator ICU berhenti memompa oksigen mendadak.',
+        ], $this->kepalaIcu);
+
+        // 10 minutes later -> not yet escalated
+        Carbon::setTestNow(Carbon::parse('2026-11-20 10:10:00'));
+        $this->artisan('damage-reports:escalate-critical')->assertSuccessful();
+        expect($report->fresh()->escalated_at)->toBeNull();
+        Notification::assertNotSentTo($manajemen, CriticalReportEscalationNotification::class);
+
+        // 16 minutes later -> escalated ONCE to admin_ipsrs + manajemen (with WebPush!)
+        Carbon::setTestNow(Carbon::parse('2026-11-20 10:16:00'));
+        $this->artisan('damage-reports:escalate-critical')->assertSuccessful();
+        expect($report->fresh()->escalated_at)->not->toBeNull();
+
+        Notification::assertSentTo(
+            $manajemen,
+            CriticalReportEscalationNotification::class,
+            fn ($n, $channels) => in_array(WebPushChannel::class, $channels, true),
+        );
+        Notification::assertSentTo($this->admin, CriticalReportEscalationNotification::class);
+
+        // Running again at 20 minutes -> NOT sent a second time
+        Carbon::setTestNow(Carbon::parse('2026-11-20 10:20:00'));
+        $this->artisan('damage-reports:escalate-critical')->assertSuccessful();
+        Notification::assertSentToTimes($manajemen, CriticalReportEscalationNotification::class, 1);
     });
 });

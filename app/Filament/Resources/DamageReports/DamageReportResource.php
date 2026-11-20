@@ -63,6 +63,7 @@ class DamageReportResource extends Resource
             'reportedByUser',
             'verifiedByUser',
             'closedByUser',
+            'acknowledgedByUser',
             'notes.reportedByUser',
             'repair.technician',
             'repair.repairSpareParts',

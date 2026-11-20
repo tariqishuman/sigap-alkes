@@ -31,6 +31,10 @@ class EquipmentTypeForm
                             ->label('Wajib Kalibrasi Ulang Saat Pindah Ruangan / Instalasi')
                             ->default(false)
                             ->required(),
+                        Toggle::make('is_critical')
+                            ->label('Alat Kritis (Prioritas Alert Kritis)')
+                            ->helperText('Laporan tidak aman / status Tidak laik / Terlambat akan memicu notifikasi push Kritis.')
+                            ->default(false),
                         TextInput::make('calibration_interval_months')
                             ->label('Interval Kalibrasi (Bulan)')
                             ->numeric()

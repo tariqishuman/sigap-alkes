@@ -321,6 +321,44 @@ class DamageReportService
     }
 
     /**
+     * Atomically acknowledge a damage report ("Saya tangani").
+     * Only the first responder succeeds; concurrent/later requests receive acknowledged=false.
+     *
+     * @return array{acknowledged: bool, report: DamageReport}
+     */
+    public function acknowledge(DamageReport $report, User $actor): array
+    {
+        if (! $this->canManageReportVerification($actor)) {
+            throw ValidationException::withMessages([
+                'acknowledged_by' => 'Hanya teknisi atau Admin IPSRS yang dapat menangani laporan.',
+            ]);
+        }
+
+        $affected = DamageReport::query()
+            ->whereKey($report->id)
+            ->whereNull('acknowledged_by')
+            ->update([
+                'acknowledged_by' => $actor->id,
+                'acknowledged_at' => now(),
+            ]);
+
+        $fresh = $report->fresh(['acknowledgedByUser', 'equipment.room']);
+
+        if ($affected === 1) {
+            activity()
+                ->performedOn($fresh)
+                ->causedBy($actor)
+                ->event('acknowledged')
+                ->log("Laporan kerusakan ditangani oleh {$actor->name}");
+        }
+
+        return [
+            'acknowledged' => $affected === 1,
+            'report' => $fresh,
+        ];
+    }
+
+    /**
      * Update complaint while the report is still open.
      */
     public function update(DamageReport $report, array $data): DamageReport

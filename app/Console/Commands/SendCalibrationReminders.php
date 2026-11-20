@@ -110,7 +110,17 @@ class SendCalibrationReminders extends Command
             );
 
             if ($reminder->wasRecentlyCreated) {
-                Notification::send($recipients, new CalibrationDueNotification($equipment, $validUntil, $daysLeft));
+                $targetRecipients = $recipients;
+
+                $institutionId = $equipment->latestValidCalibration?->testing_institution_id;
+                if ($institutionId) {
+                    $institutionUsers = User::role(UserRole::BadanKalibrasi->value)
+                        ->where('testing_institution_id', $institutionId)
+                        ->get();
+                    $targetRecipients = $targetRecipients->merge($institutionUsers)->unique('id');
+                }
+
+                Notification::send($targetRecipients, new CalibrationDueNotification($equipment, $validUntil, $daysLeft));
             }
         });
     }

@@ -644,6 +644,7 @@ describe('Filament pages', function () {
 
     it('records a calibration from the form, prefilled from the equipment page', function () {
         Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::fake('local');
         $equipment = makeEquipment();
 
         Livewire::actingAs($this->teknisi)
@@ -657,6 +658,7 @@ describe('Filament pages', function () {
                 'certificate_number' => 'CERT-200',
                 'valid_until' => '2028-01-10',
                 'certificate_path' => UploadedFile::fake()->create('sertifikat.pdf', 100, 'application/pdf'),
+                'certificate_path' => \Illuminate\Http\UploadedFile::fake()->create('sertifikat.pdf', 100, 'application/pdf'),
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -667,6 +669,7 @@ describe('Filament pages', function () {
 
     it('shows service validation errors under the form fields, in Indonesian', function () {
         Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::fake('local');
         $equipment = makeEquipment();
 
         Livewire::actingAs($this->teknisi)
@@ -679,6 +682,7 @@ describe('Filament pages', function () {
                 'certificate_number' => 'CERT-200',
                 'valid_until' => '2029-01-10',
                 'certificate_path' => UploadedFile::fake()->create('sertifikat.pdf', 100, 'application/pdf'),
+                'certificate_path' => \Illuminate\Http\UploadedFile::fake()->create('sertifikat.pdf', 100, 'application/pdf'),
             ])
             ->call('create')
             ->assertHasFormErrors(['valid_until'])

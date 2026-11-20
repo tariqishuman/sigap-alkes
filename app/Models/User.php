@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AlertTier;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -17,7 +19,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'room_id', 'testing_institution_id'])]
+#[Fillable(['name', 'email', 'password', 'room_id', 'testing_institution_id', 'push_pref_important', 'push_pref_info'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -36,7 +38,45 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'room_id' => 'integer',
             'testing_institution_id' => 'integer',
+            'push_pref_important' => 'boolean',
+            'push_pref_info' => 'boolean',
         ];
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
+    /**
+     * Decide whether this user receives Web Push for a given alert tier (Milestone R3 Bagian 6).
+     * - Magang never receives push.
+     * - Manajemen only receives push for Critical escalations.
+     * - Teknisi / Admin IPSRS always receive Critical push; Important & Info follow user preferences.
+     */
+    public function shouldReceivePushForTier(AlertTier $tier, bool $isCriticalEscalation = false): bool
+    {
+        $isOperator = $this->hasAnyRole([
+            UserRole::SuperAdmin->value,
+            UserRole::AdminIpsrs->value,
+            UserRole::Teknisi->value,
+        ]);
+
+        if (! $isOperator) {
+            if ($this->hasRole(UserRole::Magang->value)) {
+                return false;
+            }
+
+            if ($this->hasRole(UserRole::Manajemen->value) && ! $this->hasRole(UserRole::KepalaRuangan->value)) {
+                return $tier === AlertTier::Critical && $isCriticalEscalation;
+            }
+        }
+
+        return match ($tier) {
+            AlertTier::Critical => true,
+            AlertTier::Important => (bool) ($this->push_pref_important ?? true),
+            AlertTier::Info => (bool) ($this->push_pref_info ?? false),
+        };
     }
 
     public function room(): BelongsTo
