@@ -9,10 +9,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-#[Fillable(['name', 'building', 'floor', 'satusehat_id'])]
+#[Fillable(['name', 'building', 'floor', 'is_critical_area', 'satusehat_id'])]
 class Room extends Model
 {
     use HasFactory, LogsActivity;
+
+    protected function casts(): array
+    {
+        return [
+            'is_critical_area' => 'boolean',
+        ];
+    }
 
     public function equipment(): HasMany
     {

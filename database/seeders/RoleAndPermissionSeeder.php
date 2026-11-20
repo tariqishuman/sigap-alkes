@@ -28,6 +28,7 @@ class RoleAndPermissionSeeder extends Seeder
             'SparePart',
             'Equipment',
             'Calibration',
+            'PreventiveMaintenance',
             'DamageReport',
             'Repair',
             'EquipmentMovement',
@@ -75,6 +76,10 @@ class RoleAndPermissionSeeder extends Seeder
         }
         $adminIpsrsPermissions[] = 'ViewAny:Calibration';
         $adminIpsrsPermissions = array_merge($adminIpsrsPermissions, [
+            'ViewAny:PreventiveMaintenance',
+            'View:PreventiveMaintenance',
+            'Create:PreventiveMaintenance',
+            'Update:PreventiveMaintenance',
             'ViewAny:DamageReport',
             'View:DamageReport',
             'Create:DamageReport',
@@ -93,6 +98,10 @@ class RoleAndPermissionSeeder extends Seeder
             'ViewAny:Calibration',
             'Create:Calibration',
             'Update:Calibration',
+            'ViewAny:PreventiveMaintenance',
+            'View:PreventiveMaintenance',
+            'Create:PreventiveMaintenance',
+            'Update:PreventiveMaintenance',
             'ViewAny:DamageReport',
             'View:DamageReport',
             'Create:DamageReport',
@@ -112,6 +121,8 @@ class RoleAndPermissionSeeder extends Seeder
         $roles[UserRole::KepalaRuangan->value]->syncPermissions([
             'ViewAny:Equipment',
             'View:Equipment',
+            'ViewAny:PreventiveMaintenance',
+            'View:PreventiveMaintenance',
             'ViewAny:DamageReport',
             'View:DamageReport',
             'Create:DamageReport',
@@ -121,6 +132,8 @@ class RoleAndPermissionSeeder extends Seeder
         // 5. manajemen: Lihat dashboard, jadwal, dan laporan (read-only) (PRD §3)
         $roles[UserRole::Manajemen->value]->syncPermissions([
             'ViewAny:Calibration',
+            'ViewAny:PreventiveMaintenance',
+            'View:PreventiveMaintenance',
             'ViewAny:DamageReport',
             'View:DamageReport',
             'ViewAny:Repair',
@@ -145,6 +158,8 @@ class RoleAndPermissionSeeder extends Seeder
             'View:Equipment',
             'ViewAny:Calibration',
             'View:Calibration',
+            'ViewAny:PreventiveMaintenance',
+            'View:PreventiveMaintenance',
             'ViewAny:DamageReport',
             'View:DamageReport',
             'Create:DamageReport',

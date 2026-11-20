@@ -3,8 +3,10 @@
 namespace App\Filament\Pages;
 
 use App\Enums\EquipmentStatus;
+use App\Enums\UserRole;
 use App\Filament\Exports\CalibrationScheduleExporter;
 use App\Filament\Resources\Equipment\EquipmentResource;
+use App\Filament\Resources\PreventiveMaintenances\PreventiveMaintenanceResource;
 use App\Models\Equipment;
 use BackedEnum;
 use Filament\Actions\ExportAction;
@@ -43,6 +45,8 @@ class CalibrationSchedule extends Page implements HasTable
 
     public string $viewMode = 'grouped';
 
+    public string $activeScheduleTab = 'calibration';
+
     public static function getNavigationBadge(): ?string
     {
         $overdue = Equipment::query()
@@ -63,9 +67,104 @@ class CalibrationSchedule extends Page implements HasTable
         return Auth::user()?->can('ViewAny:Calibration') ?? false;
     }
 
+    public function canViewPreventiveMaintenanceTab(): bool
+    {
+        return Auth::user()?->can('ViewAny:PreventiveMaintenance') ?? false;
+    }
+
+    public function setActiveScheduleTab(string $tab): void
+    {
+        if ($tab === 'pm' && $this->canViewPreventiveMaintenanceTab()) {
+            $this->activeScheduleTab = 'pm';
+
+            return;
+        }
+
+        $this->activeScheduleTab = 'calibration';
+    }
+
     public function setViewMode(string $mode): void
     {
         $this->viewMode = $mode === 'table' ? 'table' : 'grouped';
+    }
+
+    /**
+     * Group PM-required equipment into Terlambat -> Minggu ini -> Bulan ini -> Berikutnya.
+     *
+     * @return array<string, array{title: string, items: array<int, array<string, mixed>>}>
+     */
+    public function getGroupedPmSchedule(): array
+    {
+        $today = today();
+        $weekEnd = $today->copy()->addDays(7);
+        $monthEnd = $today->copy()->endOfMonth();
+        $user = Auth::user();
+        $canCreatePm = PreventiveMaintenanceResource::canCreate();
+
+        $query = Equipment::query()
+            ->where('is_active', true)
+            ->whereHas('equipmentType', fn (Builder $q) => $q->whereNotNull('pm_interval_months')->where('pm_interval_months', '>', 0))
+            ->with(['room', 'equipmentType', 'latestPreventiveMaintenance']);
+
+        if (
+            $user
+            && $user->hasRole(UserRole::KepalaRuangan->value)
+            && ! $user->hasAnyRole([
+                UserRole::SuperAdmin->value,
+                UserRole::AdminIpsrs->value,
+                UserRole::Teknisi->value,
+                UserRole::Manajemen->value,
+                UserRole::Magang->value,
+            ])
+        ) {
+            $query->where('room_id', $user->room_id ?? 0);
+        }
+
+        $equipment = $query->get()
+            ->sortBy(fn (Equipment $eq) => $eq->latestPreventiveMaintenance?->next_due_at ?? now()->subYears(5));
+
+        $groups = [
+            'overdue' => ['title' => 'Terlambat', 'items' => []],
+            'this_week' => ['title' => 'Minggu ini', 'items' => []],
+            'this_month' => ['title' => 'Bulan ini', 'items' => []],
+            'upcoming' => ['title' => 'Berikutnya', 'items' => []],
+        ];
+
+        foreach ($equipment as $eq) {
+            $due = $eq->latestPreventiveMaintenance?->next_due_at?->copy()->startOfDay();
+            $diff = $due ? (int) $today->diffInDays($due, false) : null;
+
+            $item = [
+                'title' => $eq->name,
+                'subtitle' => trim("{$eq->inventory_code} · ".($eq->room?->name ?? '–').' · interval '.$eq->equipmentType->pm_interval_months.' bln'),
+                'chip' => match (true) {
+                    $diff === null => 'Belum pernah PM',
+                    $diff < 0 => 'Lewat '.abs($diff).' hr',
+                    $diff === 0 => 'Hari ini',
+                    default => "{$diff} hari · ".$due->translatedFormat('d M Y'),
+                },
+                'tone' => match (true) {
+                    $diff === null || $diff <= 0 => 'danger',
+                    $diff <= 7 => 'warning',
+                    default => 'success',
+                },
+                'url' => $canCreatePm
+                    ? PreventiveMaintenanceResource::getUrl('create', ['equipment_id' => $eq->id])
+                    : (EquipmentResource::canView($eq) ? EquipmentResource::getUrl('view', ['record' => $eq]) : null),
+            ];
+
+            if ($diff === null || $diff < 0) {
+                $groups['overdue']['items'][] = $item;
+            } elseif ($due->lessThanOrEqualTo($weekEnd)) {
+                $groups['this_week']['items'][] = $item;
+            } elseif ($due->lessThanOrEqualTo($monthEnd)) {
+                $groups['this_month']['items'][] = $item;
+            } else {
+                $groups['upcoming']['items'][] = $item;
+            }
+        }
+
+        return $groups;
     }
 
     /**

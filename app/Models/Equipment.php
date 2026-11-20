@@ -95,6 +95,16 @@ class Equipment extends Model
         return $this->hasMany(Calibration::class);
     }
 
+    public function preventiveMaintenances(): HasMany
+    {
+        return $this->hasMany(PreventiveMaintenance::class)->orderByDesc('performed_at')->orderByDesc('id');
+    }
+
+    public function latestPreventiveMaintenance(): HasOne
+    {
+        return $this->hasOne(PreventiveMaintenance::class)->ofMany(['performed_at' => 'max', 'id' => 'max']);
+    }
+
     public function damageReports(): HasMany
     {
         return $this->hasMany(DamageReport::class)->orderByDesc('reported_at')->orderByDesc('id');
@@ -113,6 +123,16 @@ class Equipment extends Model
     public function hasActiveRepair(): bool
     {
         return $this->repairs()->whereNull('repairs.finished_at')->exists();
+    }
+
+    /**
+     * Critical equipment = critical equipment type OR located in a critical area (ICU/IGD/OK/NICU).
+     */
+    public function isCritical(): bool
+    {
+        $this->loadMissing(['equipmentType', 'room']);
+
+        return (bool) ($this->equipmentType?->is_critical || $this->room?->is_critical_area);
     }
 
     /**

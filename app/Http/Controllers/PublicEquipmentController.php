@@ -3,8 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EquipmentStatus;
+use App\Enums\UserRole;
+use App\Filament\Resources\DamageReports\DamageReportResource;
 use App\Models\Equipment;
+use App\Services\DamageReportService;
+use Filament\Facades\Filament;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class PublicEquipmentController extends Controller
@@ -99,6 +105,63 @@ class PublicEquipmentController extends Controller
             'validUntilFormatted' => $validUntilFormatted,
             'certificateStatusLine' => $certificateStatusLine,
             'updatedAtFormatted' => $updatedAtFormatted,
+            'reportUrl' => $equipment->is_active
+                ? route('public.equipment.report', ['qr_token' => $equipment->qr_token])
+                : null,
         ]);
+    }
+
+    public function report(string $qr_token): RedirectResponse|Response
+    {
+        if (! Str::isUuid($qr_token)) {
+            return response()->view('public.equipment-not-found', [], 404);
+        }
+
+        $equipment = Equipment::query()
+            ->with('room')
+            ->where('qr_token', $qr_token)
+            ->first();
+
+        if (! $equipment) {
+            return response()->view('public.equipment-not-found', [], 404);
+        }
+
+        if (! Auth::check()) {
+            redirect()->setIntendedUrl(route('public.equipment.report', ['qr_token' => $qr_token]));
+
+            return redirect()->to(Filament::getLoginUrl() ?? url('/admin/login'));
+        }
+
+        $user = Auth::user();
+        $backUrl = route('public.equipment.show', ['qr_token' => $qr_token]);
+
+        if (! $equipment->is_active) {
+            return response()->view('public.equipment-report-denied', [
+                'message' => 'Alat ini sudah berstatus tidak aktif sehingga tidak dapat dilaporkan kerusakannya.',
+                'backUrl' => $backUrl,
+            ], 403);
+        }
+
+        if (! app(DamageReportService::class)->canReportEquipment($user, $equipment)) {
+            $isRoomHead = $user->hasRole(UserRole::KepalaRuangan->value);
+
+            $message = $isRoomHead
+                ? sprintf(
+                    'Alat %s (%s) berada di %s. Sebagai Kepala Ruangan, Anda hanya dapat melaporkan kerusakan alat di ruangan Anda sendiri.',
+                    $equipment->name,
+                    $equipment->inventory_code,
+                    $equipment->room?->name ?? 'ruangan lain',
+                )
+                : 'Akun Anda tidak memiliki izin untuk membuat laporan kerusakan. Silakan hubungi IPSRS atau kepala ruangan terkait.';
+
+            return response()->view('public.equipment-report-denied', [
+                'message' => $message,
+                'backUrl' => $backUrl,
+            ], 403);
+        }
+
+        return redirect()->to(DamageReportResource::getUrl('create', [
+            'equipment_id' => $equipment->id,
+        ]));
     }
 }

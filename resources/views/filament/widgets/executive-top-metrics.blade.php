@@ -43,6 +43,11 @@
         </x-sigap.card>
 
         {{-- Card 2: Kepatuhan Kalibrasi (5 cols) --}}
+        @php
+            $pmRateLabel = isset($pmCompliance) && $pmCompliance['rate'] !== null
+                ? number_format($pmCompliance['rate'], 1, ',', '.') . '%'
+                : '–';
+        @endphp
         <x-sigap.card title="Kepatuhan Kalibrasi" icon="heroicon-o-shield-check" class="md:col-span-6 xl:col-span-5">
             <x-sigap.kpi
                 caption="Alat wajib kalibrasi dengan sertifikat berlaku"
@@ -56,6 +61,7 @@
                     ['label' => 'Wajib kalibrasi', 'value' => number_format($comp['required_count'], 0, ',', '.')],
                     ['label' => 'Bersertifikat', 'value' => number_format($comp['compliant_count'], 0, ',', '.')],
                     ['label' => 'Jatuh tempo 30 hari', 'value' => number_format($comp['due_30_days'], 0, ',', '.')],
+                    ['label' => 'Kepatuhan pemeliharaan', 'value' => $pmRateLabel],
                 ]"
             />
         </x-sigap.card>

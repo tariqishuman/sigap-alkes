@@ -5,6 +5,8 @@ namespace App\Filament\Resources\DamageReports\Schemas;
 use App\Enums\UserRole;
 use App\Models\Equipment;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Section;
@@ -54,12 +56,42 @@ class DamageReportForm
                             ->seconds(false)
                             ->disabledOn('edit')
                             ->required(),
+                        Radio::make('is_safe_to_use')
+                            ->label('Apakah alat masih aman dipakai?')
+                            ->options([
+                                1 => 'Ya, masih aman dipakai',
+                                0 => 'Tidak, tidak aman dipakai',
+                            ])
+                            ->descriptions([
+                                1 => 'Status alat tetap seperti saat ini sampai teknisi memeriksa.',
+                                0 => 'Status alat langsung berubah menjadi Tidak laik pakai (untuk magang: menunggu verifikasi teknisi/Admin IPSRS).',
+                            ])
+                            ->boolean()
+                            ->inline(false)
+                            ->required()
+                            ->disabledOn('edit')
+                            ->columnSpanFull(),
                         Textarea::make('complaint')
                             ->label('Keluhan / Deskripsi Kerusakan')
-                            ->placeholder('Jelaskan gejala kerusakan yang ditemukan pada alat...')
+                            ->placeholder('Jelaskan gejala kerusakan yang ditemukan pada alat (minimal 10 karakter)...')
+                            ->default(fn (): ?string => filled(request()->query('complaint')) ? (string) request()->query('complaint') : null)
                             ->rows(4)
+                            ->minLength(10)
                             ->maxLength(2000)
                             ->required()
+                            ->columnSpanFull(),
+                        FileUpload::make('photos')
+                            ->label('Foto Kerusakan (Opsional)')
+                            ->helperText('Unggah maksimal 3 foto (JPG/PNG, maks 3 MB per foto). Hanya tampil di panel internal.')
+                            ->disk('local')
+                            ->directory('damage-report-photos')
+                            ->visibility('private')
+                            ->image()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                            ->multiple()
+                            ->maxFiles(3)
+                            ->maxSize(3072)
+                            ->hiddenOn('edit')
                             ->columnSpanFull(),
                     ]),
             ]);

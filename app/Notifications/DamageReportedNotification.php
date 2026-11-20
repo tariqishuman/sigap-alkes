@@ -2,8 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\AlertTier;
 use App\Filament\Resources\DamageReports\DamageReportResource;
 use App\Models\DamageReport;
+use App\Models\User;
+use App\Notifications\Channels\WebPushChannel;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Notifications\Notification;
@@ -12,18 +15,49 @@ class DamageReportedNotification extends Notification
 {
     public function __construct(public DamageReport $damageReport) {}
 
+    public function alertTier(): AlertTier
+    {
+        $this->damageReport->loadMissing(['equipment.equipmentType', 'equipment.room']);
+
+        if (
+            ! $this->damageReport->is_safe_to_use
+            && ! $this->damageReport->isPendingVerification()
+            && ($this->damageReport->equipment?->isCritical() ?? false)
+        ) {
+            return AlertTier::Critical;
+        }
+
+        return AlertTier::Important;
+    }
+
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if ($notifiable instanceof User && $notifiable->shouldReceivePushForTier($this->alertTier())) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function toDatabase(object $notifiable): array
+    public function title(): string
+    {
+        if ($this->damageReport->isPendingVerification()) {
+            return 'Verifikasi laporan tidak aman dipakai';
+        }
+
+        if (! $this->damageReport->is_safe_to_use) {
+            return 'Alat dilaporkan tidak aman dipakai';
+        }
+
+        return 'Laporan kerusakan baru';
+    }
+
+    public function body(): string
     {
         $this->damageReport->loadMissing(['equipment.room', 'reportedByUser']);
 
@@ -31,17 +65,67 @@ class DamageReportedNotification extends Notification
         $roomName = $equipment?->room?->name ?? '-';
         $reporterName = $this->damageReport->reportedByUser?->name ?? 'Pengguna';
 
-        $body = "Laporan kerusakan baru untuk {$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} oleh {$reporterName}.";
+        if ($this->damageReport->isPendingVerification()) {
+            return "{$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} dilaporkan tidak aman dipakai oleh {$reporterName} (menunggu verifikasi).";
+        }
 
-        return FilamentNotification::make()
-            ->title('Laporan kerusakan baru')
-            ->body($body)
-            ->warning()
+        if (! $this->damageReport->is_safe_to_use) {
+            return "⚠️ {$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} dilaporkan tidak aman dipakai.";
+        }
+
+        return "Laporan kerusakan baru untuk {$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} oleh {$reporterName}.";
+    }
+
+    public function ackUrl(): string
+    {
+        return DamageReportResource::getUrl('index', ['ack' => $this->damageReport->id]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDatabase(object $notifiable): array
+    {
+        $notification = FilamentNotification::make()
+            ->title($this->title())
+            ->body($this->body());
+
+        if (! $this->damageReport->is_safe_to_use && ! $this->damageReport->isPendingVerification()) {
+            $notification->danger();
+        } else {
+            $notification->warning();
+        }
+
+        return $notification
             ->actions([
+                Action::make('ack')
+                    ->label('Saya tangani')
+                    ->url($this->ackUrl()),
                 Action::make('view')
                     ->label('Lihat laporan')
                     ->url(DamageReportResource::getUrl('index')),
             ])
             ->getDatabaseMessage();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toWebPush(object $notifiable): array
+    {
+        $isCritical = $this->alertTier() === AlertTier::Critical;
+
+        return [
+            'title' => $this->title(),
+            'body' => $this->body(),
+            'url' => DamageReportResource::getUrl('index'),
+            'ackUrl' => $this->ackUrl(),
+            'tag' => "damage-report-{$this->damageReport->id}",
+            'requireInteraction' => $isCritical,
+            'actions' => [
+                ['action' => 'ack', 'title' => 'Saya tangani'],
+                ['action' => 'open', 'title' => 'Lihat laporan'],
+            ],
+        ];
     }
 }

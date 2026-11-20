@@ -4,8 +4,10 @@ namespace App\Providers\Filament;
 
 use App\Filament\AvatarProviders\SigapAvatarProvider;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\NotificationPreferences;
 use App\Services\SettingsService;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -15,12 +17,14 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -48,6 +52,16 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->globalSearchFieldSuffix(fn (): string => 'Ctrl K')
             ->databaseNotifications()
+            ->userMenuItems([
+                Action::make('device_notifications')
+                    ->label('Notifikasi di perangkat ini')
+                    ->icon(Heroicon::OutlinedBellAlert)
+                    ->url(fn (): string => NotificationPreferences::getUrl()),
+            ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): HtmlString => new HtmlString('<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0E7C7B">'),
+            )
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 fn () => view('filament.auth.login-illustration'),

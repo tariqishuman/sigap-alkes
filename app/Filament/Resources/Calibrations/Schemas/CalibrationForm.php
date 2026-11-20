@@ -71,15 +71,17 @@ class CalibrationForm
                             ->helperText('Paling lama tanggal uji ditambah interval kalibrasi jenis alat.')
                             ->visible($isPass)
                             ->required($isPass),
-                        // Private disk: certificates are downloaded through an authorized table action.
+                        // Private disk: certificates are served through an authorized route.
                         FileUpload::make('certificate_path')
                             ->label('File Sertifikat (PDF)')
+                            ->helperText('Unggah file PDF sertifikat kalibrasi (maks 5 MB). Wajib untuk hasil lulus.')
                             ->disk('local')
                             ->directory('calibration-certificates')
                             ->visibility('private')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->maxSize(10240)
+                            ->maxSize(5120)
                             ->visible($isPass)
+                            ->required(fn (Get $get, string $operation): bool => $operation === 'create' && $isPass($get))
                             ->columnSpanFull(),
                     ]),
             ]);

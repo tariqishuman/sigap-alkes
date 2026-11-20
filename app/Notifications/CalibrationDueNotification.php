@@ -2,8 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\AlertTier;
 use App\Filament\Resources\Equipment\EquipmentResource;
 use App\Models\Equipment;
+use App\Models\User;
+use App\Notifications\Channels\WebPushChannel;
 use App\Services\SettingsService;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
@@ -23,6 +26,11 @@ class CalibrationDueNotification extends Notification implements ShouldQueue
         public int $daysLeft,
     ) {}
 
+    public function alertTier(): AlertTier
+    {
+        return $this->daysLeft <= 7 ? AlertTier::Important : AlertTier::Info;
+    }
+
     public function via(object $notifiable): array
     {
         $channels = ['database'];
@@ -31,7 +39,28 @@ class CalibrationDueNotification extends Notification implements ShouldQueue
             $channels[] = 'mail';
         }
 
+        if ($notifiable instanceof User && $notifiable->shouldReceivePushForTier($this->alertTier())) {
+            $channels[] = WebPushChannel::class;
+        }
+
         return $channels;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toWebPush(object $notifiable): array
+    {
+        return [
+            'title' => 'Pengingat kalibrasi',
+            'body' => $this->message(),
+            'url' => $this->equipmentUrl(),
+            'tag' => "calibration-due-{$this->equipment->id}-{$this->validUntil->format('Ymd')}",
+            'requireInteraction' => false,
+            'actions' => [
+                ['action' => 'open', 'title' => 'Lihat alat'],
+            ],
+        ];
     }
 
     public function toDatabase(object $notifiable): array

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\CalibrationResult;
 use App\Enums\EquipmentStatus;
 use App\Enums\TestingInstitutionKind;
+use App\Models\Calibration;
 use App\Models\Equipment;
 use App\Models\EquipmentType;
 use App\Models\Room;
@@ -15,12 +16,15 @@ use App\Services\CalibrationService;
 use App\Services\DamageReportService;
 use App\Services\EquipmentMovementService;
 use App\Services\EquipmentStatusService;
+use App\Services\PreventiveMaintenanceService;
 use App\Services\RepairService;
 use App\Services\SparePartStockService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class DummyDataSeeder extends Seeder
 {
@@ -48,33 +52,51 @@ class DummyDataSeeder extends Seeder
         $repairService = app(RepairService::class);
         $movementService = app(EquipmentMovementService::class);
         $stockService = app(SparePartStockService::class);
+        $pmService = app(PreventiveMaintenanceService::class);
+
+        EquipmentStatusService::$suppressNotifications = true;
 
         try {
-            // 1. Ruangan (6 ruangan rumah sakit)
+            // 1. Ruangan (6 ruangan rumah sakit; ICU, IGD, OK, NICU = area kritis)
             $roomsData = [
-                ['name' => 'Ruang ICU', 'code' => 'ICU', 'building' => 'Gedung Utama', 'floor' => 'Lantai 2'],
-                ['name' => 'Ruang IGD', 'code' => 'IGD', 'building' => 'Gedung Utama', 'floor' => 'Lantai 1'],
-                ['name' => 'Ruang Operasi (OK)', 'code' => 'OK', 'building' => 'Gedung Bedah Sentral', 'floor' => 'Lantai 2'],
-                ['name' => 'Ruang NICU', 'code' => 'NICU', 'building' => 'Gedung Ibu & Anak', 'floor' => 'Lantai 2'],
-                ['name' => 'Poliklinik Jantung', 'code' => 'POLI', 'building' => 'Gedung Rawat Jalan', 'floor' => 'Lantai 1'],
-                ['name' => 'Instalasi Radiologi', 'code' => 'RAD', 'building' => 'Gedung Diagnostik', 'floor' => 'Lantai 1'],
+                ['name' => 'Ruang ICU', 'code' => 'ICU', 'building' => 'Gedung Utama', 'floor' => 'Lantai 2', 'is_critical_area' => true],
+                ['name' => 'Ruang IGD', 'code' => 'IGD', 'building' => 'Gedung Utama', 'floor' => 'Lantai 1', 'is_critical_area' => true],
+                ['name' => 'Ruang Operasi (OK)', 'code' => 'OK', 'building' => 'Gedung Bedah Sentral', 'floor' => 'Lantai 2', 'is_critical_area' => true],
+                ['name' => 'Ruang NICU', 'code' => 'NICU', 'building' => 'Gedung Ibu & Anak', 'floor' => 'Lantai 2', 'is_critical_area' => true],
+                ['name' => 'Poliklinik Jantung', 'code' => 'POLI', 'building' => 'Gedung Rawat Jalan', 'floor' => 'Lantai 1', 'is_critical_area' => false],
+                ['name' => 'Instalasi Radiologi', 'code' => 'RAD', 'building' => 'Gedung Diagnostik', 'floor' => 'Lantai 1', 'is_critical_area' => false],
             ];
 
             $rooms = [];
             foreach ($roomsData as $roomItem) {
                 $rooms[$roomItem['code']] = Room::updateOrCreate(
                     ['name' => $roomItem['name']],
-                    ['building' => $roomItem['building'], 'floor' => $roomItem['floor']],
+                    [
+                        'building' => $roomItem['building'],
+                        'floor' => $roomItem['floor'],
+                        'is_critical_area' => $roomItem['is_critical_area'],
+                    ],
                 );
             }
 
-            // 2. Jenis Alat (10 jenis alat kesehatan)
+            // 2. Jenis Alat (10 jenis alat kesehatan; dengan interval PM, checklist PM, dan flag kritis)
+            $defaultChecklist = [
+                'Kebersihan & kondisi fisik',
+                'Kabel & konektor',
+                'Baterai / catu daya',
+                'Alarm berfungsi',
+                'Uji fungsi dasar',
+            ];
+
             $typesData = [
                 [
                     'name' => 'Infusion Pump',
                     'requires_calibration' => true,
                     'requires_installation' => false,
+                    'is_critical' => false,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan & kondisi fisik', 'Sensor oklusi & udara', 'Kabel daya & baterai', 'Alarm berfungsi', 'Uji laju aliran dasar'],
                     'useful_life_years' => 5,
                     'residual_value_percent' => 10,
                     'brands' => [['Terumo', 'Terufusion TE-LM800'], ['B. Braun', 'Infusomat Space'], ['Mindray', 'BeneFusion VP5']],
@@ -84,7 +106,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Syringe Pump',
                     'requires_calibration' => true,
                     'requires_installation' => false,
+                    'is_critical' => false,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan & kondisi fisik', 'Penjepit spuit & slider', 'Baterai internal', 'Alarm oklusi berfungsi', 'Uji fungsi dasar'],
                     'useful_life_years' => 5,
                     'residual_value_percent' => 10,
                     'brands' => [['Terumo', 'Terufusion TE-SS800'], ['B. Braun', 'Perfusor Space'], ['Mindray', 'BeneFusion SP5']],
@@ -94,7 +119,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Patient Monitor',
                     'requires_calibration' => true,
                     'requires_installation' => true,
+                    'is_critical' => true,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan layar & casing', 'Kabel ECG, SpO2 & manset NIBP', 'Baterai cadangan', 'Alarm audio & visual', 'Uji pembacaan simulator'],
                     'useful_life_years' => 7,
                     'residual_value_percent' => 10,
                     'brands' => [['Philips', 'IntelliVue MX450'], ['Mindray', 'BeneVision N12'], ['GE Healthcare', 'CARESCAPE B450']],
@@ -104,7 +132,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Ventilator',
                     'requires_calibration' => true,
                     'requires_installation' => true,
+                    'is_critical' => true,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan & filter HEPA', 'Selang & katup ekspirasi', 'Sensor O2 & aliran', 'Baterai cadangan', 'Alarm tekanan & apnea'],
                     'useful_life_years' => 8,
                     'residual_value_percent' => 10,
                     'brands' => [['Mindray', 'SV300'], ['Dräger', 'Savina 300 Select'], ['Hamilton', 'C3']],
@@ -114,7 +145,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Defibrillator',
                     'requires_calibration' => true,
                     'requires_installation' => false,
+                    'is_critical' => true,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan & paddle/pads', 'Kabel ECG & konektor', 'Baterai & indikator daya', 'Uji charge-discharge internal', 'Alarm & printer strip'],
                     'useful_life_years' => 7,
                     'residual_value_percent' => 10,
                     'brands' => [['Philips', 'HeartStart XL+'], ['Nihon Kohden', 'Cardiolife TEC-5631'], ['Zoll', 'R Series Plus']],
@@ -124,7 +158,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'ECG / EKG 12 Channel',
                     'requires_calibration' => true,
                     'requires_installation' => false,
+                    'is_critical' => false,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 6,
+                    'pm_checklist' => $defaultChecklist,
                     'useful_life_years' => 6,
                     'residual_value_percent' => 10,
                     'brands' => [['Fukuda Denshi', 'CardiMax FX-8322'], ['Nihon Kohden', 'Cardiofax M ECG-2350'], ['GE Healthcare', 'MAC 2000']],
@@ -134,7 +171,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Suction Pump',
                     'requires_calibration' => true,
                     'requires_installation' => false,
+                    'is_critical' => false,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 6,
+                    'pm_checklist' => ['Kebersihan tabung & filter', 'Selang & regulator vakum', 'Kabel daya', 'Uji tekanan hisap dasar'],
                     'useful_life_years' => 5,
                     'residual_value_percent' => 5,
                     'brands' => [['Medela', 'Dominant Flex'], ['Yuwell', '7A-23D'], ['Medela', 'Basic 30']],
@@ -144,7 +184,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Baby Incubator',
                     'requires_calibration' => true,
                     'requires_installation' => true,
+                    'is_critical' => true,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan sungkup & matras', 'Sensor suhu kulit & udara', 'Filter udara & humidifier', 'Alarm suhu tinggi/rendah', 'Uji pemanasan stabil'],
                     'useful_life_years' => 8,
                     'residual_value_percent' => 10,
                     'brands' => [['Atom Medical', 'Incu i V-2100G'], ['GE Healthcare', 'Giraffe OmniBed']],
@@ -154,7 +197,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Mesin Anestesi',
                     'requires_calibration' => true,
                     'requires_installation' => true,
+                    'is_critical' => true,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => 3,
+                    'pm_checklist' => ['Kebersihan & absorber CO2', 'Vaporizer & flowmeter gas', 'Sirkuit napas & uji kebocoran', 'Baterai cadangan', 'Alarm gas & tekanan'],
                     'useful_life_years' => 10,
                     'residual_value_percent' => 10,
                     'brands' => [['GE Healthcare', 'Carestation 620'], ['Dräger', 'Fabius Plus XL']],
@@ -164,7 +210,10 @@ class DummyDataSeeder extends Seeder
                     'name' => 'Tensimeter Digital Non-Kalibrasi',
                     'requires_calibration' => false,
                     'requires_installation' => false,
+                    'is_critical' => false,
                     'calibration_interval_months' => 12,
+                    'pm_interval_months' => null,
+                    'pm_checklist' => null,
                     'useful_life_years' => 4,
                     'residual_value_percent' => 0,
                     'brands' => [['Omron', 'HBP-1320 Professional'], ['Omron', 'HBP-1120']],
@@ -847,14 +896,106 @@ class DummyDataSeeder extends Seeder
                 );
             }
 
+            // 9i. Riwayat Pemeliharaan Preventif (PM) 12 bulan realistis (sebagian terlambat, beberapa temuan tidak baik)
+            $pmEquipment = Equipment::query()
+                ->where('is_active', true)
+                ->whereHas('equipmentType', fn ($q) => $q->whereNotNull('pm_interval_months')->where('pm_interval_months', '>', 0))
+                ->with('equipmentType')
+                ->orderBy('id')
+                ->get();
+
+            foreach ($pmEquipment as $idx => $eq) {
+                $interval = (int) $eq->equipmentType->pm_interval_months;
+                $checklist = $eq->equipmentType->pm_checklist ?? ['Kebersihan & kondisi fisik', 'Kabel & konektor', 'Uji fungsi dasar'];
+
+                // Tentukan tanggal PM terakhir agar distribusi jadwal realistis: ~15% terlambat, ~15% minggu ini, sisanya aman
+                $daysOffsetFromNow = match ($idx % 12) {
+                    0 => -($interval * 30 + 18), // terlambat 18 hari
+                    1 => -($interval * 30 + 6),  // terlambat 6 hari
+                    2 => -($interval * 30 - 3),  // jatuh tempo 3 hari lagi (minggu ini)
+                    3 => -($interval * 30 - 15), // bulan ini
+                    default => -(15 + (($idx * 13) % max(20, ($interval * 30) - 25))),
+                };
+
+                $lastPmDate = $realNow->copy()->addDays($daysOffsetFromNow)->startOfDay();
+                $prevPmDate = $lastPmDate->copy()->subMonthsNoOverflow($interval);
+
+                foreach ([$prevPmDate, $lastPmDate] as $cycleIdx => $pmDate) {
+                    if ($pmDate->greaterThan($realNow) || $pmDate->lessThan($realNow->copy()->subMonths(12))) {
+                        continue;
+                    }
+
+                    $hasIssue = $cycleIdx === 1 && in_array($idx, [4, 11, 19], true);
+                    $rows = [];
+                    foreach ($checklist as $cIdx => $itemLabel) {
+                        $bad = $hasIssue && $cIdx === 1;
+                        $rows[] = [
+                            'item' => $itemLabel,
+                            'status' => $bad ? 'needs_attention' : 'good',
+                            'note' => $bad ? 'Perlu pengecekan lanjutan oleh teknisi' : null,
+                        ];
+                    }
+
+                    Carbon::setTestNow($pmDate);
+                    $pmService->record([
+                        'equipment_id' => $eq->id,
+                        'performed_at' => $pmDate->toDateString(),
+                        'checklist_results' => $rows,
+                        'notes' => $hasIssue
+                            ? 'Ditemukan penurunan fungsi pada pemeriksaan rutin, disarankan tindak lanjut.'
+                            : 'Pemeliharaan preventif berkala selesai, alat dalam kondisi baik.',
+                    ], $idx % 3 === 0 ? $admin : $teknisi);
+                }
+            }
+
+            // 9j. PDF sertifikat kalibrasi contoh (dibuat dengan dompdf di disk private) untuk sebagian kalibrasi lulus
+            Carbon::setTestNow($realNow);
+            $sampleCalibrations = Calibration::query()
+                ->where('result', CalibrationResult::Pass)
+                ->whereNull('certificate_path')
+                ->with(['equipment.room', 'testingInstitution'])
+                ->latest('tested_at')
+                ->limit(8)
+                ->get();
+
+            foreach ($sampleCalibrations as $cal) {
+                $html = sprintf(
+                    '<html><body style="font-family:sans-serif;padding:28px;">'
+                    .'<h2 style="color:#0E7C7B;margin:0 0 6px;">SERTIFIKAT KALIBRASI ALAT KESEHATAN (CONTOH)</h2>'
+                    .'<p style="color:#55666A;margin:0 0 18px;">Dokumen sintetis SIGAP-Alkes — tanpa data pasien.</p>'
+                    .'<table style="width:100%%;border-collapse:collapse;font-size:13px;">'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Nomor Sertifikat</strong></td><td style="padding:6px;border:1px solid #ddd;">%s</td></tr>'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Nama Alat</strong></td><td style="padding:6px;border:1px solid #ddd;">%s (%s)</td></tr>'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Ruangan</strong></td><td style="padding:6px;border:1px solid #ddd;">%s</td></tr>'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Lembaga Penguji</strong></td><td style="padding:6px;border:1px solid #ddd;">%s</td></tr>'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Tanggal Uji</strong></td><td style="padding:6px;border:1px solid #ddd;">%s</td></tr>'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Berlaku Sampai</strong></td><td style="padding:6px;border:1px solid #ddd;">%s</td></tr>'
+                    .'<tr><td style="padding:6px;border:1px solid #ddd;"><strong>Hasil</strong></td><td style="padding:6px;border:1px solid #ddd;"><strong>LULUS / LAIK PAKAI</strong></td></tr>'
+                    .'</table></body></html>',
+                    e($cal->certificate_number ?? '-'),
+                    e($cal->equipment?->name ?? '-'),
+                    e($cal->equipment?->inventory_code ?? '-'),
+                    e($cal->equipment?->room?->name ?? '-'),
+                    e($cal->testingInstitution?->name ?? '-'),
+                    e($cal->tested_at?->translatedFormat('d F Y') ?? '-'),
+                    e($cal->valid_until?->translatedFormat('d F Y') ?? '-'),
+                );
+
+                $path = "calibration-certificates/sample-cert-{$cal->id}.pdf";
+                Storage::disk('local')->put($path, Pdf::loadHTML($html)->output());
+                $cal->update(['certificate_path' => $path]);
+            }
+
             // Bersihkan notifikasi lama dari simulasi historis, lalu buat 2 laporan terbuka terbaru agar lonceng notifikasi relevan
             DB::table('notifications')->delete();
+            EquipmentStatusService::$suppressNotifications = false;
 
             $openReportTarget1 = Equipment::where('inventory_code', 'ALK-ICU-004')->first();
             if ($openReportTarget1) {
                 $damageReportService->report([
                     'equipment_id' => $openReportTarget1->id,
                     'reported_at' => $realNow->copy()->subHours(3)->toDateTimeString(),
+                    'is_safe_to_use' => true,
                     'complaint' => 'Layar monitor sesekali berkedip saat alarm SpO2 aktif.',
                 ], $kepalaIcu);
             }
@@ -864,10 +1005,12 @@ class DummyDataSeeder extends Seeder
                 $damageReportService->report([
                     'equipment_id' => $openReportTarget2->id,
                     'reported_at' => $realNow->copy()->subHours(1)->toDateTimeString(),
+                    'is_safe_to_use' => true,
                     'complaint' => 'Kertas printer EKG tersendat saat mencetak 12 lead.',
                 ], $admin);
             }
         } finally {
+            EquipmentStatusService::$suppressNotifications = false;
             Carbon::setTestNow();
         }
     }

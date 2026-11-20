@@ -133,8 +133,8 @@ it('rejects insufficient stock with clear message and prevents negative stock ac
         'is_active' => true,
     ]);
 
-    $r1 = $damageService->report(['equipment_id' => $this->equipment->id, 'complaint' => 'Rusak 1'], $this->kepalaIcu);
-    $r2 = $damageService->report(['equipment_id' => $eq2->id, 'complaint' => 'Rusak 2'], $this->kepalaIcu);
+    $r1 = $damageService->report(['equipment_id' => $this->equipment->id, 'complaint' => 'Kerusakan baterai alat uji 1'], $this->kepalaIcu);
+    $r2 = $damageService->report(['equipment_id' => $eq2->id, 'complaint' => 'Kerusakan baterai alat uji 2'], $this->kepalaIcu);
 
     // Request 1 takes 2 units -> 1 left
     $repairService->start([
@@ -171,7 +171,7 @@ it('sends a database notification to admin_ipsrs when stock drops to or below mi
 
     $stockService->stockIn($this->part, 5, 'Stok awal', $this->admin->id);
 
-    $report = $damageService->report(['equipment_id' => $this->equipment->id, 'complaint' => 'Rusak'], $this->kepalaIcu);
+    $report = $damageService->report(['equipment_id' => $this->equipment->id, 'complaint' => 'Kerusakan komponen baterai utama'], $this->kepalaIcu);
 
     // Consume 2 -> stock becomes 3 == min_stock (3) -> triggers LowSparePartStockNotification
     $repairService->start([

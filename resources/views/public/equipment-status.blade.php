@@ -176,6 +176,29 @@
             font-weight: 700;
             color: #0E7C7B;
         }
+        .report-cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            min-height: 44px;
+            padding: 0 1rem;
+            margin-bottom: 1rem;
+            border-radius: 999px;
+            background-color: #FFFFFF;
+            border: 1px solid #D3DEDD;
+            color: #13262B;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .report-cta:hover {
+            background-color: #E8F4F3;
+            border-color: #0E7C7B;
+            color: #0E7C7B;
+        }
         .footer {
             font-size: 0.75rem;
             color: #6B7C80;
@@ -253,6 +276,15 @@
                 <div class="meta-value">{{ $roomName }}</div>
             </div>
         </div>
+
+        @if (! empty($reportUrl))
+            <a href="{{ $reportUrl }}" class="report-cta">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                </svg>
+                <span>Laporkan kerusakan</span>
+            </a>
+        @endif
 
         <div class="footer">
             <span>Diperbarui {{ $updatedAtFormatted }}</span>

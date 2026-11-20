@@ -54,3 +54,5 @@ if (! is_string($reminderTime) || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $r
 
 Schedule::command('equipment:evaluate-status')->dailyAt('00:10');
 Schedule::command('calibration:send-reminders')->dailyAt($reminderTime);
+Schedule::command('notifications:send-daily-digest')->dailyAt($reminderTime);
+Schedule::command('damage-reports:escalate-critical')->everyMinute();

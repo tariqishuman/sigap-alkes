@@ -266,7 +266,20 @@ Seluruh akun demo menggunakan kata sandi **`password`**:
 - [x] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* dan Kepatuhan Kalibrasi, penanda rekomendasi penggantian aset, *Dashboard* analitik, serta ekspor laporan Excel/PDF dan format ASPAK.
 - [x] **M5 — Seeder Sintetis & Finalisasi**: Seeder sintetis deterministik 12 bulan (6 ruangan, 10 jenis, 60 alat), halaman error kustom, audit penuh hak akses per peran, dan dokumentasi README.
 - [x] **R1 & Pengaturan Aplikasi**: Penyempurnaan teks UI *production-ready*, buku stok suku cadang, penyusutan bulanan, peran baru (`badan_kalibrasi` & `magang`), halaman **Pengaturan Aplikasi** (termasuk kredensial SatuSehat terenkripsi), serta redesain UX Dasbor & tabel operasional.
-- [x] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 & SatuSehat**: Pemetaan entitas non-pasien ke resource HL7 FHIR R4 (`Device`, `DeviceMetric`, `Location`, `Organization`), REST API read-only `/api/fhir/r4/*` ber-Sanctum + `OperationOutcome`, manajemen Token API, serta sinkronisasi sub-organisasi IPSRS & Location ruangan ke sandbox SatuSehat Kemenkes.
+- [x] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 & SatuSehat**: Pemetaan entitas non-pasien ke resource HL7 FHIR R4 (`Device`, `DeviceMetric`, `Location`, `Organization`), REST API read-only `/api/fhir/r4/*` ber-Sanctum + `OperationOutcome`, manajemen Token API, serta sinkronisasi sub-organisasi IPSRS, Location ruangan, dan Device (SNOMED CT) ke sandbox SatuSehat Kemenkes.
+- [x] **R3 — Alur Operasional & Notifikasi Push**: Laporan kerusakan tidak aman langsung mengubah status ke `Tidak laik pakai` (dengan verifikasi untuk magang, batas 5/jam, penggabungan laporan ganda, foto privat, dan aksi tutup tanpa perbaikan), tombol lapor kerusakan dari halaman QR publik, notifikasi kepala ruangan, Pemeliharaan Preventif (PM) + checklist & tab jadwal, sertifikat kalibrasi PDF terproteksi policy, serta Web Push (VAPID + PWA + "Saya tangani" + eskalasi kritis 15 menit).
+
+---
+
+## Konfigurasi Web Push (VAPID & PWA iOS)
+
+1. Generate pasangan kunci VAPID lokal (disimpan otomatis ke `.env`, **jangan di-commit**):
+   ```bash
+   php artisan webpush:vapid
+   ```
+2. Pastikan `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, dan `VAPID_PRIVATE_KEY` terisi di `.env` (placeholder tersedia di `.env.example`).
+3. Jalankan scheduler (`php artisan schedule:work`) agar pengingat kalibrasi/PM, ringkasan harian Info, dan eskalasi laporan kritis (tiap menit) aktif.
+4. **Pengguna iPhone / iOS (16.4+)**: Buka SIGAP-Alkes di Safari → ketuk tombol **Bagikan (Share)** → pilih **Tambahkan ke Layar Utama (Add to Home Screen)** → buka aplikasi dari ikon layar utama → buka menu profil → **Notifikasi di perangkat ini** → tekan **Aktifkan notifikasi di perangkat ini**.
 
 ---
 

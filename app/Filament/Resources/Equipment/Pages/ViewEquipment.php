@@ -7,6 +7,7 @@ use App\Filament\Resources\Calibrations\CalibrationResource;
 use App\Filament\Resources\DamageReports\DamageReportResource;
 use App\Filament\Resources\Equipment\EquipmentResource;
 use App\Filament\Resources\EquipmentMovements\EquipmentMovementResource;
+use App\Filament\Resources\PreventiveMaintenances\PreventiveMaintenanceResource;
 use App\Models\Equipment;
 use App\Services\EquipmentStatusService;
 use App\Services\QrLabelService;
@@ -107,6 +108,14 @@ class ViewEquipment extends ViewRecord
                 ->visible(fn (Equipment $record): bool => $record->is_active && $canMove)
                 ->url(fn (Equipment $record): string => EquipmentMovementResource::getUrl('create', ['equipment_id' => $record->id]));
         }
+
+        $overflowActions[] = Action::make('record_pm')
+            ->label('Catat pemeliharaan')
+            ->icon(Heroicon::OutlinedClipboardDocumentList)
+            ->visible(fn (Equipment $record): bool => $record->is_active
+                && (bool) $record->equipmentType?->pm_interval_months
+                && PreventiveMaintenanceResource::canCreate())
+            ->url(fn (Equipment $record): string => PreventiveMaintenanceResource::getUrl('create', ['equipment_id' => $record->id]));
 
         $overflowActions[] = Action::make('print_qr')
             ->label('Cetak label QR')

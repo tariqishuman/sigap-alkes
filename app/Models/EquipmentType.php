@@ -13,7 +13,10 @@ use Spatie\Activitylog\Support\LogOptions;
     'name',
     'requires_calibration',
     'requires_installation',
+    'is_critical',
     'calibration_interval_months',
+    'pm_interval_months',
+    'pm_checklist',
     'useful_life_years',
     'residual_value_percent',
     'fhir_type_code',
@@ -28,7 +31,10 @@ class EquipmentType extends Model
         return [
             'requires_calibration' => 'boolean',
             'requires_installation' => 'boolean',
+            'is_critical' => 'boolean',
             'calibration_interval_months' => 'integer',
+            'pm_interval_months' => 'integer',
+            'pm_checklist' => 'array',
             'useful_life_years' => 'integer',
             'residual_value_percent' => 'integer',
         ];
