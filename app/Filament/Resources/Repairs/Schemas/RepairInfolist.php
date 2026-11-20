@@ -7,6 +7,7 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class RepairInfolist
 {
@@ -47,6 +48,7 @@ class RepairInfolist
                     ]),
 
                 Section::make('Rincian Biaya')
+                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                     ->columns(3)
                     ->schema([
                         TextEntry::make('labor_cost')
@@ -74,9 +76,11 @@ class RepairInfolist
                                     ->label('Jumlah'),
                                 TextEntry::make('unit_price')
                                     ->label('Harga Satuan')
+                                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                                     ->formatStateUsing(fn ($state): string => 'Rp'.number_format((float) $state, 0, ',', '.')),
                                 TextEntry::make('subtotal')
                                     ->label('Subtotal')
+                                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                                     ->state(fn ($record): string => 'Rp'.number_format((float) $record->lineTotal(), 0, ',', '.')),
                             ]),
                     ]),

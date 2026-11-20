@@ -8,6 +8,7 @@ use Closure;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Models\Role;
@@ -66,12 +67,31 @@ class UserForm
                             })
                             ->multiple()
                             ->preload()
+                            ->live()
                             ->required(),
                         Select::make('room_id')
                             ->label('Ruangan (Khusus Kepala Ruangan)')
                             ->relationship('room', 'name')
                             ->searchable()
                             ->preload()
+                            ->nullable(),
+                        Select::make('testing_institution_id')
+                            ->label('Lembaga Penguji (Khusus Badan Kalibrasi)')
+                            ->relationship('testingInstitution', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->visible(function (Get $get): bool {
+                                $roleIds = array_map('intval', (array) ($get('roles') ?? []));
+                                $badanRoleId = (int) Role::where('name', UserRole::BadanKalibrasi->value)->value('id');
+
+                                return $badanRoleId > 0 && in_array($badanRoleId, $roleIds, true);
+                            })
+                            ->required(function (Get $get): bool {
+                                $roleIds = array_map('intval', (array) ($get('roles') ?? []));
+                                $badanRoleId = (int) Role::where('name', UserRole::BadanKalibrasi->value)->value('id');
+
+                                return $badanRoleId > 0 && in_array($badanRoleId, $roleIds, true);
+                            })
                             ->nullable(),
                     ]),
             ]);

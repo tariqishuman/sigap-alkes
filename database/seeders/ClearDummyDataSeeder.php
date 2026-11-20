@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\TestingInstitutionKind;
 use App\Models\Calibration;
 use App\Models\CalibrationReminder;
 use App\Models\DamageReport;
@@ -35,8 +36,25 @@ class ClearDummyDataSeeder extends Seeder
             Equipment::query()->delete();
             SparePartMovement::query()->delete();
             SparePart::query()->delete();
-            TestingInstitution::query()->delete();
             EquipmentType::query()->delete();
+
+            // Pastikan BPAFK Surabaya tetap ada untuk akun demo badan kalibrasi
+            $bpafk = TestingInstitution::firstOrCreate(
+                ['name' => 'BPAFK Surabaya'],
+                [
+                    'kind' => TestingInstitutionKind::Bpafk,
+                    'accreditation_number' => 'LK-045-IDN',
+                ],
+            );
+
+            User::query()
+                ->whereNotNull('testing_institution_id')
+                ->where('testing_institution_id', '!=', $bpafk->id)
+                ->update(['testing_institution_id' => null]);
+
+            TestingInstitution::query()
+                ->where('id', '!=', $bpafk->id)
+                ->delete();
 
             // Pastikan Ruang ICU tetap ada untuk akun demo kepala ruangan
             $icuRoom = Room::firstOrCreate(

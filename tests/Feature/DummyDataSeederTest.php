@@ -28,7 +28,7 @@ it('seeds deterministic 12-month dummy data across all statuses, replacement fla
         ->and(DamageReport::count())->toBeGreaterThan(10)
         ->and(Repair::count())->toBeGreaterThan(10)
         ->and(EquipmentMovement::count())->toBeGreaterThanOrEqual(6)
-        ->and(User::count())->toBe(5);
+        ->and(User::count())->toBe(7);
 
     // Pastikan seluruh 6 status alat kesehatan terwakili
     foreach (EquipmentStatus::cases() as $status) {
@@ -71,9 +71,10 @@ it('seeds deterministic 12-month dummy data across all statuses, replacement fla
         ->and(Repair::count())->toBe(0)
         ->and(EquipmentMovement::count())->toBe(0)
         ->and(EquipmentType::count())->toBe(0)
-        ->and(TestingInstitution::count())->toBe(0)
+        ->and(TestingInstitution::count())->toBe(1)
+        ->and(TestingInstitution::first()->name)->toBe('BPAFK Surabaya')
         ->and(SparePart::count())->toBe(0)
         ->and(Room::count())->toBe(1)
         ->and(Room::first()->name)->toBe('Ruang ICU')
-        ->and(User::count())->toBe(5);
+        ->and(User::count())->toBe(7);
 });

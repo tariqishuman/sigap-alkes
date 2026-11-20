@@ -27,6 +27,8 @@ it('seeds all five roles and demo users with password "password"', function () {
         'teknisi@sigap-alkes.test' => UserRole::Teknisi->value,
         'kepalaruangan@sigap-alkes.test' => UserRole::KepalaRuangan->value,
         'manajemen@sigap-alkes.test' => UserRole::Manajemen->value,
+        'kalibrasi@sigap-alkes.test' => UserRole::BadanKalibrasi->value,
+        'magang@sigap-alkes.test' => UserRole::Magang->value,
     ];
 
     foreach ($expectedUsers as $email => $roleName) {

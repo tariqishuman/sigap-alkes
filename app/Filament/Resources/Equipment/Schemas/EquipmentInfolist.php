@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Equipment\Schemas;
 
-use App\Enums\UserRole;
 use App\Models\Equipment;
 use App\Services\DepreciationCalculator;
 use App\Services\QrLabelService;
@@ -101,23 +100,7 @@ class EquipmentInfolist
 
                 Section::make('Nilai Aset')
                     ->description('Nilai buku adalah estimasi, bukan pembukuan resmi RS.')
-                    ->visible(function (): bool {
-                        $user = Auth::user();
-
-                        if (! $user) {
-                            return false;
-                        }
-
-                        return ! (
-                            $user->hasRole(UserRole::KepalaRuangan->value)
-                            && ! $user->hasAnyRole([
-                                UserRole::SuperAdmin->value,
-                                UserRole::AdminIpsrs->value,
-                                UserRole::Manajemen->value,
-                                UserRole::Teknisi->value,
-                            ])
-                        );
-                    })
+                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                     ->columns(4)
                     ->schema([
                         TextEntry::make('acquisition_date')
