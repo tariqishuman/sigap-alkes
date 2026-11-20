@@ -204,7 +204,12 @@ class OperationalReport extends Page implements HasTable
                             ? number_format($metrics['uptime_percent'], 2, ',', '.').'%'
                             : '–';
                     }),
-            ]);
+            ])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-report',
+                'title' => 'Tidak ada data laporan',
+                'description' => 'Tidak ada alat aktif yang sesuai dengan filter periode dan ruangan yang dipilih.',
+            ]));
     }
 
     public function downloadPdf(): StreamedResponse

@@ -90,6 +90,11 @@ class RepairsTable
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->visible(fn (Repair $record): bool => RepairResource::canEdit($record))
                     ->url(fn (Repair $record): string => RepairResource::getUrl('edit', ['record' => $record])),
-            ]);
+            ])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-repair',
+                'title' => 'Tidak ada kerusakan. Semua alat aman.',
+                'description' => 'Belum ada catatan perbaikan yang berlangsung atau selesai.',
+            ]));
     }
 }

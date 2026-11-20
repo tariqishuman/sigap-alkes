@@ -104,7 +104,11 @@ Perhitungan nilai buku menggunakan metode garis lurus (*straight-line depreciati
 
 ## Panduan Instalasi Lokal
 
-Pastikan lingkungan pengembangan telah memiliki **PHP ≥ 8.3** (dengan ekstensi `bcmath`, `gd`, `intl`, `mbstring`, `pdo_mysql`), **Composer**, **Node.js & NPM**, serta **MySQL / MariaDB**.
+Pastikan lingkungan pengembangan telah memiliki:
+- **PHP ≥ 8.3** dengan ekstensi: `bcmath`, `gd`, `intl`, `mbstring`, `pdo_mysql`, `zip`
+- **Composer**
+- **Node.js & NPM**
+- **MySQL 8 / MariaDB** (buat database kosong `sigap_alkes`)
 
 ```bash
 # 1. Clone repositori
@@ -120,10 +124,11 @@ cp .env.example .env
 php artisan key:generate
 
 # 4. Atur koneksi database (DB_DATABASE, DB_USERNAME, DB_PASSWORD) di file .env
-#    kemudian jalankan migrasi beserta seeder akun demo
-php artisan migrate --seed
+#    lalu jalankan migrasi dan seeder role + 5 akun demo
+php artisan migrate
+php artisan db:seed --class=RoleAndPermissionSeeder
 
-# 5. (Opsional) Isi database dengan data dummy inventaris & riwayat kalibrasi
+# 5. (Opsional) Isi database dengan data sintetis 12 bulan (6 ruangan, 10 jenis, 60 alat)
 php artisan sigap:seed-dummy
 
 # 6. Buat symlink storage publik dan build aset frontend
@@ -136,9 +141,20 @@ php artisan serve
 
 Akses panel operasional melalui peramban di **`http://localhost:8000/admin`**.
 
+### Menjalankan Queue & Scheduler (Untuk Ekspor & Pengingat)
+Ekspor Excel/ASPAK bawaan Filament dan pengiriman email pengingat kalibrasi berjalan melalui queue Laravel. Saat development lokal, jalankan di terminal terpisah:
+
+```bash
+# Memproses job ekspor Excel/ASPAK dan notifikasi email
+php artisan queue:work
+
+# Menjalankan scheduler harian (evaluasi status 00:10 WIB & pengingat 07:00 WIB)
+php artisan schedule:work
+```
+
 ### Perintah Bantuan Data Dummy
 ```bash
-# Mengisi data dummy operasional (6 ruangan, 10 jenis alat, 30 unit alkes, riwayat kalibrasi)
+# Mengisi data sintetis 12 bulan (6 ruangan, 10 jenis alat, 60 unit alkes, riwayat kalibrasi, perbaikan & mutasi)
 php artisan sigap:seed-dummy
 
 # Menghapus seluruh data dummy (tetap mempertahankan 5 akun demo & role)
@@ -151,13 +167,13 @@ php artisan sigap:clear-dummy
 
 Seluruh akun demo menggunakan kata sandi **`password`**:
 
-| Peran | Email | Kata Sandi | Keterangan |
+| Peran | Email | Kata Sandi | Cakupan Hak Akses |
 | :--- | :--- | :--- | :--- |
-| **Super Admin** | `superadmin@sigap-alkes.test` | `password` | Akses penuh seluruh sistem & manajemen Role |
-| **Admin IPSRS** | `admin@sigap-alkes.test` | `password` | Pengelolaan data master, inventaris alat, & pengguna |
-| **Teknisi Elektromedis** | `teknisi@sigap-alkes.test` | `password` | Pencatatan pengujian & kalibrasi alat |
-| **Kepala Ruangan (ICU)** | `kepalaruangan@sigap-alkes.test` | `password` | Terbatas hanya pada alat di **Ruang ICU** |
-| **Manajemen RS** | `manajemen@sigap-alkes.test` | `password` | Pemantauan jadwal, *dashboard*, & laporan |
+| **Super Admin** | `superadmin@sigap-alkes.test` | `password` | Akses penuh seluruh modul, laporan, manajemen pengguna, & Role (Shield) |
+| **Admin IPSRS** | `admin@sigap-alkes.test` | `password` | CRUD data master, inventaris alat, pengguna staf, laporan kerusakan, dashboard, & laporan/ekspor |
+| **Teknisi Elektromedis** | `teknisi@sigap-alkes.test` | `password` | Lihat semua alat; catat/ubah kalibrasi, laporan kerusakan, perbaikan (+ suku cadang), & mutasi alat |
+| **Kepala Ruangan (ICU)** | `kepalaruangan@sigap-alkes.test` | `password` | Lihat alat & buat/ubah laporan kerusakan **hanya untuk Ruang ICU** (tanpa Kartu Nilai Aset) |
+| **Manajemen RS** | `manajemen@sigap-alkes.test` | `password` | Dashboard analitik, jadwal kalibrasi, pantau laporan/perbaikan/mutasi (read-only), & ekspor Excel/PDF/ASPAK |
 
 ---
 
@@ -178,9 +194,9 @@ Seluruh akun demo menggunakan kata sandi **`password`**:
 - [x] **M0 — Setup**: Inisialisasi Laravel 13, Filament 5 Panel (`/admin`), konfigurasi peran Filament Shield, Activity Log, dan seeder akun demo.
 - [x] **M1 — Data Master & Inventaris (`PRD F1`)**: CRUD Ruangan, Jenis Alat, Lembaga Penguji, Suku Cadang, Inventaris Alat, halaman QR publik `/alat/{qr_token}`, cetak label QR PDF (satuan & massal), serta pembatasan akses per ruangan untuk Kepala Ruangan.
 - [x] **M2 — Kalibrasi, Status, & Pengingat (`PRD F2 & F4`)**: Pencatatan kalibrasi, mesin transisi `EquipmentStatusService`, penjadwalan evaluasi status harian & pengingat H-30/H-7/H-0, serta halaman Jadwal Kalibrasi beserta fitur ekspor.
-- [ ] **M3 — Kerusakan, Perbaikan, & Mutasi (`PRD F3`)**: Pelaporan kerusakan oleh Kepala Ruangan, pencatatan tindak lanjut perbaikan dan suku cadang oleh Teknisi, serta pencatatan mutasi ruangan.
-- [ ] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* dan Kepatuhan Kalibrasi, penanda rekomendasi penggantian aset, *Dashboard* analitik, serta ekspor laporan Excel/PDF dan format ASPAK.
-- [ ] **M5 — Seeder Sintetis & Finalisasi**: Penyempurnaan seeder data sintetis 12 bulan terakhir, audit menyeluruh hak akses per peran, dan finalisasi pengujian.
+- [x] **M3 — Kerusakan, Perbaikan, & Mutasi (`PRD F3`)**: Pelaporan kerusakan oleh Kepala Ruangan, pencatatan tindak lanjut perbaikan dan suku cadang oleh Teknisi, serta pencatatan mutasi ruangan.
+- [x] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* dan Kepatuhan Kalibrasi, penanda rekomendasi penggantian aset, *Dashboard* analitik, serta ekspor laporan Excel/PDF dan format ASPAK.
+- [x] **M5 — Seeder Sintetis & Finalisasi**: Seeder sintetis deterministik 12 bulan (6 ruangan, 10 jenis, 60 alat), halaman error kustom, audit penuh hak akses per peran, dan dokumentasi README.
 - [ ] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 *(Future Todo)***: Pemetaan entitas non-pasien ke resource standar HL7 FHIR R4 (`Equipment` $\rightarrow$ `Device`, `Room` $\rightarrow$ `Location`, `Calibration` $\rightarrow$ `DeviceMetric`, `TestingInstitution` $\rightarrow$ `Organization`), penyediaan REST API `/api/fhir/r4/*`, serta sinkronisasi status kelaikan alat ke SIMRS / SatuSehat.
 
 ---

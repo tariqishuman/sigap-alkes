@@ -3,934 +3,747 @@
 namespace Database\Seeders;
 
 use App\Enums\CalibrationResult;
-use App\Enums\DamageReportStatus;
 use App\Enums\EquipmentStatus;
 use App\Enums\TestingInstitutionKind;
-use App\Models\Calibration;
-use App\Models\DamageReport;
 use App\Models\Equipment;
-use App\Models\EquipmentMovement;
 use App\Models\EquipmentType;
-use App\Models\Repair;
 use App\Models\Room;
 use App\Models\SparePart;
 use App\Models\TestingInstitution;
 use App\Models\User;
+use App\Services\CalibrationService;
+use App\Services\DamageReportService;
+use App\Services\EquipmentMovementService;
 use App\Services\EquipmentStatusService;
 use App\Services\RepairService;
+use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DummyDataSeeder extends Seeder
 {
+    private const RANDOM_SEED = 20260505;
+
     public function run(): void
     {
+        $realNow = Carbon::now();
+
+        // Bersihkan data operasional lama agar idempotent dan bebas duplikat.
+        $this->call(ClearDummyDataSeeder::class);
         $this->call(RoleAndPermissionSeeder::class);
 
-        $teknisi = User::where('email', 'teknisi@sigap-alkes.test')->first();
-        $admin = User::where('email', 'admin@sigap-alkes.test')->first();
-        $actorId = $teknisi?->id ?? $admin?->id;
+        mt_srand(self::RANDOM_SEED);
+        $faker = FakerFactory::create('id_ID');
+        $faker->seed(self::RANDOM_SEED);
 
-        // 1. Ruangan (6 ruangan rumah sakit)
-        $roomsData = [
-            ['name' => 'Ruang ICU', 'building' => 'Gedung Utama', 'floor' => 'Lantai 2'],
-            ['name' => 'Ruang IGD', 'building' => 'Gedung Utama', 'floor' => 'Lantai 1'],
-            ['name' => 'Ruang Operasi (OK)', 'building' => 'Gedung Bedah Sentral', 'floor' => 'Lantai 2'],
-            ['name' => 'Ruang NICU', 'building' => 'Gedung Ibu & Anak', 'floor' => 'Lantai 2'],
-            ['name' => 'Poliklinik Jantung', 'building' => 'Gedung Rawat Jalan', 'floor' => 'Lantai 1'],
-            ['name' => 'Instalasi Radiologi', 'building' => 'Gedung Diagnostik', 'floor' => 'Lantai 1'],
-        ];
+        $teknisi = User::where('email', 'teknisi@sigap-alkes.test')->firstOrFail();
+        $admin = User::where('email', 'admin@sigap-alkes.test')->firstOrFail();
+        $kepalaIcu = User::where('email', 'kepalaruangan@sigap-alkes.test')->firstOrFail();
 
-        $rooms = [];
-        foreach ($roomsData as $roomItem) {
-            $rooms[$roomItem['name']] = Room::updateOrCreate(
-                ['name' => $roomItem['name']],
-                ['building' => $roomItem['building'], 'floor' => $roomItem['floor']],
-            );
-        }
-
-        // 2. Jenis Alat (10 jenis alat kesehatan)
-        $typesData = [
-            [
-                'name' => 'Infusion Pump',
-                'requires_calibration' => true,
-                'requires_installation' => false,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 5,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Syringe Pump',
-                'requires_calibration' => true,
-                'requires_installation' => false,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 5,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Patient Monitor',
-                'requires_calibration' => true,
-                'requires_installation' => true,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 7,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Ventilator',
-                'requires_calibration' => true,
-                'requires_installation' => true,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 8,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Defibrillator',
-                'requires_calibration' => true,
-                'requires_installation' => false,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 7,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'ECG / EKG 12 Channel',
-                'requires_calibration' => true,
-                'requires_installation' => false,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 6,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Suction Pump',
-                'requires_calibration' => true,
-                'requires_installation' => false,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 5,
-                'residual_value_percent' => 5,
-            ],
-            [
-                'name' => 'Baby Incubator',
-                'requires_calibration' => true,
-                'requires_installation' => true,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 8,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Mesin Anestesi',
-                'requires_calibration' => true,
-                'requires_installation' => true,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 10,
-                'residual_value_percent' => 10,
-            ],
-            [
-                'name' => 'Tensimeter Digital Non-Kalibrasi',
-                'requires_calibration' => false,
-                'requires_installation' => false,
-                'calibration_interval_months' => 12,
-                'useful_life_years' => 4,
-                'residual_value_percent' => 0,
-            ],
-        ];
-
-        $types = [];
-        foreach ($typesData as $typeItem) {
-            $types[$typeItem['name']] = EquipmentType::updateOrCreate(
-                ['name' => $typeItem['name']],
-                $typeItem,
-            );
-        }
-
-        // 3. Lembaga Penguji
-        $institutionsData = [
-            [
-                'name' => 'BPAFK Surabaya',
-                'kind' => TestingInstitutionKind::Bpafk,
-                'accreditation_number' => 'LK-045-IDN',
-            ],
-            [
-                'name' => 'PT Kalibrasi Medika Nusantara',
-                'kind' => TestingInstitutionKind::Swasta,
-                'accreditation_number' => 'LK-198-IDN',
-            ],
-            [
-                'name' => 'Unit Elektromedis Internal RS',
-                'kind' => TestingInstitutionKind::InternalRs,
-                'accreditation_number' => null,
-            ],
-        ];
-
-        $institutions = [];
-        foreach ($institutionsData as $instItem) {
-            $institutions[$instItem['name']] = TestingInstitution::updateOrCreate(
-                ['name' => $instItem['name']],
-                $instItem,
-            );
-        }
-
-        // 4. Suku Cadang (Spare Parts)
-        $sparePartsData = [
-            ['name' => 'Baterai Lithium-Ion 12V Medis', 'unit' => 'pcs'],
-            ['name' => 'Sensor SpO2 Dewasa Reusable', 'unit' => 'pcs'],
-            ['name' => 'Kabel Trunk ECG 10 Lead', 'unit' => 'set'],
-            ['name' => 'Selang Silikon Suction Medis', 'unit' => 'meter'],
-            ['name' => 'Filter Bakteri / HEPA Ventilator', 'unit' => 'pcs'],
-            ['name' => 'Manset NIBP Dewasa', 'unit' => 'pcs'],
-            ['name' => 'Elemen Pemanas Baby Incubator', 'unit' => 'pcs'],
-            ['name' => 'Fuse Pengaman 2A Medis', 'unit' => 'pcs'],
-        ];
-
-        foreach ($sparePartsData as $spItem) {
-            SparePart::updateOrCreate(['name' => $spItem['name']], $spItem);
-        }
-
-        // 5. Inventaris Alat Kesehatan (30 unit dengan variasi status & jadwal kalibrasi)
-        $today = Carbon::today();
         $statusService = app(EquipmentStatusService::class);
+        $calibrationService = app(CalibrationService::class);
+        $damageReportService = app(DamageReportService::class);
+        $repairService = app(RepairService::class);
+        $movementService = app(EquipmentMovementService::class);
 
-        $equipmentSpecs = [
-            // --- RUANG ICU (8 unit) ---
-            [
-                'code' => 'ALK-ICU-001',
-                'name' => 'Ventilator ICU Mindray SV300 #1',
-                'type' => 'Ventilator',
-                'room' => 'Ruang ICU',
-                'brand' => 'Mindray',
-                'model' => 'SV300',
-                'serial' => 'MR-SV300-2201',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(2),
-                'cost' => '385000000.00',
-                'residual' => '38500000.00',
-                'scenario' => 'fit_healthy', // Kalibrasi masih berlaku 8 bulan lagi
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-ICU-002',
-                'name' => 'Ventilator ICU Dräger Savina 300',
-                'type' => 'Ventilator',
-                'room' => 'Ruang ICU',
-                'brand' => 'Dräger',
-                'model' => 'Savina 300 Select',
-                'serial' => 'DRG-SV300-1904',
-                'acq_date' => $today->copy()->subYears(6)->subMonths(4),
-                'cost' => '450000000.00',
-                'residual' => '45000000.00',
-                'scenario' => 'due_7_days', // Jatuh tempo H-5 (masuk tab <= 7 hari)
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-ICU-003',
-                'name' => 'Patient Monitor Multiparameter ICU #1',
-                'type' => 'Patient Monitor',
-                'room' => 'Ruang ICU',
-                'brand' => 'Philips',
-                'model' => 'IntelliVue MX450',
-                'serial' => 'PH-MX450-2301',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(5),
-                'cost' => '125000000.00',
-                'residual' => '12500000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-ICU-004',
-                'name' => 'Patient Monitor Multiparameter ICU #2',
-                'type' => 'Patient Monitor',
-                'room' => 'Ruang ICU',
-                'brand' => 'Mindray',
-                'model' => 'BeneVision N12',
-                'serial' => 'MR-N12-2108',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(1),
-                'cost' => '98000000.00',
-                'residual' => '9800000.00',
-                'scenario' => 'due_20_days', // Jatuh tempo H-20 (masuk Perlu Kalibrasi <= 30 hari)
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-ICU-005',
-                'name' => 'Syringe Pump Terumo ICU #1',
-                'type' => 'Syringe Pump',
-                'room' => 'Ruang ICU',
-                'brand' => 'Terumo',
-                'model' => 'Terufusion TE-SS800',
-                'serial' => 'TRM-SS800-2211',
-                'acq_date' => $today->copy()->subYears(3),
-                'cost' => '24500000.00',
-                'residual' => '2450000.00',
-                'scenario' => 'overdue', // Sertifikat sudah lewat 15 hari -> Terlambat
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-ICU-006',
-                'name' => 'Infusion Pump B. Braun Infusomat Space',
-                'type' => 'Infusion Pump',
-                'room' => 'Ruang ICU',
-                'brand' => 'B. Braun',
-                'model' => 'Infusomat Space',
-                'serial' => 'BBR-ISP-2009',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(8),
-                'cost' => '28000000.00',
-                'residual' => '2800000.00',
-                'scenario' => 'under_testing', // Sedang diuji oleh teknisi
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-ICU-007',
-                'name' => 'Defibrillator Monitor Nihon Kohden ICU',
-                'type' => 'Defibrillator',
-                'room' => 'Ruang ICU',
-                'brand' => 'Nihon Kohden',
-                'model' => 'Cardiolife TEC-5631',
-                'serial' => 'NK-TEC56-2103',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(3),
-                'cost' => '142000000.00',
-                'residual' => '14200000.00',
-                'scenario' => 'failed_calibration', // Tidak lulus uji -> Tidak laik pakai
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-ICU-008',
-                'name' => 'Suction Pump Mobile ICU',
-                'type' => 'Suction Pump',
-                'room' => 'Ruang ICU',
-                'brand' => 'Medela',
-                'model' => 'Dominant Flex',
-                'serial' => 'MDL-DF-2012',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(10),
-                'cost' => '42000000.00',
-                'residual' => '2100000.00',
-                'scenario' => 'under_repair', // Dalam perbaikan
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
+        try {
+            // 1. Ruangan (6 ruangan rumah sakit)
+            $roomsData = [
+                ['name' => 'Ruang ICU', 'code' => 'ICU', 'building' => 'Gedung Utama', 'floor' => 'Lantai 2'],
+                ['name' => 'Ruang IGD', 'code' => 'IGD', 'building' => 'Gedung Utama', 'floor' => 'Lantai 1'],
+                ['name' => 'Ruang Operasi (OK)', 'code' => 'OK', 'building' => 'Gedung Bedah Sentral', 'floor' => 'Lantai 2'],
+                ['name' => 'Ruang NICU', 'code' => 'NICU', 'building' => 'Gedung Ibu & Anak', 'floor' => 'Lantai 2'],
+                ['name' => 'Poliklinik Jantung', 'code' => 'POLI', 'building' => 'Gedung Rawat Jalan', 'floor' => 'Lantai 1'],
+                ['name' => 'Instalasi Radiologi', 'code' => 'RAD', 'building' => 'Gedung Diagnostik', 'floor' => 'Lantai 1'],
+            ];
 
-            // --- RUANG IGD (6 unit) ---
-            [
-                'code' => 'ALK-IGD-001',
-                'name' => 'Defibrillator Biphasic IGD #1',
-                'type' => 'Defibrillator',
-                'room' => 'Ruang IGD',
-                'brand' => 'Philips',
-                'model' => 'HeartStart XL+',
-                'serial' => 'PH-HSXL-2302',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(4),
-                'cost' => '155000000.00',
-                'residual' => '15500000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-IGD-002',
-                'name' => 'ECG 12 Channel Fukuda Denshi IGD',
-                'type' => 'ECG / EKG 12 Channel',
-                'room' => 'Ruang IGD',
-                'brand' => 'Fukuda Denshi',
-                'model' => 'CardiMax FX-8322',
-                'serial' => 'FKD-FX83-2205',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(1),
-                'cost' => '54000000.00',
-                'residual' => '5400000.00',
-                'scenario' => 'due_7_days',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-IGD-003',
-                'name' => 'Patient Monitor Triage IGD #1',
-                'type' => 'Patient Monitor',
-                'room' => 'Ruang IGD',
-                'brand' => 'Mindray',
-                'model' => 'ePM 12M',
-                'serial' => 'MR-EPM12-2306',
-                'acq_date' => $today->copy()->subYears(2),
-                'cost' => '68000000.00',
-                'residual' => '6800000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-IGD-004',
-                'name' => 'Infusion Pump Terumo IGD #1',
-                'type' => 'Infusion Pump',
-                'room' => 'Ruang IGD',
-                'brand' => 'Terumo',
-                'model' => 'Terufusion TE-LM800',
-                'serial' => 'TRM-LM800-2109',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(9),
-                'cost' => '23000000.00',
-                'residual' => '2300000.00',
-                'scenario' => 'overdue',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-IGD-005',
-                'name' => 'Suction Pump Emergency IGD',
-                'type' => 'Suction Pump',
-                'room' => 'Ruang IGD',
-                'brand' => 'Yuwell',
-                'model' => '7A-23D',
-                'serial' => 'YWL-7A23-2208',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(10),
-                'cost' => '14500000.00',
-                'residual' => '725000.00',
-                'scenario' => 'due_60_days', // Jatuh tempo H-45 (masuk tab <= 60 hari, masih Laik Pakai)
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-IGD-006',
-                'name' => 'Tensimeter Digital Triage IGD',
-                'type' => 'Tensimeter Digital Non-Kalibrasi',
-                'room' => 'Ruang IGD',
-                'brand' => 'Omron',
-                'model' => 'HBP-1320 Professional',
-                'serial' => 'OMR-1320-2401',
-                'acq_date' => $today->copy()->subYear(),
-                'cost' => '4800000.00',
-                'residual' => '0.00',
-                'scenario' => 'non_calibrated',
-                'inst' => null,
-            ],
+            $rooms = [];
+            foreach ($roomsData as $roomItem) {
+                $rooms[$roomItem['code']] = Room::updateOrCreate(
+                    ['name' => $roomItem['name']],
+                    ['building' => $roomItem['building'], 'floor' => $roomItem['floor']],
+                );
+            }
 
-            // --- RUANG OPERASI (OK) (5 unit) ---
-            [
-                'code' => 'ALK-OK-001',
-                'name' => 'Mesin Anestesi GE Carestation 620 #1',
-                'type' => 'Mesin Anestesi',
-                'room' => 'Ruang Operasi (OK)',
-                'brand' => 'GE Healthcare',
-                'model' => 'Carestation 620',
-                'serial' => 'GE-CS620-2102',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(6),
-                'cost' => '680000000.00',
-                'residual' => '68000000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-OK-002',
-                'name' => 'Mesin Anestesi Dräger Fabius Plus',
-                'type' => 'Mesin Anestesi',
-                'room' => 'Ruang Operasi (OK)',
-                'brand' => 'Dräger',
-                'model' => 'Fabius Plus XL',
-                'serial' => 'DRG-FBP-1807',
-                'acq_date' => $today->copy()->subYears(7)->subMonths(2),
-                'cost' => '620000000.00',
-                'residual' => '62000000.00',
-                'scenario' => 'due_20_days',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-OK-003',
-                'name' => 'Patient Monitor Anestesi OK #1',
-                'type' => 'Patient Monitor',
-                'room' => 'Ruang Operasi (OK)',
-                'brand' => 'GE Healthcare',
-                'model' => 'CARESCAPE B450',
-                'serial' => 'GE-B450-2204',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(3),
-                'cost' => '135000000.00',
-                'residual' => '13500000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-OK-004',
-                'name' => 'Syringe Pump Target Controlled Infusion OK',
-                'type' => 'Syringe Pump',
-                'room' => 'Ruang Operasi (OK)',
-                'brand' => 'B. Braun',
-                'model' => 'Perfusor Space',
-                'serial' => 'BBR-PFS-2209',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(9),
-                'cost' => '29500000.00',
-                'residual' => '2950000.00',
-                'scenario' => 'due_90_days', // Jatuh tempo H-75 (masuk tab <= 90 hari)
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-OK-005',
-                'name' => 'Defibrillator Kamar Bedah OK',
-                'type' => 'Defibrillator',
-                'room' => 'Ruang Operasi (OK)',
-                'brand' => 'Mindray',
-                'model' => 'BeneHeart D6',
-                'serial' => 'MR-BHD6-2111',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(7),
-                'cost' => '118000000.00',
-                'residual' => '11800000.00',
-                'scenario' => 'under_testing',
-                'inst' => 'BPAFK Surabaya',
-            ],
-
-            // --- RUANG NICU (4 unit) ---
-            [
-                'code' => 'ALK-NICU-001',
-                'name' => 'Baby Incubator Atom Medical Incu i #1',
-                'type' => 'Baby Incubator',
-                'room' => 'Ruang NICU',
-                'brand' => 'Atom Medical',
-                'model' => 'Incu i V-2100G',
-                'serial' => 'ATM-V2100-2203',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(4),
-                'cost' => '215000000.00',
-                'residual' => '21500000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-NICU-002',
-                'name' => 'Baby Incubator GE Giraffe OmniBed',
-                'type' => 'Baby Incubator',
-                'room' => 'Ruang NICU',
-                'brand' => 'GE Healthcare',
-                'model' => 'Giraffe OmniBed',
-                'serial' => 'GE-GOB-2005',
-                'acq_date' => $today->copy()->subYears(5)->subMonths(1),
-                'cost' => '340000000.00',
-                'residual' => '34000000.00',
-                'scenario' => 'due_20_days',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-NICU-003',
-                'name' => 'Syringe Pump Neonatal NICU #1',
-                'type' => 'Syringe Pump',
-                'room' => 'Ruang NICU',
-                'brand' => 'Terumo',
-                'model' => 'Terufusion TE-SS800',
-                'serial' => 'TRM-SS800-2304',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(2),
-                'cost' => '24500000.00',
-                'residual' => '2450000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-NICU-004',
-                'name' => 'Patient Monitor Neonatal NICU #1',
-                'type' => 'Patient Monitor',
-                'room' => 'Ruang NICU',
-                'brand' => 'Philips',
-                'model' => 'IntelliVue MX400',
-                'serial' => 'PH-MX400-2106',
-                'acq_date' => $today->copy()->subYears(4),
-                'cost' => '112000000.00',
-                'residual' => '11200000.00',
-                'scenario' => 'overdue',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-
-            // --- POLIKLINIK JANTUNG (4 unit) ---
-            [
-                'code' => 'ALK-POLI-001',
-                'name' => 'ECG 12 Channel Nihon Kohden Poli Jantung #1',
-                'type' => 'ECG / EKG 12 Channel',
-                'room' => 'Poliklinik Jantung',
-                'brand' => 'Nihon Kohden',
-                'model' => 'Cardiofax M ECG-2350',
-                'serial' => 'NK-ECG2350-2207',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(11),
-                'cost' => '62000000.00',
-                'residual' => '6200000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-POLI-002',
-                'name' => 'ECG 12 Channel GE MAC 2000',
-                'type' => 'ECG / EKG 12 Channel',
-                'room' => 'Poliklinik Jantung',
-                'brand' => 'GE Healthcare',
-                'model' => 'MAC 2000',
-                'serial' => 'GE-MAC2000-2011',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(7),
-                'cost' => '58000000.00',
-                'residual' => '5800000.00',
-                'scenario' => 'due_60_days',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-POLI-003',
-                'name' => 'Defibrillator AED Plus Poli Jantung',
-                'type' => 'Defibrillator',
-                'room' => 'Poliklinik Jantung',
-                'brand' => 'Zoll',
-                'model' => 'R Series Plus',
-                'serial' => 'ZOL-RSP-2112',
-                'acq_date' => $today->copy()->subYears(3)->subMonths(6),
-                'cost' => '138000000.00',
-                'residual' => '13800000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-POLI-004',
-                'name' => 'Tensimeter Digital Nurse Station Poli Jantung',
-                'type' => 'Tensimeter Digital Non-Kalibrasi',
-                'room' => 'Poliklinik Jantung',
-                'brand' => 'Omron',
-                'model' => 'HBP-1120',
-                'serial' => 'OMR-1120-2309',
-                'acq_date' => $today->copy()->subYear()->subMonths(8),
-                'cost' => '3900000.00',
-                'residual' => '0.00',
-                'scenario' => 'non_calibrated',
-                'inst' => null,
-            ],
-
-            // --- INSTALASI RADIOLOGI (3 unit) ---
-            [
-                'code' => 'ALK-RAD-001',
-                'name' => 'Patient Monitor MRI-Compatible Radiologi',
-                'type' => 'Patient Monitor',
-                'room' => 'Instalasi Radiologi',
-                'brand' => 'Philips',
-                'model' => 'Expression MR400',
-                'serial' => 'PH-MR400-2104',
-                'acq_date' => $today->copy()->subYears(4)->subMonths(2),
-                'cost' => '295000000.00',
-                'residual' => '29500000.00',
-                'scenario' => 'fit_healthy',
-                'inst' => 'BPAFK Surabaya',
-            ],
-            [
-                'code' => 'ALK-RAD-002',
-                'name' => 'Infusion Pump Kontras Pendamping CT-Scan',
-                'type' => 'Infusion Pump',
-                'room' => 'Instalasi Radiologi',
-                'brand' => 'Terumo',
-                'model' => 'Terufusion TE-LM800',
-                'serial' => 'TRM-LM800-2210',
-                'acq_date' => $today->copy()->subYears(2)->subMonths(8),
-                'cost' => '23500000.00',
-                'residual' => '2350000.00',
-                'scenario' => 'due_90_days',
-                'inst' => 'PT Kalibrasi Medika Nusantara',
-            ],
-            [
-                'code' => 'ALK-RAD-003',
-                'name' => 'Suction Pump Ruang Tindakan Radiologi',
-                'type' => 'Suction Pump',
-                'room' => 'Instalasi Radiologi',
-                'brand' => 'Medela',
-                'model' => 'Basic 30',
-                'serial' => 'MDL-B30-2405',
-                'acq_date' => $today->copy()->subMonths(6),
-                'cost' => '34000000.00',
-                'residual' => '1700000.00',
-                'scenario' => 'never_calibrated', // Alat baru belum pernah dikalibrasi -> Perlu kalibrasi
-                'inst' => null,
-            ],
-        ];
-
-        foreach ($equipmentSpecs as $index => $spec) {
-            $type = $types[$spec['type']];
-            $room = $rooms[$spec['room']];
-            $inst = $spec['inst'] ? $institutions[$spec['inst']] : null;
-            $seq = str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
-
-            $equipment = Equipment::updateOrCreate(
-                ['inventory_code' => $spec['code']],
+            // 2. Jenis Alat (10 jenis alat kesehatan)
+            $typesData = [
                 [
-                    'name' => $spec['name'],
-                    'equipment_type_id' => $type->id,
-                    'room_id' => $room->id,
-                    'brand' => $spec['brand'],
-                    'model' => $spec['model'],
-                    'serial_number' => $spec['serial'],
-                    'acquisition_date' => $spec['acq_date']->toDateString(),
-                    'acquisition_cost' => $spec['cost'],
-                    'residual_value' => $spec['residual'],
-                    'is_active' => true,
-                    'notes' => 'Data simulasi operasional SIGAP-Alkes (tanpa data pasien).',
+                    'name' => 'Infusion Pump',
+                    'requires_calibration' => true,
+                    'requires_installation' => false,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 5,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Terumo', 'Terufusion TE-LM800'], ['B. Braun', 'Infusomat Space'], ['Mindray', 'BeneFusion VP5']],
+                    'cost_range' => [22000000, 32000000],
                 ],
+                [
+                    'name' => 'Syringe Pump',
+                    'requires_calibration' => true,
+                    'requires_installation' => false,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 5,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Terumo', 'Terufusion TE-SS800'], ['B. Braun', 'Perfusor Space'], ['Mindray', 'BeneFusion SP5']],
+                    'cost_range' => [20000000, 30000000],
+                ],
+                [
+                    'name' => 'Patient Monitor',
+                    'requires_calibration' => true,
+                    'requires_installation' => true,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 7,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Philips', 'IntelliVue MX450'], ['Mindray', 'BeneVision N12'], ['GE Healthcare', 'CARESCAPE B450']],
+                    'cost_range' => [68000000, 145000000],
+                ],
+                [
+                    'name' => 'Ventilator',
+                    'requires_calibration' => true,
+                    'requires_installation' => true,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 8,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Mindray', 'SV300'], ['Dräger', 'Savina 300 Select'], ['Hamilton', 'C3']],
+                    'cost_range' => [320000000, 460000000],
+                ],
+                [
+                    'name' => 'Defibrillator',
+                    'requires_calibration' => true,
+                    'requires_installation' => false,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 7,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Philips', 'HeartStart XL+'], ['Nihon Kohden', 'Cardiolife TEC-5631'], ['Zoll', 'R Series Plus']],
+                    'cost_range' => [115000000, 165000000],
+                ],
+                [
+                    'name' => 'ECG / EKG 12 Channel',
+                    'requires_calibration' => true,
+                    'requires_installation' => false,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 6,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Fukuda Denshi', 'CardiMax FX-8322'], ['Nihon Kohden', 'Cardiofax M ECG-2350'], ['GE Healthcare', 'MAC 2000']],
+                    'cost_range' => [48000000, 66000000],
+                ],
+                [
+                    'name' => 'Suction Pump',
+                    'requires_calibration' => true,
+                    'requires_installation' => false,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 5,
+                    'residual_value_percent' => 5,
+                    'brands' => [['Medela', 'Dominant Flex'], ['Yuwell', '7A-23D'], ['Medela', 'Basic 30']],
+                    'cost_range' => [14000000, 42000000],
+                ],
+                [
+                    'name' => 'Baby Incubator',
+                    'requires_calibration' => true,
+                    'requires_installation' => true,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 8,
+                    'residual_value_percent' => 10,
+                    'brands' => [['Atom Medical', 'Incu i V-2100G'], ['GE Healthcare', 'Giraffe OmniBed']],
+                    'cost_range' => [210000000, 345000000],
+                ],
+                [
+                    'name' => 'Mesin Anestesi',
+                    'requires_calibration' => true,
+                    'requires_installation' => true,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 10,
+                    'residual_value_percent' => 10,
+                    'brands' => [['GE Healthcare', 'Carestation 620'], ['Dräger', 'Fabius Plus XL']],
+                    'cost_range' => [580000000, 690000000],
+                ],
+                [
+                    'name' => 'Tensimeter Digital Non-Kalibrasi',
+                    'requires_calibration' => false,
+                    'requires_installation' => false,
+                    'calibration_interval_months' => 12,
+                    'useful_life_years' => 4,
+                    'residual_value_percent' => 0,
+                    'brands' => [['Omron', 'HBP-1320 Professional'], ['Omron', 'HBP-1120']],
+                    'cost_range' => [3800000, 5200000],
+                ],
+            ];
+
+            $types = [];
+            $typeMeta = [];
+            foreach ($typesData as $typeItem) {
+                $meta = $typeItem;
+                unset($typeItem['brands'], $typeItem['cost_range']);
+
+                $types[$typeItem['name']] = EquipmentType::updateOrCreate(
+                    ['name' => $typeItem['name']],
+                    $typeItem,
+                );
+                $typeMeta[$typeItem['name']] = $meta;
+            }
+
+            // 3. Lembaga Penguji (3 lembaga)
+            $institutions = [
+                'bpafk' => TestingInstitution::updateOrCreate(
+                    ['name' => 'BPAFK Surabaya'],
+                    ['kind' => TestingInstitutionKind::Bpafk, 'accreditation_number' => 'LK-045-IDN'],
+                ),
+                'swasta' => TestingInstitution::updateOrCreate(
+                    ['name' => 'PT Kalibrasi Medika Nusantara'],
+                    ['kind' => TestingInstitutionKind::Swasta, 'accreditation_number' => 'LK-198-IDN'],
+                ),
+                'internal' => TestingInstitution::updateOrCreate(
+                    ['name' => 'Unit Elektromedis Internal RS'],
+                    ['kind' => TestingInstitutionKind::InternalRs, 'accreditation_number' => null],
+                ),
+            ];
+
+            // 4. Suku Cadang (8 item)
+            $sparePartSpecs = [
+                ['name' => 'Baterai Lithium-Ion 12V Medis', 'unit' => 'pcs', 'price' => '850000.00'],
+                ['name' => 'Sensor SpO2 Dewasa Reusable', 'unit' => 'pcs', 'price' => '475000.00'],
+                ['name' => 'Kabel Trunk ECG 10 Lead', 'unit' => 'set', 'price' => '620000.00'],
+                ['name' => 'Selang Silikon Suction Medis', 'unit' => 'meter', 'price' => '95000.00'],
+                ['name' => 'Filter Bakteri / HEPA Ventilator', 'unit' => 'pcs', 'price' => '340000.00'],
+                ['name' => 'Manset NIBP Dewasa', 'unit' => 'pcs', 'price' => '210000.00'],
+                ['name' => 'Elemen Pemanas Baby Incubator', 'unit' => 'pcs', 'price' => '1450000.00'],
+                ['name' => 'Fuse Pengaman 2A Medis', 'unit' => 'pcs', 'price' => '45000.00'],
+            ];
+
+            $spareParts = [];
+            foreach ($sparePartSpecs as $spItem) {
+                $sp = SparePart::updateOrCreate(
+                    ['name' => $spItem['name']],
+                    ['unit' => $spItem['unit']],
+                );
+                $spareParts[] = ['model' => $sp, 'price' => $spItem['price']];
+            }
+
+            // 5. Buat 60 unit alat (10 per ruangan) pada 14 bulan lalu agar seluruh 12 bulan terakhir terisi penuh.
+            $roomTypeTemplates = [
+                'ICU' => [
+                    'Ventilator', 'Ventilator', 'Patient Monitor', 'Patient Monitor', 'Infusion Pump',
+                    'Infusion Pump', 'Syringe Pump', 'Defibrillator', 'Suction Pump', 'Tensimeter Digital Non-Kalibrasi',
+                ],
+                'IGD' => [
+                    'Defibrillator', 'Defibrillator', 'ECG / EKG 12 Channel', 'Patient Monitor', 'Patient Monitor',
+                    'Infusion Pump', 'Syringe Pump', 'Suction Pump', 'Suction Pump', 'Tensimeter Digital Non-Kalibrasi',
+                ],
+                'OK' => [
+                    'Mesin Anestesi', 'Mesin Anestesi', 'Patient Monitor', 'Patient Monitor', 'Defibrillator',
+                    'Syringe Pump', 'Syringe Pump', 'Infusion Pump', 'Suction Pump', 'Ventilator',
+                ],
+                'NICU' => [
+                    'Baby Incubator', 'Baby Incubator', 'Baby Incubator', 'Ventilator', 'Patient Monitor',
+                    'Syringe Pump', 'Syringe Pump', 'Infusion Pump', 'Suction Pump', 'Tensimeter Digital Non-Kalibrasi',
+                ],
+                'POLI' => [
+                    'ECG / EKG 12 Channel', 'ECG / EKG 12 Channel', 'ECG / EKG 12 Channel', 'Defibrillator', 'Patient Monitor',
+                    'Infusion Pump', 'Syringe Pump', 'Suction Pump', 'Tensimeter Digital Non-Kalibrasi', 'Tensimeter Digital Non-Kalibrasi',
+                ],
+                'RAD' => [
+                    'Patient Monitor', 'Patient Monitor', 'Infusion Pump', 'Infusion Pump', 'Syringe Pump',
+                    'Suction Pump', 'Suction Pump', 'Defibrillator', 'ECG / EKG 12 Channel', 'Tensimeter Digital Non-Kalibrasi',
+                ],
+            ];
+
+            // Skenario kondisi akhir pada indeks 0..59 (total 60 alat)
+            // Indeks 0..59 tersebar di 6 ruangan (0..9 ICU, 10..19 IGD, 20..29 OK, 30..39 NICU, 40..49 POLI, 50..59 RAD)
+            $replaceCandidateIndices = [4, 15, 27]; // 3 alat dengan biaya perbaikan >= 50% nilai buku -> "Pertimbangkan ganti"
+            $overdueIndices = [6, 17, 28, 37, 45, 55]; // 6 alat Terlambat
+            $dueSoonIndices = [3, 12, 21, 31, 41, 51, 5, 16]; // 8 alat Perlu kalibrasi (<= 30 hari)
+            $underTestingIndices = [24, 35, 52]; // 3 alat Dalam uji & kalibrasi
+            $underRepairIndices = [8, 18, 38, 56]; // 4 alat Dalam perbaikan
+            $unfitIndices = [7, 25, 43]; // 3 alat Tidak laik pakai (gagal uji terbaru)
+            $neverCalibratedIndex = 54; // 1 alat wajib kalibrasi tanpa sertifikat (Perlu kalibrasi)
+
+            $certCounter = 1;
+            $createdBase = $realNow->copy()->subMonthsNoOverflow(14)->startOfMonth()->setTime(9, 0);
+
+            /** @var array<int, Equipment> $allEquipment */
+            $allEquipment = [];
+            $globalIndex = 0;
+
+            foreach ($roomTypeTemplates as $roomCode => $typeList) {
+                foreach ($typeList as $slot => $typeName) {
+                    $type = $types[$typeName];
+                    $meta = $typeMeta[$typeName];
+                    $room = $rooms[$roomCode];
+                    $brandPair = $meta['brands'][$globalIndex % count($meta['brands'])];
+                    $seq = str_pad((string) ($slot + 1), 3, '0', STR_PAD_LEFT);
+                    $code = "ALK-{$roomCode}-{$seq}";
+
+                    // Alat kandidat "Pertimbangkan ganti" dibuat berumur ~4,5 tahun agar nilai bukunya rendah & realistis
+                    if (in_array($globalIndex, $replaceCandidateIndices, true)) {
+                        $acqDate = $realNow->copy()->subYears(4)->subMonths(6);
+                        $cost = '24000000.00';
+                        $residual = '2400000.00';
+                    } else {
+                        $ageMonths = 18 + (($globalIndex * 7) % 48);
+                        $acqDate = $realNow->copy()->subMonthsNoOverflow($ageMonths);
+                        $minCost = $meta['cost_range'][0];
+                        $maxCost = $meta['cost_range'][1];
+                        $steps = max(1, (int) (($maxCost - $minCost) / 1000000));
+                        $costVal = $minCost + (($globalIndex * 3) % ($steps + 1)) * 1000000;
+                        $cost = number_format($costVal, 2, '.', '');
+                        $residual = null;
+                    }
+
+                    $entryTime = $createdBase->copy()->addHours($globalIndex * 2);
+                    Carbon::setTestNow($entryTime);
+
+                    $equipment = Equipment::create([
+                        'inventory_code' => $code,
+                        'name' => "{$typeName} {$brandPair[0]} {$roomCode} #".($slot + 1),
+                        'equipment_type_id' => $type->id,
+                        'room_id' => $room->id,
+                        'brand' => $brandPair[0],
+                        'model' => $brandPair[1],
+                        'serial_number' => sprintf('%s-%04d', strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $brandPair[0]), 0, 3)), 2100 + $globalIndex),
+                        'acquisition_date' => $acqDate->toDateString(),
+                        'acquisition_cost' => $cost,
+                        'residual_value' => $residual,
+                        'is_active' => true,
+                        'notes' => 'Data sintetis operasional SIGAP-Alkes (tanpa data pasien).',
+                    ]);
+
+                    // Kalibrasi awal pada 13-14 bulan lalu agar semua alat wajib kalibrasi masuk periode 12 bulan dalam kondisi Laik pakai
+                    if ($type->requires_calibration && $globalIndex !== $neverCalibratedIndex) {
+                        $initCalTime = $entryTime->copy()->addDays(2);
+                        Carbon::setTestNow($initCalTime);
+
+                        $inst = $globalIndex % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
+                        $calibrationService->record([
+                            'equipment_id' => $equipment->id,
+                            'testing_institution_id' => $inst->id,
+                            'tested_at' => $initCalTime->toDateString(),
+                            'result' => CalibrationResult::Pass->value,
+                            'certificate_number' => sprintf('CERT-INIT-%04d', $certCounter++),
+                            'valid_until' => $initCalTime->copy()->addMonthsNoOverflow(12)->toDateString(),
+                        ], $teknisi->id);
+                    }
+
+                    $allEquipment[$globalIndex] = $equipment->fresh();
+                    $globalIndex++;
+                }
+            }
+
+            // 6. Simulasi kejadian kronologis 12 bulan terakhir (kerusakan, perbaikan, gagal uji, mutasi, kalibrasi ulang)
+            // Target uptime per bulan bervariasi di kisaran ±91% - 97.5%.
+            $complaints = [
+                'Layar monitor berkedip dan alarm palsu berbunyi berulang.',
+                'Baterai cadangan tidak mampu bertahan saat sumber listrik diputus.',
+                'Sensor pembacaan tidak stabil dan nilai menyimpang dari standar.',
+                'Pompa/motor mengeluarkan suara kasar saat beroperasi penuh.',
+                'Konektor kabel pasien longgar sehingga sinyal terputus-putus.',
+                'Tombol panel kontrol tidak responsif saat pengaturan dosis.',
+                'Tekanan vakum / aliran udara tidak mencapai nilai target.',
+            ];
+
+            $actions = [
+                'Penggantian baterai cadangan dan pengujian fungsi kelistrikan.',
+                'Kalibrasi internal sensor dan pembersihan modul utama.',
+                'Penggantian konektor dan kabel trunk serta uji kontinuitas.',
+                'Pembongkaran motor pompa, pelumasan, dan penggantian selang internal.',
+                'Penggantian modul papan sirkuit power supply dan uji beban.',
+                'Pembersihan filter HEPA, penggantian fuse, dan pengujian kebocoran.',
+            ];
+
+            // Pola jumlah unit mengalami downtime per bulan (offset 11 = 11 bulan lalu .. offset 0 = bulan berjalan)
+            $monthlyDowntimePlan = [
+                11 => ['count' => 7, 'days' => 9],
+                10 => ['count' => 10, 'days' => 11],
+                9 => ['count' => 6, 'days' => 8],
+                8 => ['count' => 9, 'days' => 12],
+                7 => ['count' => 11, 'days' => 11],
+                6 => ['count' => 5, 'days' => 9],
+                5 => ['count' => 8, 'days' => 10],
+                4 => ['count' => 12, 'days' => 11],
+                3 => ['count' => 7, 'days' => 9],
+                2 => ['count' => 10, 'days' => 10],
+                1 => ['count' => 9, 'days' => 11],
+                0 => ['count' => 6, 'days' => 6],
+            ];
+
+            // Kumpulan pool alat yang aman untuk siklus perbaikan historis (hindari alat overdue/dueSoon/neverCalibrated agar siklus sertifikat akhirnya tetap kronologis)
+            $eventPool = array_values(array_diff(
+                range(0, 59),
+                array_merge($overdueIndices, $dueSoonIndices, [$neverCalibratedIndex]),
+            ));
+
+            for ($offset = 11; $offset >= 0; $offset--) {
+                $monthStart = $realNow->copy()->startOfMonth()->subMonthsNoOverflow($offset);
+                $monthEnd = $offset === 0
+                    ? $realNow->copy()->subDays(2)
+                    : $monthStart->copy()->endOfMonth()->subDays(3);
+
+                if ($monthEnd->lessThanOrEqualTo($monthStart->copy()->addDay())) {
+                    continue;
+                }
+
+                $plan = $monthlyDowntimePlan[$offset];
+                $availableSpanDays = max(2, (int) $monthStart->diffInDays($monthEnd));
+
+                for ($k = 0; $k < $plan['count']; $k++) {
+                    $poolPos = (($offset * 13) + ($k * 5)) % count($eventPool);
+                    $eqIdx = $eventPool[$poolPos];
+                    $equipment = $allEquipment[$eqIdx]->fresh();
+
+                    if (! in_array($equipment->status, [
+                        EquipmentStatus::FitForUse,
+                        EquipmentStatus::CalibrationDue,
+                        EquipmentStatus::Overdue,
+                        EquipmentStatus::Unfit,
+                    ], true)) {
+                        continue;
+                    }
+
+                    $durationDays = min($plan['days'], max(2, $availableSpanDays - 1));
+                    $maxStartOffset = max(0, $availableSpanDays - $durationDays - 1);
+                    $startDayOffset = ($k * 3 + $offset) % ($maxStartOffset + 1);
+
+                    $reportAt = $monthStart->copy()->addDays($startDayOffset)->setTime(8, 30);
+                    $repairStart = $reportAt->copy()->addHours(2);
+                    $repairEnd = $repairStart->copy()->addDays($durationDays);
+
+                    if ($repairEnd->greaterThanOrEqualTo($realNow->copy()->subHours(6))) {
+                        $repairEnd = $realNow->copy()->subHours(12);
+                        $repairStart = $repairEnd->copy()->subDays(max(1, min($durationDays, 4)));
+                        $reportAt = $repairStart->copy()->subHours(2);
+                    }
+
+                    // 1) Buat laporan kerusakan
+                    Carbon::setTestNow($reportAt);
+                    $reporter = $equipment->room_id === $rooms['ICU']->id ? $kepalaIcu : $admin;
+                    $report = $damageReportService->report([
+                        'equipment_id' => $equipment->id,
+                        'reported_at' => $reportAt->toDateTimeString(),
+                        'complaint' => $complaints[($eqIdx + $offset) % count($complaints)],
+                    ], $reporter);
+
+                    // 2) Mulai perbaikan -> UnderRepair via EquipmentStatusService
+                    Carbon::setTestNow($repairStart);
+                    $spChoice = $spareParts[($eqIdx + $k) % count($spareParts)];
+                    $repair = $repairService->start([
+                        'damage_report_id' => $report->id,
+                        'technician_id' => $teknisi->id,
+                        'started_at' => $repairStart->toDateTimeString(),
+                        'action' => 'Pemeriksaan awal dan pembongkaran komponen.',
+                        'labor_cost' => number_format(200000 + (($k % 4) * 75000), 2, '.', ''),
+                        'spare_parts' => [
+                            [
+                                'spare_part_id' => $spChoice['model']->id,
+                                'quantity' => 1 + ($k % 2),
+                                'unit_price' => $spChoice['price'],
+                            ],
+                        ],
+                    ], $teknisi->id);
+
+                    // 3) Selesai perbaikan -> CalibrationDue / Overdue / FitForUse
+                    Carbon::setTestNow($repairEnd);
+                    $repairService->finish($repair, [
+                        'finished_at' => $repairEnd->toDateTimeString(),
+                        'action' => $actions[($eqIdx + $offset) % count($actions)],
+                    ], $teknisi->id);
+
+                    // 4) Kalibrasi ulang pasca perbaikan (jika wajib kalibrasi) agar kembali Laik pakai
+                    $equipment->refresh();
+                    if ($equipment->equipmentType->requires_calibration && $offset > 0) {
+                        $recalAt = $repairEnd->copy()->addHours(6);
+                        if ($recalAt->lessThan($realNow->copy()->subDay())) {
+                            Carbon::setTestNow($recalAt);
+                            $inst = $eqIdx % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
+                            $calibrationService->record([
+                                'equipment_id' => $equipment->id,
+                                'testing_institution_id' => $inst->id,
+                                'tested_at' => $recalAt->toDateString(),
+                                'result' => CalibrationResult::Pass->value,
+                                'certificate_number' => sprintf('CERT-RECAL-%04d', $certCounter++),
+                                'valid_until' => $recalAt->copy()->addMonthsNoOverflow(12)->toDateString(),
+                            ], $teknisi->id);
+                        }
+                    }
+
+                    $allEquipment[$eqIdx] = $equipment->fresh();
+                }
+            }
+
+            // 7. Pastikan minimal 3 alat memiliki total biaya perbaikan >= 50% nilai buku ("Pertimbangkan ganti")
+            foreach ($replaceCandidateIndices as $idxPos => $eqIdx) {
+                $equipment = $allEquipment[$eqIdx]->fresh();
+                if ($equipment->status === EquipmentStatus::UnderRepair || $equipment->status === EquipmentStatus::UnderTesting) {
+                    continue;
+                }
+
+                $reportAt = $realNow->copy()->subDays(25 - ($idxPos * 3))->setTime(9, 0);
+                $repairStart = $reportAt->copy()->addHours(2);
+                $repairEnd = $repairStart->copy()->addDays(2);
+
+                Carbon::setTestNow($reportAt);
+                $reporter = $equipment->room_id === $rooms['ICU']->id ? $kepalaIcu : $admin;
+                $report = $damageReportService->report([
+                    'equipment_id' => $equipment->id,
+                    'reported_at' => $reportAt->toDateTimeString(),
+                    'complaint' => 'Kerusakan berat pada modul kontrol utama dan power supply (perbaikan mayor).',
+                ], $reporter);
+
+                Carbon::setTestNow($repairStart);
+                $repair = $repairService->start([
+                    'damage_report_id' => $report->id,
+                    'technician_id' => $teknisi->id,
+                    'started_at' => $repairStart->toDateTimeString(),
+                    'action' => 'Penggantian papan kontrol utama, power supply, dan sensor lengkap.',
+                    'labor_cost' => '2500000.00',
+                    'spare_parts' => [
+                        ['spare_part_id' => $spareParts[0]['model']->id, 'quantity' => 2, 'unit_price' => '1500000.00'],
+                        ['spare_part_id' => $spareParts[6]['model']->id, 'quantity' => 2, 'unit_price' => '1450000.00'],
+                    ],
+                ], $teknisi->id);
+
+                Carbon::setTestNow($repairEnd);
+                $repairService->finish($repair, [
+                    'finished_at' => $repairEnd->toDateTimeString(),
+                    'action' => 'Penggantian komponen mayor selesai, unit direkomendasikan evaluasi peremajaan.',
+                ], $teknisi->id);
+
+                if ($equipment->equipmentType->requires_calibration) {
+                    $recalAt = $repairEnd->copy()->addHours(4);
+                    Carbon::setTestNow($recalAt);
+                    $calibrationService->record([
+                        'equipment_id' => $equipment->id,
+                        'testing_institution_id' => $institutions['bpafk']->id,
+                        'tested_at' => $recalAt->toDateString(),
+                        'result' => CalibrationResult::Pass->value,
+                        'certificate_number' => sprintf('CERT-MAJ-%04d', $certCounter++),
+                        'valid_until' => $recalAt->copy()->addMonthsNoOverflow(12)->toDateString(),
+                    ], $teknisi->id);
+                }
+
+                $allEquipment[$eqIdx] = $equipment->fresh();
+            }
+
+            // 8. Simulasi mutasi alat (8 kejadian lintas ruangan, campuran biasa & reinstalasi)
+            $movementSpecs = [
+                ['idx' => 1, 'to' => 'OK', 'days_ago' => 210, 'reinstall' => true, 'note' => 'Pemindahan ventilator untuk dukungan ruang bedah sentral.'],
+                ['idx' => 11, 'to' => 'ICU', 'days_ago' => 180, 'reinstall' => false, 'note' => 'Relokasi defibrillator cadangan ke ICU.'],
+                ['idx' => 22, 'to' => 'NICU', 'days_ago' => 150, 'reinstall' => true, 'note' => 'Reinstalasi patient monitor di ruang NICU.'],
+                ['idx' => 36, 'to' => 'IGD', 'days_ago' => 120, 'reinstall' => false, 'note' => 'Penambahan syringe pump untuk triase IGD.'],
+                ['idx' => 42, 'to' => 'RAD', 'days_ago' => 95, 'reinstall' => false, 'note' => 'Pemindahan unit EKG ke instalasi radiologi.'],
+                ['idx' => 53, 'to' => 'POLI', 'days_ago' => 70, 'reinstall' => false, 'note' => 'Relokasi infusion pump ke poliklinik jantung.'],
+                ['idx' => 13, 'to' => 'OK', 'days_ago' => 45, 'reinstall' => true, 'note' => 'Reinstalasi patient monitor ruang operasi.'],
+                ['idx' => 26, 'to' => 'ICU', 'days_ago' => 28, 'reinstall' => false, 'note' => 'Penempatan syringe pump tambahan di ICU.'],
+            ];
+
+            foreach ($movementSpecs as $mSpec) {
+                $equipment = $allEquipment[$mSpec['idx']]->fresh();
+                $targetRoom = $rooms[$mSpec['to']];
+                if ($equipment->room_id === $targetRoom->id) {
+                    continue;
+                }
+
+                $movedAt = $realNow->copy()->subDays($mSpec['days_ago'])->setTime(10, 0);
+                Carbon::setTestNow($movedAt);
+
+                $movementService->move([
+                    'equipment_id' => $equipment->id,
+                    'to_room_id' => $targetRoom->id,
+                    'moved_at' => $movedAt->toDateTimeString(),
+                    'is_reinstallation' => $mSpec['reinstall'],
+                    'notes' => $mSpec['note'],
+                ], $teknisi->id);
+
+                // Jika mutasi memicu Perlu kalibrasi, lakukan kalibrasi ulang 2 hari kemudian agar siap pakai
+                $equipment->refresh();
+                if ($equipment->status === EquipmentStatus::CalibrationDue && $equipment->equipmentType->requires_calibration) {
+                    $recalAt = $movedAt->copy()->addDays(2);
+                    if ($recalAt->lessThan($realNow->copy()->subDay())) {
+                        Carbon::setTestNow($recalAt);
+                        $calibrationService->record([
+                            'equipment_id' => $equipment->id,
+                            'testing_institution_id' => $institutions['bpafk']->id,
+                            'tested_at' => $recalAt->toDateString(),
+                            'result' => CalibrationResult::Pass->value,
+                            'certificate_number' => sprintf('CERT-MOV-%04d', $certCounter++),
+                            'valid_until' => $recalAt->copy()->addMonthsNoOverflow(12)->toDateString(),
+                        ], $teknisi->id);
+                    }
+                }
+
+                $allEquipment[$mSpec['idx']] = $equipment->fresh();
+            }
+
+            // 9. Bentuk kondisi akhir yang bervariasi dan realistis pada hari ini
+            // 9a. Alat Perlu kalibrasi (jatuh tempo 5..25 hari dari sekarang)
+            foreach ($dueSoonIndices as $pos => $eqIdx) {
+                $equipment = $allEquipment[$eqIdx]->fresh();
+                if (! $equipment->equipmentType->requires_calibration) {
+                    continue;
+                }
+
+                $daysLeft = 5 + ($pos * 3);
+                $validUntil = $realNow->copy()->addDays($daysLeft);
+                $testedAt = $validUntil->copy()->subMonthsNoOverflow(12);
+
+                Carbon::setTestNow($testedAt);
+                $calibrationService->record([
+                    'equipment_id' => $equipment->id,
+                    'testing_institution_id' => $institutions['swasta']->id,
+                    'tested_at' => $testedAt->toDateString(),
+                    'result' => CalibrationResult::Pass->value,
+                    'certificate_number' => sprintf('CERT-DUE-%04d', $certCounter++),
+                    'valid_until' => $validUntil->toDateString(),
+                ], $teknisi->id);
+
+                $allEquipment[$eqIdx] = $equipment->fresh();
+            }
+
+            // 9b. Alat Terlambat (sertifikat sudah kedaluwarsa 10..40 hari lalu)
+            foreach ($overdueIndices as $pos => $eqIdx) {
+                $equipment = $allEquipment[$eqIdx]->fresh();
+                if (! $equipment->equipmentType->requires_calibration) {
+                    continue;
+                }
+
+                $daysExpired = 10 + ($pos * 6);
+                $validUntil = $realNow->copy()->subDays($daysExpired);
+                $testedAt = $validUntil->copy()->subMonthsNoOverflow(12);
+
+                Carbon::setTestNow($testedAt);
+                $calibrationService->record([
+                    'equipment_id' => $equipment->id,
+                    'testing_institution_id' => $institutions['bpafk']->id,
+                    'tested_at' => $testedAt->toDateString(),
+                    'result' => CalibrationResult::Pass->value,
+                    'certificate_number' => sprintf('CERT-OVR-%04d', $certCounter++),
+                    'valid_until' => $validUntil->toDateString(),
+                ], $teknisi->id);
+
+                $allEquipment[$eqIdx] = $equipment->fresh();
+            }
+
+            // 9c. Alat Laik pakai sehat (sertifikat berlaku 4..10 bulan ke depan)
+            $specialIndices = array_merge(
+                $overdueIndices,
+                $dueSoonIndices,
+                $underTestingIndices,
+                $underRepairIndices,
+                $unfitIndices,
+                [$neverCalibratedIndex],
             );
 
-            // Bersihkan riwayat kalibrasi, perbaikan, mutasi & status lama agar idempotent saat di-seed ulang
-            $equipment->calibrations()->delete();
-            $equipment->repairs()->get()->each(function (Repair $repair): void {
-                $repair->repairSpareParts()->delete();
-                $repair->delete();
-            });
-            $equipment->damageReports()->delete();
-            $equipment->movements()->delete();
-            $equipment->statusHistories()->delete();
-            $initialStatus = $type->requires_calibration
-                ? EquipmentStatus::CalibrationDue
-                : EquipmentStatus::FitForUse;
-            $equipment->forceFill(['status' => $initialStatus])->save();
-            $statusService->initializeStatus($equipment);
+            foreach ($allEquipment as $eqIdx => $equipment) {
+                if (in_array($eqIdx, $specialIndices, true) || ! $equipment->equipmentType->requires_calibration) {
+                    continue;
+                }
 
-            match ($spec['scenario']) {
-                'fit_healthy' => $this->seedPassCalibration(
-                    $equipment,
-                    $inst,
-                    "CERT-2026-{$seq}",
-                    $today->copy()->subMonths(4),
-                    $today->copy()->addMonths(8),
-                    $actorId,
-                    $statusService,
-                ),
-                'due_90_days' => $this->seedPassCalibration(
-                    $equipment,
-                    $inst,
-                    "CERT-2026-{$seq}",
-                    $today->copy()->subMonths(12)->addDays(75),
-                    $today->copy()->addDays(75),
-                    $actorId,
-                    $statusService,
-                ),
-                'due_60_days' => $this->seedPassCalibration(
-                    $equipment,
-                    $inst,
-                    "CERT-2026-{$seq}",
-                    $today->copy()->subMonths(12)->addDays(45),
-                    $today->copy()->addDays(45),
-                    $actorId,
-                    $statusService,
-                ),
-                'due_20_days' => $this->seedPassCalibration(
-                    $equipment,
-                    $inst,
-                    "CERT-2026-{$seq}",
-                    $today->copy()->subMonths(12)->addDays(20),
-                    $today->copy()->addDays(20),
-                    $actorId,
-                    $statusService,
-                ),
-                'due_7_days' => $this->seedPassCalibration(
-                    $equipment,
-                    $inst,
-                    "CERT-2026-{$seq}",
-                    $today->copy()->subMonths(12)->addDays(5),
-                    $today->copy()->addDays(5),
-                    $actorId,
-                    $statusService,
-                ),
-                'overdue' => $this->seedPassCalibration(
-                    $equipment,
-                    $inst,
-                    "CERT-2025-{$seq}",
-                    $today->copy()->subMonths(12)->subDays(15),
-                    $today->copy()->subDays(15),
-                    $actorId,
-                    $statusService,
-                ),
-                'under_testing' => $statusService->startTesting($equipment, $actorId),
-                'failed_calibration' => $this->seedFailedCalibration(
-                    $equipment,
-                    $inst,
-                    $today->copy()->subDays(3),
-                    $actorId,
-                    $statusService,
-                ),
-                'under_repair' => $this->seedUnderRepair($equipment, $actorId),
-                default => $statusService->evaluate($equipment),
-            };
-        }
+                $monthsRemaining = 4 + ($eqIdx % 7);
+                $validUntil = $realNow->copy()->addMonthsNoOverflow($monthsRemaining);
+                $testedAt = $validUntil->copy()->subMonthsNoOverflow(12);
 
-        // 6. Data contoh M3: laporan kerusakan, perbaikan (dengan suku cadang), dan mutasi alat
-        $this->seedOperationalM3Examples($today, $rooms, $teknisi, $admin);
-    }
-
-    private function seedPassCalibration(
-        Equipment $equipment,
-        TestingInstitution $institution,
-        string $certificateNumber,
-        Carbon $testedAt,
-        Carbon $validUntil,
-        ?int $actorId,
-        EquipmentStatusService $statusService,
-    ): void {
-        // Tambahkan juga 1 riwayat kalibrasi tahun sebelumnya agar tab Riwayat Kalibrasi terlihat kaya
-        Calibration::create([
-            'equipment_id' => $equipment->id,
-            'testing_institution_id' => $institution->id,
-            'tested_at' => $testedAt->copy()->subYear()->toDateString(),
-            'result' => CalibrationResult::Pass,
-            'certificate_number' => $certificateNumber.'-PREV',
-            'valid_until' => $testedAt->copy()->subDay()->toDateString(),
-            'recorded_by' => $actorId,
-        ]);
-
-        Calibration::create([
-            'equipment_id' => $equipment->id,
-            'testing_institution_id' => $institution->id,
-            'tested_at' => $testedAt->toDateString(),
-            'result' => CalibrationResult::Pass,
-            'certificate_number' => $certificateNumber,
-            'valid_until' => $validUntil->toDateString(),
-            'recorded_by' => $actorId,
-        ]);
-
-        $statusService->startTesting($equipment, $actorId);
-        $statusService->recordTestResult($equipment, true, $actorId);
-        $statusService->evaluate($equipment);
-    }
-
-    private function seedFailedCalibration(
-        Equipment $equipment,
-        TestingInstitution $institution,
-        Carbon $testedAt,
-        ?int $actorId,
-        EquipmentStatusService $statusService,
-    ): void {
-        $statusService->startTesting($equipment, $actorId);
-
-        Calibration::create([
-            'equipment_id' => $equipment->id,
-            'testing_institution_id' => $institution->id,
-            'tested_at' => $testedAt->toDateString(),
-            'result' => CalibrationResult::Fail,
-            'certificate_number' => null,
-            'valid_until' => null,
-            'recorded_by' => $actorId,
-        ]);
-
-        $statusService->recordTestResult($equipment, false, $actorId);
-    }
-
-    private function seedUnderRepair(Equipment $equipment, ?int $actorId): void
-    {
-        $reporter = User::where('email', 'kepalaruangan@sigap-alkes.test')->first();
-        $sparePart = SparePart::where('name', 'Selang Silikon Suction Medis')->first();
-
-        $report = DamageReport::create([
-            'equipment_id' => $equipment->id,
-            'reported_by' => $reporter?->id ?? $actorId,
-            'reported_at' => now()->subDays(2),
-            'complaint' => 'Tekanan hisap suction melemah dan motor berbunyi kasar.',
-            'status' => DamageReportStatus::Open,
-        ]);
-
-        app(RepairService::class)->start([
-            'damage_report_id' => $report->id,
-            'technician_id' => $actorId,
-            'started_at' => now()->subDay(),
-            'action' => 'Pembongkaran pompa vakum dan penggantian selang internal.',
-            'labor_cost' => '250000.00',
-            'spare_parts' => $sparePart ? [
-                ['spare_part_id' => $sparePart->id, 'quantity' => 2, 'unit_price' => '85000.00'],
-            ] : [],
-        ], $actorId);
-    }
-
-    /**
-     * @param  array<string, Room>  $rooms
-     */
-    private function seedOperationalM3Examples(Carbon $today, array $rooms, ?User $teknisi, ?User $admin): void
-    {
-        $kepalaIcu = User::where('email', 'kepalaruangan@sigap-alkes.test')->first();
-        $battery = SparePart::where('name', 'Baterai Lithium-Ion 12V Medis')->first();
-        $sensor = SparePart::where('name', 'Sensor SpO2 Dewasa Reusable')->first();
-        $filter = SparePart::where('name', 'Filter Bakteri / HEPA Ventilator')->first();
-
-        // 1. Laporan kerusakan terbuka (open) — dari kepala ruangan ICU & dari teknisi pasca gagal uji
-        if ($eqDue = Equipment::where('inventory_code', 'ALK-ICU-004')->first()) {
-            DamageReport::create([
-                'equipment_id' => $eqDue->id,
-                'reported_by' => $kepalaIcu?->id,
-                'reported_at' => $today->copy()->subHours(5),
-                'complaint' => 'Layar monitor sesekali berkedip saat alarm SpO2 aktif.',
-                'status' => DamageReportStatus::Open,
-            ]);
-        }
-
-        if ($eqUnfit = Equipment::where('inventory_code', 'ALK-ICU-007')->first()) {
-            DamageReport::create([
-                'equipment_id' => $eqUnfit->id,
-                'reported_by' => $teknisi?->id,
-                'reported_at' => $today->copy()->subDays(2),
-                'complaint' => 'Energi kejut defibrillator tidak mencapai ambang uji kalibrasi BPAFK.',
-                'status' => DamageReportStatus::Open,
-            ]);
-        }
-
-        // 2. Riwayat perbaikan selesai (resolved) beserta suku cadang — agar total biaya perbaikan terisi
-        if ($eqVent = Equipment::where('inventory_code', 'ALK-ICU-001')->first()) {
-            $report = DamageReport::create([
-                'equipment_id' => $eqVent->id,
-                'reported_by' => $kepalaIcu?->id,
-                'reported_at' => $today->copy()->subMonths(5)->subDays(2),
-                'complaint' => 'Alarm low-flow muncul berkala saat mode volume control.',
-                'status' => DamageReportStatus::Resolved,
-            ]);
-
-            $repair = Repair::create([
-                'damage_report_id' => $report->id,
-                'technician_id' => $teknisi?->id,
-                'action' => 'Pembersihan flow sensor dan penggantian filter HEPA ventilator.',
-                'started_at' => $today->copy()->subMonths(5)->subDay(),
-                'finished_at' => $today->copy()->subMonths(5),
-                'labor_cost' => '450000.00',
-            ]);
-
-            if ($filter) {
-                $repair->repairSpareParts()->create([
-                    'spare_part_id' => $filter->id,
-                    'quantity' => 2,
-                    'unit_price' => '320000.00',
-                ]);
-            }
-        }
-
-        if ($eqMonitor = Equipment::where('inventory_code', 'ALK-ICU-003')->first()) {
-            $report = DamageReport::create([
-                'equipment_id' => $eqMonitor->id,
-                'reported_by' => $kepalaIcu?->id,
-                'reported_at' => $today->copy()->subMonths(3)->subDays(3),
-                'complaint' => 'Baterai cadangan cepat habis dan kabel sensor SpO2 longgar.',
-                'status' => DamageReportStatus::Resolved,
-            ]);
-
-            $repair = Repair::create([
-                'damage_report_id' => $report->id,
-                'technician_id' => $teknisi?->id,
-                'action' => 'Penggantian baterai lithium-ion dan sensor SpO2 dewasa.',
-                'started_at' => $today->copy()->subMonths(3)->subDays(2),
-                'finished_at' => $today->copy()->subMonths(3)->subDay(),
-                'labor_cost' => '300000.00',
-            ]);
-
-            if ($battery) {
-                $repair->repairSpareParts()->create([
-                    'spare_part_id' => $battery->id,
-                    'quantity' => 1,
-                    'unit_price' => '850000.00',
-                ]);
+                if ($testedAt->lessThan($realNow->copy()->subDays(2))) {
+                    Carbon::setTestNow($testedAt);
+                    $inst = $eqIdx % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
+                    $calibrationService->record([
+                        'equipment_id' => $equipment->id,
+                        'testing_institution_id' => $inst->id,
+                        'tested_at' => $testedAt->toDateString(),
+                        'result' => CalibrationResult::Pass->value,
+                        'certificate_number' => sprintf('CERT-FIT-%04d', $certCounter++),
+                        'valid_until' => $validUntil->toDateString(),
+                    ], $teknisi->id);
+                }
             }
 
-            if ($sensor) {
-                $repair->repairSpareParts()->create([
-                    'spare_part_id' => $sensor->id,
-                    'quantity' => 1,
-                    'unit_price' => '475000.00',
-                ]);
+            // 9d. Evaluasi seluruh status pada waktu sekarang (memindahkan dueSoon -> CalibrationDue, overdue -> Overdue)
+            Carbon::setTestNow($realNow->copy()->subDays(4));
+            foreach ($allEquipment as $equipment) {
+                $statusService->evaluate($equipment->fresh());
             }
-        }
 
-        // 3. Riwayat mutasi alat (sejarah perpindahan ruangan sebelum kalibrasi terakhir)
-        if ($eqIgd = Equipment::where('inventory_code', 'ALK-IGD-001')->first()) {
-            EquipmentMovement::create([
-                'equipment_id' => $eqIgd->id,
-                'from_room_id' => $rooms['Ruang ICU']->id,
-                'to_room_id' => $rooms['Ruang IGD']->id,
-                'moved_by' => $teknisi?->id ?? $admin?->id,
-                'moved_at' => $today->copy()->subMonths(6),
-                'is_reinstallation' => false,
-                'notes' => 'Relokasi unit defibrillator cadangan ke ruang resusitasi IGD.',
-            ]);
-        }
+            // 9e. Alat Dalam uji & kalibrasi (dimulai 1-2 hari lalu)
+            foreach ($underTestingIndices as $pos => $eqIdx) {
+                $testStart = $realNow->copy()->subDays(1 + ($pos % 2))->setTime(9, 0);
+                Carbon::setTestNow($testStart);
+                $statusService->startTesting($allEquipment[$eqIdx]->fresh(), $teknisi->id);
+            }
 
-        if ($eqOk = Equipment::where('inventory_code', 'ALK-OK-003')->first()) {
-            EquipmentMovement::create([
-                'equipment_id' => $eqOk->id,
-                'from_room_id' => $rooms['Ruang ICU']->id,
-                'to_room_id' => $rooms['Ruang Operasi (OK)']->id,
-                'moved_by' => $teknisi?->id ?? $admin?->id,
-                'moved_at' => $today->copy()->subMonths(5),
-                'is_reinstallation' => true,
-                'notes' => 'Pemindahan dan reinstalasi patient monitor ke kamar bedah sentral.',
-            ]);
+            // 9f. Alat Tidak laik pakai (gagal uji kalibrasi 2-3 hari lalu + laporan kerusakan terbuka)
+            foreach ($unfitIndices as $pos => $eqIdx) {
+                $failAt = $realNow->copy()->subDays(3 - ($pos % 2))->setTime(14, 0);
+                Carbon::setTestNow($failAt);
+                $equipment = $allEquipment[$eqIdx]->fresh();
+                $calibrationService->record([
+                    'equipment_id' => $equipment->id,
+                    'testing_institution_id' => $institutions['bpafk']->id,
+                    'tested_at' => $failAt->toDateString(),
+                    'result' => CalibrationResult::Fail->value,
+                ], $teknisi->id);
+
+                Carbon::setTestNow($failAt->copy()->addHours(2));
+                $damageReportService->report([
+                    'equipment_id' => $equipment->id,
+                    'reported_at' => $failAt->copy()->addHours(2)->toDateTimeString(),
+                    'complaint' => 'Tidak lulus uji kalibrasi berkala — perlu investigasi dan perbaikan modul.',
+                ], $teknisi);
+            }
+
+            // 9g. Alat Dalam perbaikan aktif (dimulai 1-3 hari lalu, belum selesai)
+            foreach ($underRepairIndices as $pos => $eqIdx) {
+                $reportAt = $realNow->copy()->subDays(3 - ($pos % 2))->setTime(8, 0);
+                $repairStart = $reportAt->copy()->addHours(2);
+                $equipment = $allEquipment[$eqIdx]->fresh();
+
+                Carbon::setTestNow($reportAt);
+                $reporter = $equipment->room_id === $rooms['ICU']->id ? $kepalaIcu : $admin;
+                $report = $damageReportService->report([
+                    'equipment_id' => $equipment->id,
+                    'reported_at' => $reportAt->toDateTimeString(),
+                    'complaint' => $complaints[$pos % count($complaints)],
+                ], $reporter);
+
+                Carbon::setTestNow($repairStart);
+                $spChoice = $spareParts[$pos % count($spareParts)];
+                $repairService->start([
+                    'damage_report_id' => $report->id,
+                    'technician_id' => $teknisi->id,
+                    'started_at' => $repairStart->toDateTimeString(),
+                    'action' => 'Sedang dilakukan pembongkaran dan pengujian komponen internal.',
+                    'labor_cost' => '250000.00',
+                    'spare_parts' => [
+                        ['spare_part_id' => $spChoice['model']->id, 'quantity' => 1, 'unit_price' => $spChoice['price']],
+                    ],
+                ], $teknisi->id);
+            }
+
+            // 9h. Evaluasi final pada waktu sekarang & tambah 2 laporan kerusakan terbuka baru di ICU/IGD
+            Carbon::setTestNow($realNow);
+            foreach (Equipment::where('is_active', true)->get() as $equipment) {
+                $statusService->evaluate($equipment);
+            }
+
+            // Bersihkan notifikasi lama dari simulasi historis, lalu buat 2 laporan terbuka terbaru agar lonceng notifikasi relevan
+            DB::table('notifications')->delete();
+
+            $openReportTarget1 = Equipment::where('inventory_code', 'ALK-ICU-004')->first();
+            if ($openReportTarget1) {
+                $damageReportService->report([
+                    'equipment_id' => $openReportTarget1->id,
+                    'reported_at' => $realNow->copy()->subHours(3)->toDateTimeString(),
+                    'complaint' => 'Layar monitor sesekali berkedip saat alarm SpO2 aktif.',
+                ], $kepalaIcu);
+            }
+
+            $openReportTarget2 = Equipment::where('inventory_code', 'ALK-IGD-003')->first();
+            if ($openReportTarget2) {
+                $damageReportService->report([
+                    'equipment_id' => $openReportTarget2->id,
+                    'reported_at' => $realNow->copy()->subHours(1)->toDateTimeString(),
+                    'complaint' => 'Kertas printer EKG tersendat saat mencetak 12 lead.',
+                ], $admin);
+            }
+        } finally {
+            Carbon::setTestNow();
         }
     }
 }

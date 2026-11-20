@@ -72,4 +72,8 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 8. **Dashboard**: Widget statistik, chart uptime 12 bulan, tabel 10 jatuh tempo terdekat, dan chart total nilai buku per ruangan hanya tampil untuk `super_admin`, `admin_ipsrs`, dan `manajemen`.
 9. **Format ekspor ASPAK sementara**: `AspakEquipmentExporter` menggunakan 12 kolom sementara (kode inventaris, nama alat, jenis, merek, tipe/model, nomor seri, ruangan, tahun perolehan, harga perolehan, kondisi dari status, tanggal kalibrasi terakhir, berlaku s.d.) dan diberi penanda eksplisit di UI bahwa format kolom bersifat sementara menunggu konfirmasi RS mitra.
 
+## M5 — Seeder Sintetis & Finishing UI
+1. **Empty state panel notifikasi Filament**: Filament 5 tidak menyediakan hook empty-state khusus pada `DatabaseNotifications` tanpa mem-publish dan meng-override penuh view vendor `database-notifications.blade.php`. Sesuai aturan `design.md` (hindari override komponen besar Filament), ilustrasi `empty-notifications.svg` dilewati pada panel notifikasi bawaan.
+
+
 

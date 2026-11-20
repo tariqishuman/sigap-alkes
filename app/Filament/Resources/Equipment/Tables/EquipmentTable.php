@@ -139,6 +139,29 @@ class EquipmentTable
                             'label-qr-massal.pdf',
                         )),
                 ]),
-            ]);
+            ])
+            ->emptyState(function (Table $table) {
+                $livewire = $table->getLivewire();
+                $hasSearch = filled($livewire->getTableSearch());
+                $filters = $livewire->tableFilters ?? [];
+                $hasActiveFilter = filled($filters['room_id']['value'] ?? null)
+                    || filled($filters['equipment_type_id']['value'] ?? null)
+                    || filled($filters['status']['value'] ?? null)
+                    || (bool) ($filters['due_soon']['isActive'] ?? false);
+
+                if ($hasSearch || $hasActiveFilter) {
+                    return view('filament.tables.empty-state', [
+                        'image' => 'empty-search',
+                        'title' => 'Alat tidak ditemukan',
+                        'description' => 'Coba ubah kata kunci pencarian atau atur ulang filter yang aktif.',
+                    ]);
+                }
+
+                return view('filament.tables.empty-state', [
+                    'image' => 'empty-equipment',
+                    'title' => 'Belum ada alat kesehatan',
+                    'description' => 'Tambahkan inventaris alat kesehatan untuk mulai memantau kalibrasi dan pemeliharaan.',
+                ]);
+            });
     }
 }

@@ -49,6 +49,11 @@ class EquipmentMovementsTable
                     ->label('Ke Ruangan')
                     ->relationship('toRoom', 'name'),
             ])
-            ->recordActions([]);
+            ->recordActions([])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-movement',
+                'title' => 'Belum ada mutasi alat',
+                'description' => 'Riwayat perpindahan ruangan alat kesehatan akan tampil di sini.',
+            ]));
     }
 }
