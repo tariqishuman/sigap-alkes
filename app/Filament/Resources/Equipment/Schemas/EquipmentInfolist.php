@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Equipment\Schemas;
 
-use App\Enums\UserRole;
 use App\Models\Equipment;
 use App\Services\DepreciationCalculator;
 use App\Services\QrLabelService;
@@ -100,24 +99,8 @@ class EquipmentInfolist
                     ]),
 
                 Section::make('Nilai Aset')
-                    ->description('Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.')
-                    ->visible(function (): bool {
-                        $user = Auth::user();
-
-                        if (! $user) {
-                            return false;
-                        }
-
-                        return ! (
-                            $user->hasRole(UserRole::KepalaRuangan->value)
-                            && ! $user->hasAnyRole([
-                                UserRole::SuperAdmin->value,
-                                UserRole::AdminIpsrs->value,
-                                UserRole::Manajemen->value,
-                                UserRole::Teknisi->value,
-                            ])
-                        );
-                    })
+                    ->description('Nilai buku adalah estimasi, bukan pembukuan resmi RS.')
+                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                     ->columns(4)
                     ->schema([
                         TextEntry::make('acquisition_date')
@@ -126,12 +109,12 @@ class EquipmentInfolist
                         TextEntry::make('acquisition_cost')
                             ->label('Harga Perolehan')
                             ->formatStateUsing(fn ($state): string => 'Rp'.number_format((float) $state, 0, ',', '.')),
-                        TextEntry::make('annual_depreciation_display')
-                            ->label('Penyusutan / Tahun')
+                        TextEntry::make('monthly_depreciation_display')
+                            ->label('Penyusutan per Bulan')
                             ->state(function (Equipment $record): string {
                                 $calc = app(DepreciationCalculator::class)->calculateForEquipment($record);
 
-                                return 'Rp'.number_format((float) $calc['annual_depreciation'], 0, ',', '.');
+                                return 'Rp'.number_format((float) $calc['monthly_depreciation'], 0, ',', '.');
                             }),
                         TextEntry::make('accumulated_depreciation_display')
                             ->label('Akumulasi Penyusutan')
@@ -157,7 +140,7 @@ class EquipmentInfolist
                             ->badge()
                             ->color('warning')
                             ->state('Pertimbangkan ganti')
-                            ->helperText(fn (): string => 'Total biaya perbaikan ≥ '.config('sigap.replace_threshold_percent', 50).'% nilai buku saat ini.')
+                            ->helperText(fn (): string => 'Biaya perbaikan sudah mencapai '.config('sigap.replace_threshold_percent', 50).'% dari nilai buku.')
                             ->visible(fn (Equipment $record): bool => app(DepreciationCalculator::class)->shouldConsiderReplacement($record)),
                     ]),
             ]);

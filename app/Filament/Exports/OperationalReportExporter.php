@@ -25,7 +25,7 @@ class OperationalReportExporter extends Exporter
                 ->label('Status')
                 ->formatStateUsing(fn (EquipmentStatus $state): string => $state->getLabel()),
             ExportColumn::make('total_hours')
-                ->label('Total Jam (T)')
+                ->label('Total Jam Operasi')
                 ->state(function (Equipment $record, array $options): string {
                     [$start, $end] = self::resolvePeriod($options);
                     $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);
@@ -33,7 +33,7 @@ class OperationalReportExporter extends Exporter
                     return number_format($metrics['total_hours'], 2, '.', '');
                 }),
             ExportColumn::make('downtime_hours')
-                ->label('Downtime (D)')
+                ->label('Downtime')
                 ->state(function (Equipment $record, array $options): string {
                     [$start, $end] = self::resolvePeriod($options);
                     $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);

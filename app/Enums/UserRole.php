@@ -12,6 +12,8 @@ enum UserRole: string implements HasColor, HasLabel
     case Teknisi = 'teknisi';
     case KepalaRuangan = 'kepala_ruangan';
     case Manajemen = 'manajemen';
+    case BadanKalibrasi = 'badan_kalibrasi';
+    case Magang = 'magang';
 
     public function getLabel(): string
     {
@@ -21,6 +23,8 @@ enum UserRole: string implements HasColor, HasLabel
             self::Teknisi => 'Teknisi Elektromedis',
             self::KepalaRuangan => 'Kepala Ruangan',
             self::Manajemen => 'Manajemen RS',
+            self::BadanKalibrasi => 'Badan Kalibrasi',
+            self::Magang => 'Magang',
         };
     }
 
@@ -32,6 +36,8 @@ enum UserRole: string implements HasColor, HasLabel
             self::Teknisi => 'info',
             self::KepalaRuangan => 'warning',
             self::Manajemen => 'success',
+            self::BadanKalibrasi => 'info',
+            self::Magang => 'gray',
         };
     }
 }

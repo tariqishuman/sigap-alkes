@@ -14,7 +14,7 @@ class AssetValueByRoomChart extends ChartWidget
 
     protected ?string $heading = 'Total Nilai Buku Aset per Ruangan (Rp)';
 
-    protected ?string $description = 'Estimasi nilai buku metode garis lurus untuk alat aktif';
+    protected ?string $description = 'Estimasi nilai buku seluruh alat aktif';
 
     protected int|string|array $columnSpan = 'full';
 

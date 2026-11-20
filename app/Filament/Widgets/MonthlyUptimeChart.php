@@ -13,7 +13,7 @@ class MonthlyUptimeChart extends ChartWidget
 
     protected ?string $heading = 'Uptime Rata-Rata 12 Bulan Terakhir (%)';
 
-    protected ?string $description = 'Dihitung dari (ΣT − ΣD) / ΣT × 100% seluruh alat aktif';
+    protected ?string $description = 'Rata-rata seluruh alat aktif';
 
     protected int|string|array $columnSpan = [
         'md' => 2,

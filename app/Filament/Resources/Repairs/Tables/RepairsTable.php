@@ -47,6 +47,7 @@ class RepairsTable
                     ->badge(),
                 TextColumn::make('total_cost')
                     ->label('Total Biaya')
+                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                     ->state(fn (Repair $record): string => 'Rp'.number_format((float) $record->totalCost(), 0, ',', '.')),
             ])
             ->filters([

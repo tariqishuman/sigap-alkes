@@ -79,7 +79,7 @@ class RepairForm
                         DateTimePicker::make('finished_at')
                             ->label('Waktu Selesai (Opsional)')
                             ->seconds(false)
-                            ->helperText('Kosongkan jika perbaikan masih berlangsung. Mengisi waktu selesai akan menyelesaikan perbaikan dan mengunci data.'),
+                            ->helperText('Isi jika perbaikan sudah selesai. Data akan dikunci setelah disimpan.'),
                         Textarea::make('action')
                             ->label('Tindakan Perbaikan')
                             ->placeholder('Catat tindakan perbaikan yang dilakukan...')
@@ -101,7 +101,7 @@ class RepairForm
                                     ->options(fn (): array => SparePart::query()
                                         ->orderBy('name')
                                         ->get()
-                                        ->mapWithKeys(fn (SparePart $sp): array => [$sp->id => "{$sp->name} ({$sp->unit})"])
+                                        ->mapWithKeys(fn (SparePart $sp): array => [$sp->id => "{$sp->name} ({$sp->unit}) — Stok: {$sp->stock}"])
                                         ->all())
                                     ->searchable()
                                     ->required(),

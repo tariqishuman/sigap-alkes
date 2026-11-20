@@ -59,11 +59,11 @@ class DashboardStatsOverview extends StatsOverviewWidget
             Stat::make('Alat Terlambat', number_format($overdueCount, 0, ',', '.'))
                 ->description('Sertifikat melewati jatuh tempo')
                 ->color($overdueCount > 0 ? 'danger' : 'success'),
-            Stat::make('Jatuh Tempo ≤ 30 Hari', number_format($dueSoonCount, 0, ',', '.'))
+            Stat::make('Jatuh Tempo 30 Hari ke Depan', number_format($dueSoonCount, 0, ',', '.'))
                 ->description('Perlu penjadwalan segera')
                 ->color($dueSoonCount > 0 ? 'warning' : 'success'),
             Stat::make('Total Nilai Buku Aset', 'Rp'.number_format((float) $totalBookValue, 0, ',', '.'))
-                ->description('Estimasi garis lurus seluruh alat aktif'),
+                ->description('Seluruh alat aktif'),
         ];
     }
 }

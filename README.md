@@ -95,10 +95,14 @@ Perubahan status alat dikelola terpusat melalui `EquipmentStatusService` dan sel
 
 Apabila alat berstatus **Terlambat** atau **Tidak laik pakai**, halaman publik hasil pindai QR akan menampilkan peringatan keselamatan agar unit tidak digunakan pada pasien dan segera menghubungi IPSRS.
 
-### 3. Nilai Aset & Penyusutan Garis Lurus (`F6`)
-Perhitungan nilai buku menggunakan metode garis lurus (*straight-line depreciation*) berbasis `bcmath`:
-- **Penyusutan Tahunan**: $P = \frac{HP - NR}{MM}$
-- **Nilai Buku Saat Ini**: $NB = \max\left(NR,\; HP - \left(P \times \frac{\text{bulan penuh sejak perolehan}}{12}\right)\right)$
+### 3. Nilai Aset & Penyusutan Garis Lurus Bulanan (`F6`)
+Perhitungan nilai buku menggunakan metode garis lurus bulanan (*straight-line depreciation*) berbasis `bcmath`:
+- **Penyusutan per Bulan**: $P_b = \frac{HP - NR}{MM \times 12}$
+- **Nilai Buku Saat Ini**: $NB = \max\left(NR,\; HP - \frac{(HP - NR) \times n}{MM \times 12}\right)$, dengan $n$ = jumlah bulan penuh sejak tanggal perolehan.
+
+### 4. Manajemen Stok Suku Cadang
+- Pencatatan buku stok (`spare_part_movements`) secara atomik melalui `SparePartStockService` untuk stok masuk (`in`), pemakaian otomatis pada perbaikan aktif (`out`), pengembalian selisih (`return`), dan *stock opname* (`adjustment`).
+- Stok tidak pernah negatif dan otomatis mengirim notifikasi database ke `admin_ipsrs` saat stok mencapai atau di bawah `min_stock`.
 
 ---
 
@@ -171,9 +175,11 @@ Seluruh akun demo menggunakan kata sandi **`password`**:
 | :--- | :--- | :--- | :--- |
 | **Super Admin** | `superadmin@sigap-alkes.test` | `password` | Akses penuh seluruh modul, laporan, manajemen pengguna, & Role (Shield) |
 | **Admin IPSRS** | `admin@sigap-alkes.test` | `password` | CRUD data master, inventaris alat, pengguna staf, laporan kerusakan, dashboard, & laporan/ekspor |
-| **Teknisi Elektromedis** | `teknisi@sigap-alkes.test` | `password` | Lihat semua alat; catat/ubah kalibrasi, laporan kerusakan, perbaikan (+ suku cadang), & mutasi alat |
+| **Teknisi Elektromedis** | `teknisi@sigap-alkes.test` | `password` | Lihat semua alat & stok suku cadang; catat/ubah kalibrasi, laporan kerusakan, perbaikan (+ suku cadang), & mutasi alat |
 | **Kepala Ruangan (ICU)** | `kepalaruangan@sigap-alkes.test` | `password` | Lihat alat & buat/ubah laporan kerusakan **hanya untuk Ruang ICU** (tanpa Kartu Nilai Aset) |
 | **Manajemen RS** | `manajemen@sigap-alkes.test` | `password` | Dashboard analitik, jadwal kalibrasi, pantau laporan/perbaikan/mutasi (read-only), & ekspor Excel/PDF/ASPAK |
+| **Badan Kalibrasi (BPAFK)** | `kalibrasi@sigap-alkes.test` | `password` | Lihat daftar alat & jadwal kalibrasi (tanpa harga/biaya/nilai aset); catat & ubah kalibrasi **hanya untuk lembaganya sendiri** |
+| **Magang** | `magang@sigap-alkes.test` | `password` | Lihat alat, kalibrasi, kerusakan, perbaikan, & mutasi semua ruangan (tanpa harga/biaya/nilai aset/stok); buat laporan kerusakan |
 
 ---
 

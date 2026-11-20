@@ -6,10 +6,13 @@ use App\Enums\CalibrationResult;
 use App\Enums\EquipmentStatus;
 use App\Models\Calibration;
 use App\Models\Equipment;
+use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CalibrationService
 {
@@ -22,6 +25,9 @@ class CalibrationService
      */
     public function record(array $data, ?int $recordedBy = null): Calibration
     {
+        $actor = $recordedBy ? User::find($recordedBy) : Auth::user();
+        $data = $this->enforceInstitutionScope($data, $actor);
+
         $validated = $this->validate($data);
         $equipment = Equipment::findOrFail($validated['equipment_id']);
 
@@ -49,8 +55,20 @@ class CalibrationService
      * Correct a saved calibration. Equipment and result stay fixed because
      * they already drove a status transition.
      */
-    public function update(Calibration $calibration, array $data): Calibration
+    public function update(Calibration $calibration, array $data, ?int $actorId = null): Calibration
     {
+        $actor = $actorId ? User::find($actorId) : Auth::user();
+
+        if ($actor instanceof User && $actor->isBadanKalibrasiOnly()) {
+            if ($actor->testing_institution_id === null || (int) $calibration->testing_institution_id !== (int) $actor->testing_institution_id) {
+                throw ValidationException::withMessages([
+                    'testing_institution_id' => 'Badan Kalibrasi hanya boleh mengubah kalibrasi milik lembaganya sendiri.',
+                ]);
+            }
+        }
+
+        $data = $this->enforceInstitutionScope($data, $actor);
+
         $validated = $this->validate([
             ...$data,
             'equipment_id' => $calibration->equipment_id,
@@ -63,6 +81,39 @@ class CalibrationService
 
             return $calibration;
         });
+    }
+
+    /**
+     * Ensure badan_kalibrasi users can only record/update calibrations under their own testing institution.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function enforceInstitutionScope(array $data, mixed $actor): array
+    {
+        if (! ($actor instanceof User) || ! $actor->isBadanKalibrasiOnly()) {
+            return $data;
+        }
+
+        if ($actor->testing_institution_id === null) {
+            throw ValidationException::withMessages([
+                'testing_institution_id' => 'Akun Badan Kalibrasi belum terhubung ke lembaga penguji.',
+            ]);
+        }
+
+        if (
+            isset($data['testing_institution_id'])
+            && $data['testing_institution_id'] !== ''
+            && (int) $data['testing_institution_id'] !== (int) $actor->testing_institution_id
+        ) {
+            throw ValidationException::withMessages([
+                'testing_institution_id' => 'Badan Kalibrasi hanya boleh mencatat kalibrasi atas nama lembaganya sendiri.',
+            ]);
+        }
+
+        $data['testing_institution_id'] = $actor->testing_institution_id;
+
+        return $data;
     }
 
     /**

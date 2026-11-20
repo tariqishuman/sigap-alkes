@@ -13,6 +13,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class CalibrationForm
 {
@@ -56,6 +57,9 @@ class CalibrationForm
                             ->relationship('testingInstitution', 'name')
                             ->searchable()
                             ->preload()
+                            ->default(fn (): ?int => Auth::user()?->isBadanKalibrasiOnly() ? Auth::user()->testing_institution_id : null)
+                            ->disabled(fn (): bool => Auth::user()?->isBadanKalibrasiOnly() ?? false)
+                            ->dehydrated(true)
                             ->required($isPass),
                         TextInput::make('certificate_number')
                             ->label('Nomor Sertifikat')

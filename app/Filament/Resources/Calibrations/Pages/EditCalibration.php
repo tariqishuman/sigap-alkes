@@ -6,6 +6,7 @@ use App\Filament\Resources\Calibrations\CalibrationResource;
 use App\Services\CalibrationService;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class EditCalibration extends EditRecord
 {
@@ -14,7 +15,7 @@ class EditCalibration extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return CalibrationResource::withFormErrors(
-            fn () => app(CalibrationService::class)->update($record, $data),
+            fn () => app(CalibrationService::class)->update($record, $data, Auth::id()),
         );
     }
 }

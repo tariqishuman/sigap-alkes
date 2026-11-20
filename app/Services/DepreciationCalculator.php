@@ -9,15 +9,16 @@ use Carbon\CarbonInterface;
 class DepreciationCalculator
 {
     /**
-     * Straight-line depreciation calculation using bcmath (PRD §F6):
-     * P = (HP - NR) / MM
-     * NB = max(NR, HP - (P * n)), where n = full months since acquisition_date / 12
+     * Straight-line monthly depreciation calculation using bcmath (PRD §F6):
+     * Monthly depreciation = (HP - NR) / (MM * 12)
+     * Book value = max(NR, HP - ((HP - NR) * n / (MM * 12))), rounded to 2 decimals at the end.
      *
      * @return array{
      *     acquisition_cost: string,
      *     residual_value: string,
      *     useful_life_years: int,
      *     full_months_elapsed: int,
+     *     monthly_depreciation: string,
      *     annual_depreciation: string,
      *     accumulated_depreciation: string,
      *     book_value: string
@@ -56,13 +57,14 @@ class DepreciationCalculator
     }
 
     /**
-     * Pure calculation method for straight-line depreciation using bcmath.
+     * Pure calculation method for straight-line monthly depreciation using bcmath.
      *
      * @return array{
      *     acquisition_cost: string,
      *     residual_value: string,
      *     useful_life_years: int,
      *     full_months_elapsed: int,
+     *     monthly_depreciation: string,
      *     annual_depreciation: string,
      *     accumulated_depreciation: string,
      *     book_value: string
@@ -76,27 +78,32 @@ class DepreciationCalculator
     ): array {
         $hp = bcadd((string) $acquisitionCost, '0', 2);
         $nr = bcadd((string) $residualValue, '0', 2);
-        $mm = (string) max(1, $usefulLifeYears);
+        $mm = max(1, $usefulLifeYears);
+        $totalMonths = (string) ($mm * 12);
         $months = max(0, $fullMonthsElapsed);
 
         // Depreciable base = max(0, HP - NR)
-        $depreciableBase = bcsub($hp, $nr, 4);
-        if (bccomp($depreciableBase, '0', 4) < 0) {
-            $depreciableBase = '0.0000';
+        $depreciableBase = bcsub($hp, $nr, 8);
+        if (bccomp($depreciableBase, '0', 8) < 0) {
+            $depreciableBase = '0.00000000';
         }
 
-        // P = (HP - NR) / MM
-        $annualDepreciationRaw = bcdiv($depreciableBase, $mm, 4);
-        $annualDepreciation = bcadd($annualDepreciationRaw, '0', 2);
+        // Monthly depreciation = (HP - NR) / (MM * 12)
+        $monthlyRaw = bcdiv($depreciableBase, $totalMonths, 8);
+        $monthlyDepreciation = $this->roundHalfUp($monthlyRaw, 2);
 
-        // P * n where n = fullMonths / 12 -> (P * fullMonths) / 12
-        $accumulatedRaw = bcdiv(bcmul($annualDepreciationRaw, (string) $months, 4), '12', 4);
-        if (bccomp($accumulatedRaw, $depreciableBase, 4) > 0) {
+        // Annual depreciation kept for reference: (HP - NR) / MM
+        $annualRaw = bcdiv($depreciableBase, (string) $mm, 8);
+        $annualDepreciation = $this->roundHalfUp($annualRaw, 2);
+
+        // Accumulated = min(HP - NR, (HP - NR) * n / (MM * 12)) -> direct formula avoids rounding drift
+        $accumulatedRaw = bcdiv(bcmul($depreciableBase, (string) $months, 8), $totalMonths, 8);
+        if (bccomp($accumulatedRaw, $depreciableBase, 8) > 0) {
             $accumulatedRaw = $depreciableBase;
         }
-        $accumulatedDepreciation = bcadd($accumulatedRaw, '0', 2);
+        $accumulatedDepreciation = $this->roundHalfUp($accumulatedRaw, 2);
 
-        // NB = HP - accumulated, with lower bound NB >= NR
+        // NB = max(NR, HP - accumulated)
         $bookValue = bcsub($hp, $accumulatedDepreciation, 2);
         if (bccomp($bookValue, $nr, 2) < 0) {
             $bookValue = $nr;
@@ -105,12 +112,24 @@ class DepreciationCalculator
         return [
             'acquisition_cost' => $hp,
             'residual_value' => $nr,
-            'useful_life_years' => max(1, $usefulLifeYears),
+            'useful_life_years' => $mm,
             'full_months_elapsed' => $months,
+            'monthly_depreciation' => $monthlyDepreciation,
             'annual_depreciation' => $annualDepreciation,
             'accumulated_depreciation' => $accumulatedDepreciation,
             'book_value' => $bookValue,
         ];
+    }
+
+    private function roundHalfUp(string $value, int $precision): string
+    {
+        $factor = '0.'.str_repeat('0', $precision).'5';
+
+        if (bccomp($value, '0', $precision + 2) >= 0) {
+            return bcadd($value, $factor, $precision);
+        }
+
+        return bcsub($value, $factor, $precision);
     }
 
     /**

@@ -75,5 +75,14 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 ## M5 — Seeder Sintetis & Finishing UI
 1. **Empty state panel notifikasi Filament**: Filament 5 tidak menyediakan hook empty-state khusus pada `DatabaseNotifications` tanpa mem-publish dan meng-override penuh view vendor `database-notifications.blade.php`. Sesuai aturan `design.md` (hindari override komponen besar Filament), ilustrasi `empty-notifications.svg` dilewati pada panel notifikasi bawaan.
 
+## R1 — Revisi Kelompok Sebelum M6
+1. **Teks UI production-ready**: Seluruh label, subheading, dan helper text di panel Filament serta PDF dibersihkan dari rumus, simbol matematika (`Σ`, `×`, `÷`, `≥`, `≤`), referensi `PRD`/`§`, dan istilah internal; rumus tetap didokumentasikan di `PRD.md` dan `README.md`.
+2. **Buku stok suku cadang (`SparePartStockService`)**: Kolom `spare_parts.stock` adalah saldo terakhir (tidak di-mass-assign) dan selalu diubah bersama pencatatan `spare_part_movements` (`in`, `out`, `return`, `adjustment`) dalam satu `DB::transaction` dengan `lockForUpdate()`. Stok tidak pernah negatif; pemakaian melebihi stok ditolak dengan pesan `"Stok tidak cukup (tersisa N)"`. Saat perbaikan aktif mengubah/menghapus baris suku cadang, hanya selisihnya yang dicatat (`out`/`return`); setelah perbaikan selesai, baris suku cadang terkunci. Penurunan stok ke `<= min_stock` mengirim notifikasi database ke `admin_ipsrs`. `teknisi` hanya bisa melihat stok (`ViewAny`/`View`), tidak bisa menambah atau menyesuaikan.
+3. **Penyusutan bulanan**: Penyusutan dihitung bulanan `(HP - NR) / (MM * 12)` dan nilai buku dihitung langsung dari `HP - ((HP - NR) * n / (MM * 12))` berbasis `bcmath` (presisi 8 desimal, dibulatkan *half-up* 2 desimal di akhir) agar bebas selisih pembulatan. UI Kartu Nilai Aset dan Laporan Nilai Aset menampilkan *"Penyusutan per Bulan"*.
+4. **Role `badan_kalibrasi`**: Terhubung ke `users.testing_institution_id` (wajib diisi). Dapat melihat daftar alat & Jadwal Kalibrasi (tanpa harga/nilai aset/biaya), serta mencatat & mengubah kalibrasi **hanya milik lembaganya sendiri** (divalidasi di `CalibrationService`, `CalibrationPolicy`, dan dikunci di `CalibrationForm`). Tidak dapat mengakses laporan kerusakan, perbaikan, mutasi, suku cadang, laporan, dashboard keuangan, atau pengguna.
+5. **Role `magang`**: Dapat melihat alat, kalibrasi, laporan kerusakan, perbaikan, dan mutasi di semua ruangan **tanpa harga, biaya, nilai aset, atau stok**, serta dapat membuat laporan kerusakan untuk alat di ruangan mana saja (tidak dapat mengedit/menghapus data lain).
+6. **Kartu halaman error**: Gaya `.card` pada `resources/views/errors/sigap.blade.php` dikembalikan memiliki latar putih, border, radius, dan shadow kartu sesuai commit `ebbdab3`.
+
+
 
 

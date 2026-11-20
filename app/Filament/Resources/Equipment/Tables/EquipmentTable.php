@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Equipment\Tables;
 
 use App\Enums\EquipmentStatus;
-use App\Enums\UserRole;
 use App\Models\Equipment;
 use App\Services\QrLabelService;
 use Filament\Actions\Action;
@@ -65,23 +64,7 @@ class EquipmentTable
                     }),
                 TextColumn::make('book_value')
                     ->label('Nilai Buku')
-                    ->visible(function (): bool {
-                        $user = Auth::user();
-
-                        if (! $user) {
-                            return false;
-                        }
-
-                        return ! (
-                            $user->hasRole(UserRole::KepalaRuangan->value)
-                            && ! $user->hasAnyRole([
-                                UserRole::SuperAdmin->value,
-                                UserRole::AdminIpsrs->value,
-                                UserRole::Manajemen->value,
-                                UserRole::Teknisi->value,
-                            ])
-                        );
-                    })
+                    ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                     ->state(fn (Equipment $record): string => 'Rp'.number_format((float) $record->book_value, 0, ',', '.')),
                 IconColumn::make('is_active')
                     ->label('Aktif')
@@ -99,7 +82,7 @@ class EquipmentTable
                     ->label('Status')
                     ->options(EquipmentStatus::class),
                 Filter::make('due_soon')
-                    ->label('Jatuh tempo ≤ 30 hari')
+                    ->label('Jatuh tempo dalam 30 hari')
                     ->query(fn (Builder $query) => $query->dueBetween(today(), today()->addDays(30))),
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif')

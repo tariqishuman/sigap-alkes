@@ -13,6 +13,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class DamageReportsTable
 {
@@ -56,6 +57,7 @@ class DamageReportsTable
                 ->toggleable(isToggledHiddenByDefault: ! $forEquipmentRelation),
             TextColumn::make('repair_total_cost')
                 ->label('Biaya Perbaikan')
+                ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                 ->state(fn (DamageReport $record): string => $record->repair
                     ? 'Rp'.number_format((float) $record->repair->totalCost(), 0, ',', '.')
                     : '-')

@@ -92,13 +92,17 @@ function makeM4Equipment(
 }
 
 describe('DepreciationCalculator & Replacement Threshold (PRD §F6)', function () {
-    it('passes the mandatory PRD §F6 straight-line depreciation test case (30 jt / 3 jt / 5 th)', function () {
+    it('passes the mandatory PRD §F6 straight-line monthly depreciation test case (30 jt / 3 jt / 5 th)', function () {
         $calc = app(DepreciationCalculator::class);
 
+        $at1 = $calc->calculate('30000000.00', '3000000.00', 5, 1);
         $at36 = $calc->calculate('30000000.00', '3000000.00', 5, 36);
         $at72 = $calc->calculate('30000000.00', '3000000.00', 5, 72);
 
-        expect($at36['annual_depreciation'])->toBe('5400000.00')
+        expect($at1['monthly_depreciation'])->toBe('450000.00')
+            ->and($at1['book_value'])->toBe('29550000.00')
+            ->and($at36['monthly_depreciation'])->toBe('450000.00')
+            ->and($at36['annual_depreciation'])->toBe('5400000.00')
             ->and($at36['accumulated_depreciation'])->toBe('16200000.00')
             ->and($at36['book_value'])->toBe('13800000.00')
             ->and($at72['book_value'])->toBe('3000000.00');
@@ -308,7 +312,7 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             ->assertDontSee('Nilai Aset')
             ->assertDontSee('13.800.000')
             ->assertDontSee('Pertimbangkan ganti')
-            ->assertDontSee('bukan pengganti pembukuan akuntansi resmi RS');
+            ->assertDontSee('bukan pembukuan resmi RS');
 
         // Admin IPSRS sees Nilai Aset, disclaimer, and Pertimbangkan ganti
         $this->flushSession();
@@ -317,7 +321,7 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             ->assertSee('Nilai Aset')
             ->assertSee('13.800.000')
             ->assertSee('Pertimbangkan ganti')
-            ->assertSee('bukan pengganti pembukuan akuntansi resmi RS');
+            ->assertSee('Nilai buku adalah estimasi, bukan pembukuan resmi RS.');
 
         // Public QR page must NOT show any asset value or replacement flag
         $this->get(route('public.equipment.show', ['qr_token' => $equipment->qr_token]))
@@ -373,7 +377,7 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             ->assertFileDownloaded();
 
         Livewire::test(AssetValueReport::class)
-            ->assertSee('bukan pengganti pembukuan akuntansi resmi RS')
+            ->assertSee('Nilai buku adalah estimasi, bukan pembukuan resmi RS.')
             ->assertCanSeeTableRecords([$icuEq, $igdEq])
             ->callAction('export_pdf')
             ->assertFileDownloaded();

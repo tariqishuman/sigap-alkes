@@ -40,15 +40,15 @@
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Uptime Periode ({{ $summary['period_label'] }})</div>
+            <div class="text-xs font-medium text-gray-500">Uptime periode ({{ $summary['period_label'] }})</div>
             <div class="mt-1 text-2xl font-semibold text-gray-900">
                 {{ $uptime['uptime_percent'] !== null ? number_format($uptime['uptime_percent'], 2, ',', '.').'%' : '–' }}
             </div>
-            <div class="mt-1 text-xs text-gray-500">Rumus: (ΣT − ΣD) / ΣT × 100%</div>
+            <div class="mt-1 text-xs text-gray-500">Rata-rata seluruh alat aktif</div>
         </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Total Jam Operasi (ΣT)</div>
+            <div class="text-xs font-medium text-gray-500">Total jam operasi</div>
             <div class="mt-1 text-2xl font-semibold text-gray-900">
                 {{ number_format($uptime['total_hours'], 1, ',', '.') }} jam
             </div>
@@ -56,15 +56,15 @@
         </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Total Downtime (ΣD)</div>
+            <div class="text-xs font-medium text-gray-500">Total downtime</div>
             <div class="mt-1 text-2xl font-semibold text-gray-900">
                 {{ number_format($uptime['downtime_hours'], 1, ',', '.') }} jam
             </div>
-            <div class="mt-1 text-xs text-gray-500">Status Dalam perbaikan &amp; Tidak laik pakai</div>
+            <div class="mt-1 text-xs text-gray-500">Selama dalam perbaikan &amp; tidak laik pakai</div>
         </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Kepatuhan Kalibrasi (Snapshot Hari Ini)</div>
+            <div class="text-xs font-medium text-gray-500">Kepatuhan kalibrasi hari ini</div>
             <div class="mt-1 text-2xl font-semibold text-gray-900">
                 {{ $compliance['formatted'] }}
             </div>

@@ -24,8 +24,8 @@
     </div>
 
     <div class="disclaimer">
-        Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.
-        Penanda "Pertimbangkan ganti" muncul bila total biaya perbaikan &ge; {{ $threshold }}% nilai buku saat ini.
+        Nilai buku adalah estimasi, bukan pembukuan resmi RS.
+        Penanda "Pertimbangkan ganti" muncul bila biaya perbaikan sudah mencapai {{ $threshold }}% dari nilai buku.
     </div>
 
     <table class="data">
@@ -35,7 +35,7 @@
                 <th>Nama Alat</th>
                 <th>Ruangan</th>
                 <th class="num">Harga Perolehan</th>
-                <th class="num">Penyusutan / Th</th>
+                <th class="num">Penyusutan / Bln</th>
                 <th class="num">Nilai Buku</th>
                 <th class="num">Total Perbaikan</th>
                 <th>Indikator</th>
@@ -48,7 +48,7 @@
                     <td>{{ $row['equipment']->name }}</td>
                     <td>{{ $row['equipment']->room?->name ?? '-' }}</td>
                     <td class="num">Rp{{ number_format((float) $row['depreciation']['acquisition_cost'], 0, ',', '.') }}</td>
-                    <td class="num">Rp{{ number_format((float) $row['depreciation']['annual_depreciation'], 0, ',', '.') }}</td>
+                    <td class="num">Rp{{ number_format((float) $row['depreciation']['monthly_depreciation'], 0, ',', '.') }}</td>
                     <td class="num">Rp{{ number_format((float) $row['depreciation']['book_value'], 0, ',', '.') }}</td>
                     <td class="num">Rp{{ number_format((float) $row['repair_cost'], 0, ',', '.') }}</td>
                     <td class="{{ $row['should_replace'] ? 'warn' : '' }}">{{ $row['should_replace'] ? 'Pertimbangkan ganti' : '-' }}</td>

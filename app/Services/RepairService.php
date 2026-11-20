@@ -22,7 +22,10 @@ class RepairService
         EquipmentStatus::Overdue,
     ];
 
-    public function __construct(private EquipmentStatusService $statusService) {}
+    public function __construct(
+        private EquipmentStatusService $statusService,
+        private SparePartStockService $stockService,
+    ) {}
 
     /**
      * Start a repair from an open damage report.
@@ -110,7 +113,7 @@ class RepairService
                 'labor_cost' => bcadd((string) ($validated['labor_cost'] ?? '0'), '0', 2),
             ]);
 
-            $this->syncSpareParts($repair, $validated['spare_parts'] ?? []);
+            $this->stockService->syncRepairSpareParts($repair, $validated['spare_parts'] ?? [], $actorId);
 
             $report->update(['status' => DamageReportStatus::InProgress]);
 
@@ -178,7 +181,7 @@ class RepairService
             ]);
 
             if ($hasSparePartsKey) {
-                $this->syncSpareParts($lockedRepair, $validated['spare_parts'] ?? []);
+                $this->stockService->syncRepairSpareParts($lockedRepair, $validated['spare_parts'] ?? [], $actorId);
             }
 
             if (! empty($validated['finished_at'])) {
@@ -202,22 +205,6 @@ class RepairService
             ...$data,
             'finished_at' => $data['finished_at'] ?? now(),
         ], $actorId);
-    }
-
-    /**
-     * @param  array<int, array{spare_part_id: int|string, quantity: int|string, unit_price: int|float|string}>  $items
-     */
-    private function syncSpareParts(Repair $repair, array $items): void
-    {
-        $repair->repairSpareParts()->delete();
-
-        foreach ($items as $item) {
-            $repair->repairSpareParts()->create([
-                'spare_part_id' => $item['spare_part_id'],
-                'quantity' => (int) $item['quantity'],
-                'unit_price' => bcadd((string) $item['unit_price'], '0', 2),
-            ]);
-        }
     }
 
     /**

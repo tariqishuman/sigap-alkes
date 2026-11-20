@@ -29,19 +29,19 @@
     <table class="summary">
         <tr>
             <td>
-                <div class="label">Uptime Gabungan (ΣT − ΣD) / ΣT</div>
+                <div class="label">Uptime periode</div>
                 <div class="value">{{ $summary['uptime']['uptime_percent'] !== null ? number_format($summary['uptime']['uptime_percent'], 2, ',', '.').'%' : '–' }}</div>
             </td>
             <td>
-                <div class="label">Total Jam (ΣT)</div>
+                <div class="label">Total jam operasi</div>
                 <div class="value">{{ number_format($summary['uptime']['total_hours'], 1, ',', '.') }} jam</div>
             </td>
             <td>
-                <div class="label">Total Downtime (ΣD)</div>
+                <div class="label">Total downtime</div>
                 <div class="value">{{ number_format($summary['uptime']['downtime_hours'], 1, ',', '.') }} jam</div>
             </td>
             <td>
-                <div class="label">Kepatuhan Kalibrasi (Hari Ini)</div>
+                <div class="label">Kepatuhan kalibrasi hari ini</div>
                 <div class="value">{{ $summary['compliance']['formatted'] }} ({{ $summary['compliance']['compliant_count'] }}/{{ $summary['compliance']['required_count'] }})</div>
             </td>
         </tr>
@@ -54,8 +54,8 @@
                 <th>Nama Alat</th>
                 <th>Ruangan</th>
                 <th>Status</th>
-                <th class="num">Total Jam (T)</th>
-                <th class="num">Downtime (D)</th>
+                <th class="num">Total Jam Operasi</th>
+                <th class="num">Downtime</th>
                 <th class="num">Uptime (%)</th>
             </tr>
         </thead>

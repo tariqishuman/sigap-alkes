@@ -178,7 +178,7 @@ class OperationalReport extends Page implements HasTable
                     ->label('Status')
                     ->badge(),
                 TextColumn::make('total_hours')
-                    ->label('Total Jam (T)')
+                    ->label('Total Jam Operasi')
                     ->state(function (Equipment $record): string {
                         [$start, $end] = $this->getSelectedPeriod();
                         $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);
@@ -186,7 +186,7 @@ class OperationalReport extends Page implements HasTable
                         return number_format($metrics['total_hours'], 1, ',', '.').' jam';
                     }),
                 TextColumn::make('downtime_hours')
-                    ->label('Downtime (D)')
+                    ->label('Downtime')
                     ->state(function (Equipment $record): string {
                         [$start, $end] = $this->getSelectedPeriod();
                         $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);
