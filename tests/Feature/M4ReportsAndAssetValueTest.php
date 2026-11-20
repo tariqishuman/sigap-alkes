@@ -6,8 +6,9 @@ use App\Enums\TestingInstitutionKind;
 use App\Filament\Pages\AssetValueReport;
 use App\Filament\Pages\OperationalReport;
 use App\Filament\Resources\Equipment\Pages\ViewEquipment;
-use App\Filament\Widgets\AssetValueByRoomChart;
-use App\Filament\Widgets\DashboardStatsOverview;
+use App\Filament\Widgets\AssetValueByRoomWidget;
+use App\Filament\Widgets\DamagesBreakdownChart;
+use App\Filament\Widgets\ExecutiveTopMetricsWidget;
 use App\Filament\Widgets\MonthlyUptimeChart;
 use App\Filament\Widgets\UpcomingCalibrationsWidget;
 use App\Models\Calibration;
@@ -337,10 +338,11 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             $this->flushSession();
             $this->actingAs($allowedUser);
 
-            expect(DashboardStatsOverview::canView())->toBeTrue()
+            expect(ExecutiveTopMetricsWidget::canView())->toBeTrue()
+                ->and(DamagesBreakdownChart::canView())->toBeTrue()
                 ->and(MonthlyUptimeChart::canView())->toBeTrue()
                 ->and(UpcomingCalibrationsWidget::canView())->toBeTrue()
-                ->and(AssetValueByRoomChart::canView())->toBeTrue();
+                ->and(AssetValueByRoomWidget::canView())->toBeTrue();
 
             $this->get(OperationalReport::getUrl())->assertOk();
             $this->get(AssetValueReport::getUrl())->assertOk();
@@ -350,10 +352,11 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             $this->flushSession();
             $this->actingAs($restrictedUser);
 
-            expect(DashboardStatsOverview::canView())->toBeFalse()
+            expect(ExecutiveTopMetricsWidget::canView())->toBeFalse()
+                ->and(DamagesBreakdownChart::canView())->toBeFalse()
                 ->and(MonthlyUptimeChart::canView())->toBeFalse()
                 ->and(UpcomingCalibrationsWidget::canView())->toBeFalse()
-                ->and(AssetValueByRoomChart::canView())->toBeFalse();
+                ->and(AssetValueByRoomWidget::canView())->toBeFalse();
 
             $this->get(OperationalReport::getUrl())->assertForbidden();
             $this->get(AssetValueReport::getUrl())->assertForbidden();

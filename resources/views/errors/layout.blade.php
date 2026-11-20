@@ -23,22 +23,24 @@
     <title>@yield('code') · @yield('title') — {{ $appName }}</title>
     <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700&display=swap" rel="stylesheet" />
     <style>
         :root {
             --primary: #0E7C7B;
             --primary-dark: #0B6463;
-            --ink: #1B2B30;
+            --primary-50: #E8F4F3;
+            --primary-100: #D5ECEA;
+            --canvas: #F4F7F7;
+            --surface: #FFFFFF;
+            --border: #E3EAEA;
+            --ink: #13262B;
             --muted: #6B7C80;
-            --line: #DDE7E6;
-            --tint: #EEF6F5;
-            --tint-strong: #E3F3F2;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
-            background-color: var(--tint);
-            background-image: radial-gradient(var(--line) 1px, transparent 1px);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background-color: var(--canvas);
+            background-image: radial-gradient(var(--border) 1px, transparent 1px);
             background-size: 22px 22px;
             color: var(--ink);
             min-height: 100dvh;
@@ -47,6 +49,7 @@
             align-items: center;
             justify-content: center;
             padding: 1.25rem;
+            -webkit-font-smoothing: antialiased;
         }
         .card {
             width: 100%;
@@ -57,9 +60,9 @@
             display: inline-flex;
             align-items: center;
             gap: .5rem;
-            font-size: .8125rem;
-            font-weight: 600;
-            letter-spacing: .02em;
+            font-size: .875rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
             color: var(--primary);
         }
         .brand img { width: 1.5rem; height: 1.5rem; object-fit: contain; }
@@ -74,21 +77,23 @@
             display: inline-block;
             font-size: .75rem;
             font-weight: 600;
-            letter-spacing: .08em;
+            letter-spacing: .06em;
             color: var(--primary);
-            background: var(--tint-strong);
+            background: var(--primary-50);
+            border: 1px solid var(--primary-100);
             border-radius: 999px;
             padding: .25rem .75rem;
             margin-bottom: .75rem;
         }
         h1 {
             font-size: 1.375rem;
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: -.015em;
             line-height: 1.3;
             margin-bottom: .5rem;
         }
         .message {
-            font-size: .9rem;
+            font-size: .875rem;
             color: var(--muted);
             line-height: 1.6;
             max-width: 22rem;
@@ -97,9 +102,9 @@
         .note {
             font-size: .8125rem;
             color: var(--primary);
-            background: var(--tint);
-            border: 1px dashed var(--line);
-            border-radius: .625rem;
+            background: var(--primary-50);
+            border: 1px dashed var(--primary-100);
+            border-radius: 10px;
             padding: .625rem .75rem;
             margin-top: 1rem;
         }
@@ -113,22 +118,22 @@
         .btn {
             appearance: none;
             border: 1px solid transparent;
-            border-radius: .625rem;
-            padding: .625rem 1.125rem;
+            border-radius: 999px;
+            padding: .625rem 1.25rem;
             font: inherit;
-            font-size: .875rem;
-            font-weight: 500;
+            font-size: .84375rem;
+            font-weight: 600;
             text-decoration: none;
             cursor: pointer;
             transition: background-color .15s, border-color .15s, color .15s;
         }
         .btn-primary { background: var(--primary); color: #FFFFFF; }
         .btn-primary:hover { background: var(--primary-dark); }
-        .btn-ghost { background: #FFFFFF; color: var(--ink); border-color: var(--line); }
+        .btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--border); }
         .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
-        .btn:focus-visible { outline: 3px solid var(--tint-strong); outline-offset: 2px; }
+        .btn:focus-visible { outline: 3px solid var(--primary-100); outline-offset: 2px; }
         footer {
-            margin-top: 1.25rem;
+            margin-top: 1.5rem;
             font-size: .75rem;
             color: var(--muted);
         }

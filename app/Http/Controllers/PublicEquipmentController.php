@@ -28,29 +28,34 @@ class PublicEquipmentController extends Controller
 
         $statusBadgeColors = match ($status) {
             EquipmentStatus::FitForUse => [
-                'bg' => '#EAF6F0',
-                'text' => '#2E9E6B',
+                'bg' => '#E7F5EE',
+                'text' => '#22774F',
                 'border' => '#B9E2CE',
             ],
             EquipmentStatus::CalibrationDue => [
-                'bg' => '#FDF6E9',
-                'text' => '#B87D1E',
+                'bg' => '#FCF3E2',
+                'text' => '#A66F12',
                 'border' => '#F3D9A4',
             ],
-            EquipmentStatus::Overdue, EquipmentStatus::Unfit => [
-                'bg' => '#FDECEC',
-                'text' => '#D9534F',
-                'border' => '#F3B8B6',
+            EquipmentStatus::Overdue => [
+                'bg' => '#FBEAEA',
+                'text' => '#B83C38',
+                'border' => '#F3C4C2',
+            ],
+            EquipmentStatus::Unfit => [
+                'bg' => '#FBEAEA',
+                'text' => '#9A2F2C',
+                'border' => '#F3C4C2',
             ],
             EquipmentStatus::UnderTesting => [
-                'bg' => '#EBF3FE',
+                'bg' => '#EAF1FE',
                 'text' => '#2563EB',
                 'border' => '#BFDBFE',
             ],
             EquipmentStatus::UnderRepair => [
-                'bg' => '#F3F4F6',
-                'text' => '#4B5563',
-                'border' => '#D1D5DB',
+                'bg' => '#EFF2F2',
+                'text' => '#55666A',
+                'border' => '#D3DEDD',
             ],
         };
 
@@ -74,6 +79,7 @@ class PublicEquipmentController extends Controller
             'roomName' => $equipment->room?->name ?? '-',
             'roomLocation' => collect([$equipment->room?->building, $equipment->room?->floor])->filter()->implode(' • '),
             'statusLabel' => Str::upper($status->getLabel()),
+            'statusValue' => $status->value,
             'statusColors' => $statusBadgeColors,
             'isDangerousToUse' => $status->isDangerousToUse(),
             'validUntilFormatted' => $validUntilFormatted,

@@ -9,8 +9,6 @@ use App\Models\Equipment;
 use BackedEnum;
 use Filament\Actions\ExportAction;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\EmbeddedTable;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
@@ -41,6 +39,10 @@ class CalibrationSchedule extends Page implements HasTable
 
     protected static ?string $slug = 'jadwal-kalibrasi';
 
+    protected string $view = 'filament.pages.calibration-schedule';
+
+    public string $viewMode = 'grouped';
+
     public static function getNavigationBadge(): ?string
     {
         $overdue = Equipment::query()
@@ -61,9 +63,71 @@ class CalibrationSchedule extends Page implements HasTable
         return Auth::user()?->can('ViewAny:Calibration') ?? false;
     }
 
-    public function content(Schema $schema): Schema
+    public function setViewMode(string $mode): void
     {
-        return $schema->components([EmbeddedTable::make()]);
+        $this->viewMode = $mode === 'table' ? 'table' : 'grouped';
+    }
+
+    /**
+     * Group calibration-required equipment into Terlambat -> Minggu ini -> Bulan ini -> Berikutnya (§4.4).
+     *
+     * @return array<string, array{title: string, items: array<int, array<string, mixed>>}>
+     */
+    public function getGroupedSchedule(): array
+    {
+        $today = today();
+        $weekEnd = $today->copy()->addDays(7);
+        $monthEnd = $today->copy()->endOfMonth();
+
+        $equipment = Equipment::query()
+            ->where('is_active', true)
+            ->whereHas('equipmentType', fn (Builder $q) => $q->where('requires_calibration', true))
+            ->with(['room', 'equipmentType', 'latestValidCalibration'])
+            ->get()
+            ->sortBy(fn (Equipment $eq) => $eq->latestValidCalibration?->valid_until ?? now()->addYears(10));
+
+        $groups = [
+            'overdue' => ['title' => 'Terlambat', 'items' => []],
+            'this_week' => ['title' => 'Minggu ini', 'items' => []],
+            'this_month' => ['title' => 'Bulan ini', 'items' => []],
+            'upcoming' => ['title' => 'Berikutnya', 'items' => []],
+        ];
+
+        foreach ($equipment as $eq) {
+            $due = $eq->latestValidCalibration?->valid_until?->copy()->startOfDay();
+            $diff = $due ? (int) $today->diffInDays($due, false) : null;
+
+            $item = [
+                'title' => $eq->name,
+                'subtitle' => trim("{$eq->inventory_code} · ".($eq->room?->name ?? '–').' · '.($eq->equipmentType?->name ?? '–')),
+                'chip' => match (true) {
+                    $diff === null => 'Belum bersertifikat',
+                    $diff < 0 => 'Lewat '.abs($diff).' hr',
+                    $diff === 0 => 'Hari ini',
+                    default => "{$diff} hari · ".$due->translatedFormat('d M Y'),
+                },
+                'tone' => match (true) {
+                    $diff === null || $diff <= 0 => 'danger',
+                    $diff <= 30 => 'warning',
+                    default => 'success',
+                },
+                'url' => EquipmentResource::canView($eq)
+                    ? EquipmentResource::getUrl('view', ['record' => $eq])
+                    : null,
+            ];
+
+            if ($diff === null || $diff < 0) {
+                $groups['overdue']['items'][] = $item;
+            } elseif ($due->lessThanOrEqualTo($weekEnd)) {
+                $groups['this_week']['items'][] = $item;
+            } elseif ($due->lessThanOrEqualTo($monthEnd)) {
+                $groups['this_month']['items'][] = $item;
+            } else {
+                $groups['upcoming']['items'][] = $item;
+            }
+        }
+
+        return $groups;
     }
 
     public function table(Table $table): Table
@@ -106,7 +170,6 @@ class CalibrationSchedule extends Page implements HasTable
                     ->label('Bulan jatuh tempo')
                     ->options(self::monthOptions())
                     ->query(function (Builder $query, array $data) {
-                        // Filter state comes from the browser, so check its format before parsing.
                         if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $data['value'])) {
                             return;
                         }

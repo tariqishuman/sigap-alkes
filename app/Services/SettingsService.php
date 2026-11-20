@@ -267,17 +267,26 @@ class SettingsService
                 ]);
 
             if ($response->successful() && filled($response->json('access_token'))) {
+                $this->set('satusehat.last_test_status', 'ok', false);
+                $this->set('satusehat.last_test_at', now()->toIso8601String(), false);
+
                 return [
                     'ok' => true,
                     'message' => 'Koneksi SatuSehat berhasil. Autentikasi diterima.',
                 ];
             }
 
+            $this->set('satusehat.last_test_status', 'failed', false);
+            $this->set('satusehat.last_test_at', now()->toIso8601String(), false);
+
             return [
                 'ok' => false,
                 'message' => "Koneksi SatuSehat gagal (HTTP {$response->status()}). Periksa kembali URL dan kredensial.",
             ];
         } catch (Throwable) {
+            $this->set('satusehat.last_test_status', 'failed', false);
+            $this->set('satusehat.last_test_at', now()->toIso8601String(), false);
+
             return [
                 'ok' => false,
                 'message' => 'Tidak dapat terhubung ke server SatuSehat. Periksa URL dan koneksi jaringan.',

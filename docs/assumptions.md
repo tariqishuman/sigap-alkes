@@ -110,3 +110,10 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 ### Perbaikan Dashboard Tahap B
 - **Sumber tunggal tren historis Kepatuhan & Terlambat**: Dihitung dari sertifikat kalibrasi lulus (`calibrations.result = pass` dengan `tested_at <= akhir bulan` dan `valid_until` dibandingkan terhadap akhir bulan) untuk 12 titik akhir bulan. Dipilih karena seeder tidak menulis snapshot `status_histories` harian untuk bulan lampau, sehingga sertifikat menjadi sumber data historis yang akurat dan konsisten antara Kepatuhan dan Terlambat.
 - **Filter dashboard ringkas**: Kartu `filtersForm` besar dihapus dan diganti 3 tombol pill sejajar di kanan header halaman (`[📅 1 – 30 Nov 2026 | Bulanan]`, `[Semua ruangan]`, `[Ekspor]`) via `HasFiltersAction` + modal kecil Filament 5.
+
+## UI Revamp v2 (ui-revamp-v2) — Tahap C
+
+- **Login (§4.9)**: Tetap menggunakan `PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE` dan styling `.fi-simple-layout` / `.fi-simple-main` di `theme.css` (Plus Jakarta Sans, kanvas `#F4F7F7` + `pattern.svg`, ilustrasi `illustrations/login.svg` tanpa modifikasi SVG) agar tidak perlu override view vendor login Filament.
+- **Detail Alat (§4.3)**: Kartu identitas (foto 96px, chip kode, badge status `lg`, QR + tautan publik) dan Strip KPI (4 kartu untuk role berizin biaya, 2 kartu untuk role lainnya) dirender via `ViewEntry` di `EquipmentInfolist`; penanda "Pertimbangkan ganti" ditampilkan sebagai banner tint kuning di dalam kartu Nilai Aset.
+- **Jadwal Kalibrasi (§4.4)**: Default menampilkan 4 kelompok ber-aksen (`Terlambat`, `Minggu ini`, `Bulan ini`, `Berikutnya`) dengan toggle ke tampilan tabel & ekspor.
+- **Pengaturan Aplikasi (§4.8)**: Menggunakan tab vertikal (`Tabs::make()->vertical()`) dan chip status koneksi SatuSehat (`Terhubung` / `Gagal` / `Belum diatur`) beserta waktu cek terakhir yang tersimpan di `settings`.

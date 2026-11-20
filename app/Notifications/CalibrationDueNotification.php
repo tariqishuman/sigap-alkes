@@ -50,12 +50,14 @@ class CalibrationDueNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $settings = app(SettingsService::class);
+
         return (new MailMessage)
             ->subject("Pengingat kalibrasi: {$this->equipment->name}")
             ->greeting('Halo,')
             ->line($this->message())
             ->action('Lihat alat', $this->equipmentUrl())
-            ->salutation('Salam, '.app(SettingsService::class)->appName());
+            ->salutation('Salam, '.$settings->appName().' · '.$settings->hospitalName());
     }
 
     public function message(): string

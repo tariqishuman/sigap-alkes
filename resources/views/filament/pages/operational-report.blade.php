@@ -5,77 +5,78 @@
         $compliance = $summary['compliance'];
     @endphp
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <label for="report-month" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Periode Bulan
-            </label>
-            <select
-                id="report-month"
-                wire:model.live="selectedMonth"
-                class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
-            >
-                @foreach ($this->getMonthOptions() as $value => $label)
-                    <option value="{{ $value }}">{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
+    <x-sigap.card>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+                <label for="report-month" class="block text-[12px] font-semibold text-[#3A4D52]">
+                    Periode Bulan
+                </label>
+                <select
+                    id="report-month"
+                    wire:model.live="selectedMonth"
+                    class="mt-1.5 block w-full h-10 rounded-[8px] border border-[#E3EAEA] bg-white px-3 text-[13.5px] text-[#13262B] focus:border-[#0E7C7B] focus:outline-none"
+                >
+                    @foreach ($this->getMonthOptions() as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <label for="report-room" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Ruangan
-            </label>
-            <select
-                id="report-room"
-                wire:model.live="selectedRoomId"
-                class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
-            >
-                <option value="">Semua Ruangan</option>
-                @foreach ($this->getRoomOptions() as $id => $name)
-                    <option value="{{ $id }}">{{ $name }}</option>
-                @endforeach
-            </select>
+            <div>
+                <label for="report-room" class="block text-[12px] font-semibold text-[#3A4D52]">
+                    Ruangan
+                </label>
+                <select
+                    id="report-room"
+                    wire:model.live="selectedRoomId"
+                    class="mt-1.5 block w-full h-10 rounded-[8px] border border-[#E3EAEA] bg-white px-3 text-[13.5px] text-[#13262B] focus:border-[#0E7C7B] focus:outline-none"
+                >
+                    <option value="">Semua Ruangan</option>
+                    @foreach ($this->getRoomOptions() as $id => $name)
+                        <option value="{{ $id }}">{{ $name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
+    </x-sigap.card>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <x-sigap.card title="Uptime Periode" icon="heroicon-o-chart-bar">
+            <x-sigap.kpi
+                :caption="$summary['period_label'] . ' · rata-rata seluruh alat aktif'"
+                :value="$uptime['uptime_percent'] !== null ? number_format($uptime['uptime_percent'], 2, ',', '.').'%' : '–'"
+            />
+        </x-sigap.card>
+
+        <x-sigap.card title="Total Jam Operasi" icon="heroicon-o-clock">
+            <x-sigap.kpi
+                :caption="$uptime['equipment_count'] . ' alat aktif dihitung'"
+                :value="number_format($uptime['total_hours'], 1, ',', '.')"
+                unit="jam"
+            />
+        </x-sigap.card>
+
+        <x-sigap.card title="Total Downtime" icon="heroicon-o-wrench-screwdriver">
+            <x-sigap.kpi
+                caption="Selama dalam perbaikan dan tidak laik pakai"
+                :value="number_format($uptime['downtime_hours'], 1, ',', '.')"
+                unit="jam"
+            />
+        </x-sigap.card>
+
+        <x-sigap.card title="Kepatuhan Kalibrasi" icon="heroicon-o-shield-check">
+            <x-sigap.kpi
+                :caption="$compliance['compliant_count'] . ' dari ' . $compliance['required_count'] . ' alat wajib (' . $summary['room_label'] . ')'"
+                :value="$compliance['formatted']"
+            />
+        </x-sigap.card>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Uptime periode ({{ $summary['period_label'] }})</div>
-            <div class="mt-1 text-2xl font-semibold text-gray-900">
-                {{ $uptime['uptime_percent'] !== null ? number_format($uptime['uptime_percent'], 2, ',', '.').'%' : '–' }}
-            </div>
-            <div class="mt-1 text-xs text-gray-500">Rata-rata seluruh alat aktif</div>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Total jam operasi</div>
-            <div class="mt-1 text-2xl font-semibold text-gray-900">
-                {{ number_format($uptime['total_hours'], 1, ',', '.') }} jam
-            </div>
-            <div class="mt-1 text-xs text-gray-500">{{ $uptime['equipment_count'] }} alat aktif dihitung</div>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Total downtime</div>
-            <div class="mt-1 text-2xl font-semibold text-gray-900">
-                {{ number_format($uptime['downtime_hours'], 1, ',', '.') }} jam
-            </div>
-            <div class="mt-1 text-xs text-gray-500">Selama dalam perbaikan &amp; tidak laik pakai</div>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="text-xs font-medium text-gray-500">Kepatuhan kalibrasi hari ini</div>
-            <div class="mt-1 text-2xl font-semibold text-gray-900">
-                {{ $compliance['formatted'] }}
-            </div>
-            <div class="mt-1 text-xs text-gray-500">
-                {{ $compliance['compliant_count'] }} / {{ $compliance['required_count'] }} alat wajib kalibrasi ({{ $summary['room_label'] }})
-            </div>
-        </div>
-    </div>
-
-    <div class="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs text-gray-600">
-        Catatan: Alat yang dimutasi di tengah bulan dihitung ke ruangan saat ini. Format kolom ekspor ASPAK bersifat sementara.
+    <div class="flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-[#E3EAEA] bg-white px-4 py-2.5 text-[12.5px] text-[#6B7C80]">
+        <span>Catatan: Alat yang dimutasi di tengah bulan dihitung ke ruangan saat ini. Format kolom ekspor ASPAK bersifat sementara.</span>
+        <span class="inline-flex items-center rounded-full bg-[#FCF3E2] px-2.5 py-0.5 text-[11px] font-semibold text-[#A66F12]">
+            Format sementara
+        </span>
     </div>
 
     {{ $this->table }}

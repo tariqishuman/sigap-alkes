@@ -31,18 +31,39 @@ class SparePartsTable
                     ->sortable(),
                 TextColumn::make('stock')
                     ->label('Stok')
-                    ->formatStateUsing(fn (SparePart $record): string => "{$record->stock} {$record->unit}")
+                    ->alignEnd()
+                    ->formatStateUsing(fn (SparePart $record): string => number_format($record->stock, 0, ',', '.')." {$record->unit}")
                     ->weight('bold')
                     ->sortable(),
                 TextColumn::make('min_stock')
-                    ->label('Stok Minimum')
-                    ->formatStateUsing(fn (SparePart $record): string => "{$record->min_stock} {$record->unit}")
+                    ->label('Minimal')
+                    ->alignEnd()
+                    ->formatStateUsing(fn (SparePart $record): string => number_format($record->min_stock, 0, ',', '.')." {$record->unit}")
                     ->sortable(),
                 TextColumn::make('stock_status')
                     ->label('Status Stok')
                     ->badge()
-                    ->state(fn (SparePart $record): string => $record->isLowStock() ? 'Stok menipis' : 'Tersedia')
-                    ->color(fn (SparePart $record): string => $record->isLowStock() ? 'warning' : 'success'),
+                    ->state(fn (SparePart $record): string => match (true) {
+                        $record->stock <= 0 => 'Habis',
+                        $record->isLowStock() => 'Menipis',
+                        default => 'Aman',
+                    })
+                    ->color(fn (SparePart $record): string => match (true) {
+                        $record->stock <= 0 => 'danger',
+                        $record->isLowStock() => 'warning',
+                        default => 'success',
+                    }),
+                TextColumn::make('usage_30d')
+                    ->label('Pemakaian 30 hari')
+                    ->alignEnd()
+                    ->state(function (SparePart $record): string {
+                        $used = (int) abs((int) $record->movements()
+                            ->where('type', 'out')
+                            ->where('moved_at', '>=', now()->subDays(30))
+                            ->sum('quantity'));
+
+                        return $used > 0 ? number_format($used, 0, ',', '.')." {$record->unit}" : '–';
+                    }),
             ])
             ->filters([])
             ->recordActions([

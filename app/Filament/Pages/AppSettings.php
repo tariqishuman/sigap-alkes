@@ -7,6 +7,7 @@ use App\Services\SettingsService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -19,7 +20,9 @@ use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 /**
  * @property-read Schema $form
@@ -95,6 +98,7 @@ class AppSettings extends Page implements HasSchemas
             ->statePath('data')
             ->components([
                 Tabs::make('Pengaturan')
+                    ->vertical()
                     ->tabs([
                         Tab::make('Umum')
                             ->icon(Heroicon::OutlinedBuildingOffice2)
@@ -205,6 +209,35 @@ class AppSettings extends Page implements HasSchemas
                             ->icon(Heroicon::OutlinedGlobeAlt)
                             ->columns(2)
                             ->schema([
+                                Placeholder::make('satusehat_status_chip')
+                                    ->label('Status Koneksi')
+                                    ->columnSpanFull()
+                                    ->content(function (): HtmlString {
+                                        $settings = app(SettingsService::class);
+                                        $status = $settings->get('satusehat.last_test_status');
+                                        $testedAt = $settings->get('satusehat.last_test_at');
+                                        $hasCreds = filled($settings->get('satusehat.client_id')) && $settings->hasEncryptedValue('satusehat.client_secret');
+
+                                        [$label, $bg, $text, $dot] = match (true) {
+                                            $status === 'ok' => ['Terhubung', '#E7F5EE', '#22774F', '#2E9E6B'],
+                                            $status === 'failed' => ['Gagal', '#FBEAEA', '#B83C38', '#D9534F'],
+                                            ! $hasCreds => ['Belum diatur', '#EFF2F2', '#55666A', '#8A9699'],
+                                            default => ['Belum diuji', '#FCF3E2', '#A66F12', '#E0A23B'],
+                                        };
+
+                                        $timeText = filled($testedAt)
+                                            ? ' · Terakhir dicek '.Carbon::parse((string) $testedAt)->translatedFormat('d M Y, H.i')
+                                            : '';
+
+                                        return new HtmlString(
+                                            '<div class="flex flex-wrap items-center gap-2">'
+                                            .'<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style="background: '.$bg.'; color: '.$text.';">'
+                                            .'<span class="h-1.5 w-1.5 rounded-full" style="background: '.$dot.';"></span>'
+                                            .$label.'</span>'
+                                            .'<span class="text-xs text-[#6B7C80]">'.$timeText.'</span>'
+                                            .'</div>'
+                                        );
+                                    }),
                                 Toggle::make('satusehat_enabled')
                                     ->label('Aktifkan integrasi SatuSehat')
                                     ->columnSpanFull(),
