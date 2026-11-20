@@ -56,6 +56,10 @@ class UptimeCalculator
 
         $totalSeconds = (int) $effStart->diffInSeconds($effEnd);
 
+        if ($totalSeconds <= 0) {
+            return $this->emptyResult();
+        }
+
         $histories = $equipment->relationLoaded('statusHistories')
             ? $equipment->statusHistories->sortBy([['changed_at', 'asc'], ['id', 'asc']])->values()
             : $equipment->statusHistories()->reorder()->orderBy('changed_at')->orderBy('id')->get();

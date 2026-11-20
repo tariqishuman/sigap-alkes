@@ -32,25 +32,27 @@
         <span class="fi-sidebar-item-label truncate">Bantuan</span>
     </button>
 
-    <div
-        x-show="helpOpen"
-        x-cloak
-        @keydown.escape.window="helpOpen = false"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-    >
+    <template x-teleport="body">
         <div
-            @click.outside="helpOpen = false"
-            class="w-full max-w-md rounded-[14px] bg-white border border-[#E3EAEA] shadow-[0_12px_32px_-12px_rgba(19,38,43,0.18)] p-5 space-y-3"
+            x-show="helpOpen"
+            x-cloak
+            @keydown.escape.window="helpOpen = false"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-[#13262B]/40 backdrop-blur-[1px] p-4"
         >
-            <div class="flex items-center justify-between">
-                <h3 class="text-[15px] font-bold text-[#13262B]">Bantuan Cepat</h3>
-                <button type="button" @click="helpOpen = false" class="text-[#6B7C80] hover:text-[#13262B] text-sm font-semibold cursor-pointer">Tutup</button>
+            <div
+                @click.outside="helpOpen = false"
+                class="w-full max-w-md rounded-[14px] bg-white border border-[#E3EAEA] shadow-[0_12px_32px_-12px_rgba(19,38,43,0.18)] p-5 space-y-3"
+            >
+                <div class="flex items-center justify-between">
+                    <h3 class="text-[15px] font-bold text-[#13262B]">Bantuan Cepat</h3>
+                    <button type="button" @click="helpOpen = false" class="text-[#6B7C80] hover:text-[#13262B] text-sm font-semibold cursor-pointer">Tutup</button>
+                </div>
+                <ul class="space-y-2 text-[13px] text-[#3A4D52]">
+                    <li>• Tekan <kbd class="rounded border border-[#E3EAEA] bg-[#F4F7F7] px-1.5 py-0.5 text-[11px] font-semibold">Ctrl K</kbd> untuk mencari alat, kode inventaris, atau nomor seri.</li>
+                    <li>• Gunakan tombol <strong>+ Tambah</strong> di pojok kanan atas untuk mencatat kerusakan, kalibrasi, atau mutasi secara cepat.</li>
+                    <li>• Kontak IPSRS: <strong>{{ $hospitalPhone }}</strong>.</li>
+                </ul>
             </div>
-            <ul class="space-y-2 text-[13px] text-[#3A4D52]">
-                <li>• Tekan <kbd class="rounded border border-[#E3EAEA] bg-[#F4F7F7] px-1.5 py-0.5 text-[11px] font-semibold">Ctrl K</kbd> untuk mencari alat, kode inventaris, atau nomor seri.</li>
-                <li>• Gunakan tombol <strong>+ Tambah</strong> di pojok kanan atas untuk mencatat kerusakan, kalibrasi, atau mutasi secara cepat.</li>
-                <li>• Kontak IPSRS: <strong>{{ $hospitalPhone }}</strong>.</li>
-            </ul>
         </div>
-    </div>
+    </template>
 </div>

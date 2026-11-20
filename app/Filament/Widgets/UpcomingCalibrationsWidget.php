@@ -3,22 +3,26 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
-use App\Filament\Resources\Equipment\EquipmentResource;
-use App\Models\Equipment;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ViewColumn;
-use Filament\Tables\Table;
-use Filament\Widgets\TableWidget;
-use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Pages\CalibrationSchedule;
+use App\Services\DashboardMetricsService;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 
-class UpcomingCalibrationsWidget extends TableWidget
+class UpcomingCalibrationsWidget extends Widget
 {
-    protected static ?int $sort = 4;
+    use InteractsWithPageFilters;
 
-    protected static ?string $heading = '10 Alat Jatuh Tempo Terdekat';
+    protected static ?int $sort = 3;
 
-    protected int|string|array $columnSpan = 'full';
+    protected static bool $isLazy = false;
+
+    protected string $view = 'filament.widgets.upcoming-calibrations';
+
+    protected int|string|array $columnSpan = [
+        'default' => 'full',
+        'xl' => 3,
+    ];
 
     public static function canView(): bool
     {
@@ -29,40 +33,16 @@ class UpcomingCalibrationsWidget extends TableWidget
         ]) ?? false;
     }
 
-    public function table(Table $table): Table
+    /**
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
     {
-        return $table
-            ->query(
-                Equipment::query()
-                    ->where('is_active', true)
-                    ->whereHas('equipmentType', fn (Builder $q) => $q->where('requires_calibration', true))
-                    ->with(['room', 'latestValidCalibration'])
-                    ->addSelect(['equipment.*', 'due_date' => Equipment::dueDateQuery()])
-                    ->orderByRaw('due_date IS NULL, due_date ASC')
-                    ->limit(10)
-            )
-            ->paginated(false)
-            ->recordUrl(fn (Equipment $record): ?string => EquipmentResource::canView($record)
-                ? EquipmentResource::getUrl('view', ['record' => $record])
-                : null)
-            ->columns([
-                TextColumn::make('inventory_code')
-                    ->label('Kode Inventaris')
-                    ->fontFamily('mono')
-                    ->weight('medium'),
-                TextColumn::make('name')
-                    ->label('Nama Alat')
-                    ->weight('medium'),
-                TextColumn::make('room.name')
-                    ->label('Ruangan'),
-                ViewColumn::make('status')
-                    ->label('Status')
-                    ->view('components.sigap.table-status-badge'),
-                TextColumn::make('due_date')
-                    ->label('Berlaku s.d.')
-                    ->date('d M Y')
-                    ->placeholder('Belum ada sertifikat')
-                    ->alignEnd(),
-            ]);
+        $roomId = filled($this->pageFilters['room_id'] ?? null) ? (int) $this->pageFilters['room_id'] : null;
+
+        return [
+            'items' => app(DashboardMetricsService::class)->upcomingCalibrations($roomId, 6),
+            'viewAllUrl' => CalibrationSchedule::getUrl(),
+        ];
     }
 }

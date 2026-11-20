@@ -98,3 +98,11 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 
 
 
+
+## UI Revamp v2 (ui-revamp-v2) — Tahap B
+
+- **Modal Bantuan Cepat**: Memakai `<template x-teleport="body">` di `resources/views/filament/sidebar/footer.blade.php` agar modal tampil terpusat di viewport dan tidak terpotong batas lebar sidebar 248px.
+- **Tata letak 4 baris & gauge 2-baris**: Baris 1–2 (5 kartu KPI + gauge Uptime yang membentang 2 baris di kanan) dibungkus dalam satu `ExecutiveTopMetricsWidget` (12-kolom CSS Grid) agar `row-span-2` presisi di desktop tanpa override layout Filament.
+- **Grafik stacked bar Kerusakan**: Porsi "Masih terbuka" memakai warna `aqua` (`#5CC8C4`) polos di Chart.js (sesuai opsi resmi di `design.md` §3.8) agar tidak perlu menambah library eksternal.
+- **Target uptime**: Ditambahkan sebagai pengaturan baru `asset.uptime_target_percent` (default `95%`) di Tab Nilai Aset pada Pengaturan Aplikasi.
+- **Cache dashboard**: Semua agregasi di `DashboardMetricsService` di-cache 10 menit per kombinasi filter (`period`, `date`, `room_id`, `group_by`).

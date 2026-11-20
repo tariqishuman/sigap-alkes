@@ -214,6 +214,16 @@
     white-space: nowrap;
 }
 
+@media (max-width: 767px) {
+    .fi-global-search-field .fi-input-wrp-suffix {
+        display: none;
+    }
+
+    .fi-topbar-end {
+        gap: 0.5rem;
+    }
+}
+
 /* User avatar (§2.2 — 34px circle) */
 .fi-user-menu-trigger {
     display: inline-flex;
@@ -361,6 +371,15 @@
 
 .fi-input-wrp:focus-within {
     box-shadow: 0 0 0 3px var(--color-sigap-primary-100);
+}
+
+/* Dashboard filter bar compact styling (§4.1) */
+.sigap-dashboard-filters .fi-section-content {
+    padding: 0.75rem 1rem !important;
+}
+
+.sigap-dashboard-filters .fi-fo-field-label-ctn {
+    margin-bottom: 0.25rem;
 }
 
 /* Reduced motion (§1.7) */

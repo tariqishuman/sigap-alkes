@@ -71,6 +71,7 @@ class AppSettings extends Page implements HasSchemas
             'reminder_email_enabled' => (bool) $settings->get('reminder.email_enabled', true),
 
             'replace_threshold_percent' => $settings->replaceThresholdPercent(),
+            'uptime_target_percent' => $settings->uptimeTargetPercent(),
 
             'qr_public_base_url' => $settings->get('qr.public_base_url'),
             'qr_label_footer_text' => $settings->get('qr.label_footer_text'),
@@ -171,6 +172,14 @@ class AppSettings extends Page implements HasSchemas
                                     ->maxValue(100)
                                     ->suffix('%')
                                     ->helperText('Alat ditandai bila biaya perbaikan mencapai persentase ini dari nilai buku.')
+                                    ->required(),
+                                TextInput::make('uptime_target_percent')
+                                    ->label('Target Uptime Bulanan')
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->maxValue(100)
+                                    ->suffix('%')
+                                    ->helperText('Batas minimal uptime untuk penanda target di dashboard.')
                                     ->required(),
                             ]),
 
@@ -278,6 +287,7 @@ class AppSettings extends Page implements HasSchemas
             'reminder.email_enabled' => (bool) ($state['reminder_email_enabled'] ?? true),
 
             'asset.replace_threshold_percent' => (int) ($state['replace_threshold_percent'] ?? 50),
+            'asset.uptime_target_percent' => max(1, min(100, (int) ($state['uptime_target_percent'] ?? 95))),
 
             'qr.public_base_url' => filled($state['qr_public_base_url'] ?? null) ? trim((string) $state['qr_public_base_url']) : null,
             'qr.label_footer_text' => $state['qr_label_footer_text'] ?? 'Scan QR untuk cek status alat',

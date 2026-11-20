@@ -42,8 +42,9 @@ class SettingsService
             'reminder.send_time' => '07:00',
             'reminder.email_enabled' => true,
 
-            // Tab 3: Nilai aset
+            // Tab 3: Nilai aset & target operasional
             'asset.replace_threshold_percent' => (int) config('sigap.replace_threshold_percent', 50),
+            'asset.uptime_target_percent' => 95,
 
             // Tab 4: Label QR & halaman publik
             'qr.public_base_url' => null,
@@ -216,6 +217,13 @@ class SettingsService
     public function replaceThresholdPercent(): int
     {
         return max(0, (int) $this->get('asset.replace_threshold_percent', (int) config('sigap.replace_threshold_percent', 50)));
+    }
+
+    public function uptimeTargetPercent(): int
+    {
+        $val = (int) $this->get('asset.uptime_target_percent', 95);
+
+        return max(1, min(100, $val));
     }
 
     public function publicEquipmentUrl(string $qrToken): string
