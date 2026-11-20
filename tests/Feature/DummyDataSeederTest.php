@@ -2,8 +2,11 @@
 
 use App\Enums\EquipmentStatus;
 use App\Models\Calibration;
+use App\Models\DamageReport;
 use App\Models\Equipment;
+use App\Models\EquipmentMovement;
 use App\Models\EquipmentType;
+use App\Models\Repair;
 use App\Models\Room;
 use App\Models\SparePart;
 use App\Models\TestingInstitution;
@@ -20,6 +23,9 @@ it('seeds realistic dummy data across all statuses and clears it cleanly while k
         ->and(SparePart::count())->toBe(8)
         ->and(Equipment::count())->toBe(30)
         ->and(Calibration::count())->toBeGreaterThan(30)
+        ->and(DamageReport::count())->toBeGreaterThan(0)
+        ->and(Repair::count())->toBeGreaterThan(0)
+        ->and(EquipmentMovement::count())->toBeGreaterThan(0)
         ->and(User::count())->toBe(5);
 
     // Pastikan seluruh 6 status alat kesehatan terwakili
@@ -36,6 +42,9 @@ it('seeds realistic dummy data across all statuses and clears it cleanly while k
 
     expect(Equipment::count())->toBe(0)
         ->and(Calibration::count())->toBe(0)
+        ->and(DamageReport::count())->toBe(0)
+        ->and(Repair::count())->toBe(0)
+        ->and(EquipmentMovement::count())->toBe(0)
         ->and(EquipmentType::count())->toBe(0)
         ->and(TestingInstitution::count())->toBe(0)
         ->and(SparePart::count())->toBe(0)

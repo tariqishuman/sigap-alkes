@@ -4,8 +4,12 @@ namespace Database\Seeders;
 
 use App\Models\Calibration;
 use App\Models\CalibrationReminder;
+use App\Models\DamageReport;
 use App\Models\Equipment;
+use App\Models\EquipmentMovement;
 use App\Models\EquipmentType;
+use App\Models\Repair;
+use App\Models\RepairSparePart;
 use App\Models\Room;
 use App\Models\SparePart;
 use App\Models\StatusHistory;
@@ -22,6 +26,10 @@ class ClearDummyDataSeeder extends Seeder
         DB::transaction(function () {
             CalibrationReminder::query()->delete();
             Calibration::query()->delete();
+            RepairSparePart::query()->delete();
+            Repair::query()->delete();
+            DamageReport::query()->delete();
+            EquipmentMovement::query()->delete();
             StatusHistory::query()->delete();
             Equipment::query()->delete();
             SparePart::query()->delete();

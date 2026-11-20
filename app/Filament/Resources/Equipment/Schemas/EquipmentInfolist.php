@@ -128,6 +128,10 @@ class EquipmentInfolist
 
                                 return 'Rp'.number_format((float) $calc['book_value'], 0, ',', '.');
                             }),
+                        TextEntry::make('total_repair_cost_display')
+                            ->label('Total Biaya Perbaikan')
+                            ->weight('bold')
+                            ->state(fn (Equipment $record): string => 'Rp'.number_format((float) $record->totalRepairCost(), 0, ',', '.')),
                     ]),
             ]);
     }

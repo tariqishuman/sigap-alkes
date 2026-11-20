@@ -3,17 +3,21 @@
 namespace Database\Seeders;
 
 use App\Enums\CalibrationResult;
+use App\Enums\DamageReportStatus;
 use App\Enums\EquipmentStatus;
 use App\Enums\TestingInstitutionKind;
 use App\Models\Calibration;
+use App\Models\DamageReport;
 use App\Models\Equipment;
+use App\Models\EquipmentMovement;
 use App\Models\EquipmentType;
+use App\Models\Repair;
 use App\Models\Room;
 use App\Models\SparePart;
-use App\Models\StatusHistory;
 use App\Models\TestingInstitution;
 use App\Models\User;
 use App\Services\EquipmentStatusService;
+use App\Services\RepairService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -641,8 +645,14 @@ class DummyDataSeeder extends Seeder
                 ],
             );
 
-            // Bersihkan riwayat kalibrasi & status lama pada alat ini agar idempotent saat di-seed ulang
+            // Bersihkan riwayat kalibrasi, perbaikan, mutasi & status lama agar idempotent saat di-seed ulang
             $equipment->calibrations()->delete();
+            $equipment->repairs()->get()->each(function (Repair $repair): void {
+                $repair->repairSpareParts()->delete();
+                $repair->delete();
+            });
+            $equipment->damageReports()->delete();
+            $equipment->movements()->delete();
             $equipment->statusHistories()->delete();
             $initialStatus = $type->requires_calibration
                 ? EquipmentStatus::CalibrationDue
@@ -717,6 +727,9 @@ class DummyDataSeeder extends Seeder
                 default => $statusService->evaluate($equipment),
             };
         }
+
+        // 6. Data contoh M3: laporan kerusakan, perbaikan (dengan suku cadang), dan mutasi alat
+        $this->seedOperationalM3Examples($today, $rooms, $teknisi, $admin);
     }
 
     private function seedPassCalibration(
@@ -778,16 +791,146 @@ class DummyDataSeeder extends Seeder
 
     private function seedUnderRepair(Equipment $equipment, ?int $actorId): void
     {
-        $from = $equipment->status;
-        $equipment->forceFill(['status' => EquipmentStatus::UnderRepair])->save();
+        $reporter = User::where('email', 'kepalaruangan@sigap-alkes.test')->first();
+        $sparePart = SparePart::where('name', 'Selang Silikon Suction Medis')->first();
 
-        StatusHistory::create([
+        $report = DamageReport::create([
             'equipment_id' => $equipment->id,
-            'from_status' => $from,
-            'to_status' => EquipmentStatus::UnderRepair,
-            'reason' => 'Laporan kerusakan dikonfirmasi (Data Dummy)',
-            'changed_by' => $actorId,
-            'changed_at' => now(),
+            'reported_by' => $reporter?->id ?? $actorId,
+            'reported_at' => now()->subDays(2),
+            'complaint' => 'Tekanan hisap suction melemah dan motor berbunyi kasar.',
+            'status' => DamageReportStatus::Open,
         ]);
+
+        app(RepairService::class)->start([
+            'damage_report_id' => $report->id,
+            'technician_id' => $actorId,
+            'started_at' => now()->subDay(),
+            'action' => 'Pembongkaran pompa vakum dan penggantian selang internal.',
+            'labor_cost' => '250000.00',
+            'spare_parts' => $sparePart ? [
+                ['spare_part_id' => $sparePart->id, 'quantity' => 2, 'unit_price' => '85000.00'],
+            ] : [],
+        ], $actorId);
+    }
+
+    /**
+     * @param  array<string, Room>  $rooms
+     */
+    private function seedOperationalM3Examples(Carbon $today, array $rooms, ?User $teknisi, ?User $admin): void
+    {
+        $kepalaIcu = User::where('email', 'kepalaruangan@sigap-alkes.test')->first();
+        $battery = SparePart::where('name', 'Baterai Lithium-Ion 12V Medis')->first();
+        $sensor = SparePart::where('name', 'Sensor SpO2 Dewasa Reusable')->first();
+        $filter = SparePart::where('name', 'Filter Bakteri / HEPA Ventilator')->first();
+
+        // 1. Laporan kerusakan terbuka (open) — dari kepala ruangan ICU & dari teknisi pasca gagal uji
+        if ($eqDue = Equipment::where('inventory_code', 'ALK-ICU-004')->first()) {
+            DamageReport::create([
+                'equipment_id' => $eqDue->id,
+                'reported_by' => $kepalaIcu?->id,
+                'reported_at' => $today->copy()->subHours(5),
+                'complaint' => 'Layar monitor sesekali berkedip saat alarm SpO2 aktif.',
+                'status' => DamageReportStatus::Open,
+            ]);
+        }
+
+        if ($eqUnfit = Equipment::where('inventory_code', 'ALK-ICU-007')->first()) {
+            DamageReport::create([
+                'equipment_id' => $eqUnfit->id,
+                'reported_by' => $teknisi?->id,
+                'reported_at' => $today->copy()->subDays(2),
+                'complaint' => 'Energi kejut defibrillator tidak mencapai ambang uji kalibrasi BPAFK.',
+                'status' => DamageReportStatus::Open,
+            ]);
+        }
+
+        // 2. Riwayat perbaikan selesai (resolved) beserta suku cadang — agar total biaya perbaikan terisi
+        if ($eqVent = Equipment::where('inventory_code', 'ALK-ICU-001')->first()) {
+            $report = DamageReport::create([
+                'equipment_id' => $eqVent->id,
+                'reported_by' => $kepalaIcu?->id,
+                'reported_at' => $today->copy()->subMonths(5)->subDays(2),
+                'complaint' => 'Alarm low-flow muncul berkala saat mode volume control.',
+                'status' => DamageReportStatus::Resolved,
+            ]);
+
+            $repair = Repair::create([
+                'damage_report_id' => $report->id,
+                'technician_id' => $teknisi?->id,
+                'action' => 'Pembersihan flow sensor dan penggantian filter HEPA ventilator.',
+                'started_at' => $today->copy()->subMonths(5)->subDay(),
+                'finished_at' => $today->copy()->subMonths(5),
+                'labor_cost' => '450000.00',
+            ]);
+
+            if ($filter) {
+                $repair->repairSpareParts()->create([
+                    'spare_part_id' => $filter->id,
+                    'quantity' => 2,
+                    'unit_price' => '320000.00',
+                ]);
+            }
+        }
+
+        if ($eqMonitor = Equipment::where('inventory_code', 'ALK-ICU-003')->first()) {
+            $report = DamageReport::create([
+                'equipment_id' => $eqMonitor->id,
+                'reported_by' => $kepalaIcu?->id,
+                'reported_at' => $today->copy()->subMonths(3)->subDays(3),
+                'complaint' => 'Baterai cadangan cepat habis dan kabel sensor SpO2 longgar.',
+                'status' => DamageReportStatus::Resolved,
+            ]);
+
+            $repair = Repair::create([
+                'damage_report_id' => $report->id,
+                'technician_id' => $teknisi?->id,
+                'action' => 'Penggantian baterai lithium-ion dan sensor SpO2 dewasa.',
+                'started_at' => $today->copy()->subMonths(3)->subDays(2),
+                'finished_at' => $today->copy()->subMonths(3)->subDay(),
+                'labor_cost' => '300000.00',
+            ]);
+
+            if ($battery) {
+                $repair->repairSpareParts()->create([
+                    'spare_part_id' => $battery->id,
+                    'quantity' => 1,
+                    'unit_price' => '850000.00',
+                ]);
+            }
+
+            if ($sensor) {
+                $repair->repairSpareParts()->create([
+                    'spare_part_id' => $sensor->id,
+                    'quantity' => 1,
+                    'unit_price' => '475000.00',
+                ]);
+            }
+        }
+
+        // 3. Riwayat mutasi alat (sejarah perpindahan ruangan sebelum kalibrasi terakhir)
+        if ($eqIgd = Equipment::where('inventory_code', 'ALK-IGD-001')->first()) {
+            EquipmentMovement::create([
+                'equipment_id' => $eqIgd->id,
+                'from_room_id' => $rooms['Ruang ICU']->id,
+                'to_room_id' => $rooms['Ruang IGD']->id,
+                'moved_by' => $teknisi?->id ?? $admin?->id,
+                'moved_at' => $today->copy()->subMonths(6),
+                'is_reinstallation' => false,
+                'notes' => 'Relokasi unit defibrillator cadangan ke ruang resusitasi IGD.',
+            ]);
+        }
+
+        if ($eqOk = Equipment::where('inventory_code', 'ALK-OK-003')->first()) {
+            EquipmentMovement::create([
+                'equipment_id' => $eqOk->id,
+                'from_room_id' => $rooms['Ruang ICU']->id,
+                'to_room_id' => $rooms['Ruang Operasi (OK)']->id,
+                'moved_by' => $teknisi?->id ?? $admin?->id,
+                'moved_at' => $today->copy()->subMonths(5),
+                'is_reinstallation' => true,
+                'notes' => 'Pemindahan dan reinstalasi patient monitor ke kamar bedah sentral.',
+            ]);
+        }
     }
 }

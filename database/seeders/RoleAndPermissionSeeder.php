@@ -26,6 +26,9 @@ class RoleAndPermissionSeeder extends Seeder
             'SparePart',
             'Equipment',
             'Calibration',
+            'DamageReport',
+            'Repair',
+            'EquipmentMovement',
         ];
 
         $actions = [
@@ -69,26 +72,57 @@ class RoleAndPermissionSeeder extends Seeder
             $adminIpsrsPermissions[] = "{$action}:Equipment";
         }
         $adminIpsrsPermissions[] = 'ViewAny:Calibration';
+        $adminIpsrsPermissions = array_merge($adminIpsrsPermissions, [
+            'ViewAny:DamageReport',
+            'View:DamageReport',
+            'Create:DamageReport',
+            'Update:DamageReport',
+            'ViewAny:Repair',
+            'View:Repair',
+            'ViewAny:EquipmentMovement',
+            'View:EquipmentMovement',
+        ]);
         $roles[UserRole::AdminIpsrs->value]->syncPermissions($adminIpsrsPermissions);
 
-        // 3. teknisi: Lihat semua alat; catat kalibrasi (PRD §3)
+        // 3. teknisi: Lihat semua alat; catat kalibrasi; lapor kerusakan, kelola perbaikan & mutasi (PRD §3)
         $roles[UserRole::Teknisi->value]->syncPermissions([
             'ViewAny:Equipment',
             'View:Equipment',
             'ViewAny:Calibration',
             'Create:Calibration',
             'Update:Calibration',
+            'ViewAny:DamageReport',
+            'View:DamageReport',
+            'Create:DamageReport',
+            'Update:DamageReport',
+            'ViewAny:Repair',
+            'View:Repair',
+            'Create:Repair',
+            'Update:Repair',
+            'ViewAny:EquipmentMovement',
+            'View:EquipmentMovement',
+            'Create:EquipmentMovement',
         ]);
 
-        // 4. kepala_ruangan: Lihat alat di ruangannya saja (PRD §3)
+        // 4. kepala_ruangan: Lihat alat di ruangannya saja; buat & ubah laporan kerusakan open di ruangannya (PRD §3)
         $roles[UserRole::KepalaRuangan->value]->syncPermissions([
             'ViewAny:Equipment',
             'View:Equipment',
+            'ViewAny:DamageReport',
+            'View:DamageReport',
+            'Create:DamageReport',
+            'Update:DamageReport',
         ]);
 
-        // 5. manajemen: Lihat dashboard dan laporan; ekspor (PRD §3)
+        // 5. manajemen: Lihat dashboard, jadwal, dan laporan (read-only) (PRD §3)
         $roles[UserRole::Manajemen->value]->syncPermissions([
             'ViewAny:Calibration',
+            'ViewAny:DamageReport',
+            'View:DamageReport',
+            'ViewAny:Repair',
+            'View:Repair',
+            'ViewAny:EquipmentMovement',
+            'View:EquipmentMovement',
         ]);
 
         // Ruangan default untuk akun demo kepala ruangan

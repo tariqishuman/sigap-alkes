@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -91,6 +92,47 @@ class Equipment extends Model
     public function calibrations(): HasMany
     {
         return $this->hasMany(Calibration::class);
+    }
+
+    public function damageReports(): HasMany
+    {
+        return $this->hasMany(DamageReport::class)->orderByDesc('reported_at')->orderByDesc('id');
+    }
+
+    public function repairs(): HasManyThrough
+    {
+        return $this->hasManyThrough(Repair::class, DamageReport::class);
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(EquipmentMovement::class)->orderByDesc('moved_at')->orderByDesc('id');
+    }
+
+    public function hasActiveRepair(): bool
+    {
+        return $this->repairs()->whereNull('repairs.finished_at')->exists();
+    }
+
+    /**
+     * Cumulative repair cost across all repairs for this equipment, using bcmath (PRD §F3 & §F6).
+     */
+    public function totalRepairCost(): string
+    {
+        $repairs = $this->repairs()->with('repairSpareParts')->get();
+
+        $total = '0.00';
+
+        foreach ($repairs as $repair) {
+            $total = bcadd($total, $repair->totalCost(), 2);
+        }
+
+        return $total;
+    }
+
+    public function getTotalRepairCostAttribute(): string
+    {
+        return $this->totalRepairCost();
     }
 
     /**

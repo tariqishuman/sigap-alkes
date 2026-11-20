@@ -4,7 +4,9 @@ namespace App\Filament\Resources\Equipment\Pages;
 
 use App\Enums\EquipmentStatus;
 use App\Filament\Resources\Calibrations\CalibrationResource;
+use App\Filament\Resources\DamageReports\DamageReportResource;
 use App\Filament\Resources\Equipment\EquipmentResource;
+use App\Filament\Resources\EquipmentMovements\EquipmentMovementResource;
 use App\Models\Equipment;
 use App\Services\EquipmentStatusService;
 use App\Services\QrLabelService;
@@ -44,6 +46,18 @@ class ViewEquipment extends ViewRecord
                     && in_array($record->status, EquipmentStatus::CALIBRATABLE, true)
                     && CalibrationResource::canCreate())
                 ->url(fn (Equipment $record): string => CalibrationResource::getUrl('create', ['equipment_id' => $record->id])),
+            Action::make('report_damage')
+                ->label('Laporkan kerusakan')
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('warning')
+                ->visible(fn (Equipment $record): bool => $record->is_active && DamageReportResource::canCreate())
+                ->url(fn (Equipment $record): string => DamageReportResource::getUrl('create', ['equipment_id' => $record->id])),
+            Action::make('move_equipment')
+                ->label('Mutasi alat')
+                ->icon(Heroicon::OutlinedArrowsRightLeft)
+                ->color('gray')
+                ->visible(fn (Equipment $record): bool => $record->is_active && EquipmentMovementResource::canCreate())
+                ->url(fn (Equipment $record): string => EquipmentMovementResource::getUrl('create', ['equipment_id' => $record->id])),
             Action::make('print_qr')
                 ->label('Cetak label QR')
                 ->icon(Heroicon::OutlinedQrCode)

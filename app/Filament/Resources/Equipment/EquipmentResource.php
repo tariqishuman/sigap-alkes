@@ -8,6 +8,8 @@ use App\Filament\Resources\Equipment\Pages\EditEquipment;
 use App\Filament\Resources\Equipment\Pages\ListEquipment;
 use App\Filament\Resources\Equipment\Pages\ViewEquipment;
 use App\Filament\Resources\Equipment\RelationManagers\CalibrationsRelationManager;
+use App\Filament\Resources\Equipment\RelationManagers\DamageReportsRelationManager;
+use App\Filament\Resources\Equipment\RelationManagers\MovementsRelationManager;
 use App\Filament\Resources\Equipment\RelationManagers\StatusHistoriesRelationManager;
 use App\Filament\Resources\Equipment\Schemas\EquipmentForm;
 use App\Filament\Resources\Equipment\Schemas\EquipmentInfolist;
@@ -45,7 +47,15 @@ class EquipmentResource extends Resource
         $query = parent::getEloquentQuery()->with(['room', 'equipmentType', 'latestValidCalibration']);
         $user = Auth::user();
 
-        if ($user && $user->hasRole(UserRole::KepalaRuangan->value)) {
+        if (
+            $user
+            && $user->hasRole(UserRole::KepalaRuangan->value)
+            && ! $user->hasAnyRole([
+                UserRole::SuperAdmin->value,
+                UserRole::AdminIpsrs->value,
+                UserRole::Teknisi->value,
+            ])
+        ) {
             $query->where('room_id', $user->room_id ?? 0);
         }
 
@@ -71,6 +81,8 @@ class EquipmentResource extends Resource
     {
         return [
             CalibrationsRelationManager::class,
+            DamageReportsRelationManager::class,
+            MovementsRelationManager::class,
             StatusHistoriesRelationManager::class,
         ];
     }
