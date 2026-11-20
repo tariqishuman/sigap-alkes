@@ -273,8 +273,42 @@ class DummyDataSeeder extends Seeder
             $certCounter = 1;
             $createdBase = $realNow->copy()->subMonthsNoOverflow(14)->startOfMonth()->setTime(9, 0);
 
+            // Rencana deterministik keterlambatan kalibrasi historis pada akhir bulan 11..2 (Des..Sep),
+            // sehingga tiap bulan ada 1–5 alat yang sertifikatnya lewat 6–38 hari sebelum dikalibrasi ulang.
+            $historicalOverdueByIdx = [
+                0 => ['offset' => 11, 'days_late' => 12, 'recal_after_end' => 8],
+                1 => ['offset' => 11, 'days_late' => 24, 'recal_after_end' => 14],
+                2 => ['offset' => 10, 'days_late' => 9, 'recal_after_end' => 10],
+                10 => ['offset' => 10, 'days_late' => 19, 'recal_after_end' => 7],
+                11 => ['offset' => 10, 'days_late' => 31, 'recal_after_end' => 12],
+                13 => ['offset' => 9, 'days_late' => 15, 'recal_after_end' => 9],
+                14 => ['offset' => 8, 'days_late' => 8, 'recal_after_end' => 11],
+                20 => ['offset' => 8, 'days_late' => 18, 'recal_after_end' => 6],
+                22 => ['offset' => 8, 'days_late' => 27, 'recal_after_end' => 15],
+                23 => ['offset' => 8, 'days_late' => 11, 'recal_after_end' => 8],
+                26 => ['offset' => 7, 'days_late' => 14, 'recal_after_end' => 10],
+                29 => ['offset' => 7, 'days_late' => 22, 'recal_after_end' => 7],
+                30 => ['offset' => 6, 'days_late' => 7, 'recal_after_end' => 9],
+                32 => ['offset' => 6, 'days_late' => 16, 'recal_after_end' => 12],
+                33 => ['offset' => 6, 'days_late' => 29, 'recal_after_end' => 6],
+                34 => ['offset' => 6, 'days_late' => 10, 'recal_after_end' => 14],
+                36 => ['offset' => 6, 'days_late' => 21, 'recal_after_end' => 8],
+                40 => ['offset' => 5, 'days_late' => 13, 'recal_after_end' => 11],
+                42 => ['offset' => 5, 'days_late' => 25, 'recal_after_end' => 7],
+                44 => ['offset' => 5, 'days_late' => 9, 'recal_after_end' => 13],
+                46 => ['offset' => 4, 'days_late' => 17, 'recal_after_end' => 10],
+                47 => ['offset' => 3, 'days_late' => 11, 'recal_after_end' => 8],
+                50 => ['offset' => 3, 'days_late' => 23, 'recal_after_end' => 12],
+                53 => ['offset' => 3, 'days_late' => 16, 'recal_after_end' => 7],
+                57 => ['offset' => 3, 'days_late' => 28, 'recal_after_end' => 9],
+                58 => ['offset' => 2, 'days_late' => 12, 'recal_after_end' => 11],
+                4 => ['offset' => 2, 'days_late' => 20, 'recal_after_end' => 8],
+            ];
+
             /** @var array<int, Equipment> $allEquipment */
             $allEquipment = [];
+            /** @var array<string, int> $typeCounters */
+            $typeCounters = [];
             $globalIndex = 0;
 
             foreach ($roomTypeTemplates as $roomCode => $typeList) {
@@ -285,6 +319,7 @@ class DummyDataSeeder extends Seeder
                     $brandPair = $meta['brands'][$globalIndex % count($meta['brands'])];
                     $seq = str_pad((string) ($slot + 1), 3, '0', STR_PAD_LEFT);
                     $code = "ALK-{$roomCode}-{$seq}";
+                    $typeCounters[$typeName] = ($typeCounters[$typeName] ?? 0) + 1;
 
                     // Alat kandidat "Pertimbangkan ganti" dibuat berumur ~4,5 tahun agar nilai bukunya rendah & realistis
                     if (in_array($globalIndex, $replaceCandidateIndices, true)) {
@@ -307,7 +342,7 @@ class DummyDataSeeder extends Seeder
 
                     $equipment = Equipment::create([
                         'inventory_code' => $code,
-                        'name' => "{$typeName} {$brandPair[0]} {$roomCode} #".($slot + 1),
+                        'name' => "{$typeName} {$brandPair[0]} #{$typeCounters[$typeName]}",
                         'equipment_type_id' => $type->id,
                         'room_id' => $room->id,
                         'brand' => $brandPair[0],
@@ -320,19 +355,29 @@ class DummyDataSeeder extends Seeder
                         'notes' => 'Data sintetis operasional SIGAP-Alkes (tanpa data pasien).',
                     ]);
 
-                    // Kalibrasi awal pada 13-14 bulan lalu agar semua alat wajib kalibrasi masuk periode 12 bulan dalam kondisi Laik pakai
+                    // Kalibrasi awal: jika masuk rencana keterlambatan historis, atur valid_until jatuh sebelum akhir bulan target
                     if ($type->requires_calibration && $globalIndex !== $neverCalibratedIndex) {
-                        $initCalTime = $entryTime->copy()->addDays(2);
+                        $inst = $globalIndex % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
+
+                        if (isset($historicalOverdueByIdx[$globalIndex])) {
+                            $hPlan = $historicalOverdueByIdx[$globalIndex];
+                            $targetMonthEnd = $realNow->copy()->startOfMonth()->subMonthsNoOverflow($hPlan['offset'])->endOfMonth();
+                            $validUntil = $targetMonthEnd->copy()->subDays($hPlan['days_late']);
+                            $initCalTime = $validUntil->copy()->subMonthsNoOverflow(12);
+                        } else {
+                            $initCalTime = $entryTime->copy()->addDays(2);
+                            $validUntil = $initCalTime->copy()->addMonthsNoOverflow(12);
+                        }
+
                         Carbon::setTestNow($initCalTime);
 
-                        $inst = $globalIndex % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
                         $calibrationService->record([
                             'equipment_id' => $equipment->id,
                             'testing_institution_id' => $inst->id,
                             'tested_at' => $initCalTime->toDateString(),
                             'result' => CalibrationResult::Pass->value,
                             'certificate_number' => sprintf('CERT-INIT-%04d', $certCounter++),
-                            'valid_until' => $initCalTime->copy()->addMonthsNoOverflow(12)->toDateString(),
+                            'valid_until' => $validUntil->toDateString(),
                         ], $teknisi->id);
                     }
 
@@ -460,8 +505,18 @@ class DummyDataSeeder extends Seeder
                     ], $teknisi->id);
 
                     // 4) Kalibrasi ulang pasca perbaikan (jika wajib kalibrasi) agar kembali Laik pakai
+                    // Jangan menimpa jendela keterlambatan historis sebelum bulan targetnya berakhir.
                     $equipment->refresh();
-                    if ($equipment->equipmentType->requires_calibration && $offset > 0) {
+                    $canRecalNow = true;
+                    if (isset($historicalOverdueByIdx[$eqIdx])) {
+                        $hPlan = $historicalOverdueByIdx[$eqIdx];
+                        $targetEnd = $realNow->copy()->startOfMonth()->subMonthsNoOverflow($hPlan['offset'])->endOfMonth();
+                        if ($repairEnd->lessThanOrEqualTo($targetEnd)) {
+                            $canRecalNow = false;
+                        }
+                    }
+
+                    if ($canRecalNow && $equipment->equipmentType->requires_calibration && $offset > 0) {
                         $recalAt = $repairEnd->copy()->addHours(6);
                         if ($recalAt->lessThan($realNow->copy()->subDay())) {
                             Carbon::setTestNow($recalAt);
@@ -566,8 +621,18 @@ class DummyDataSeeder extends Seeder
                 ], $teknisi->id);
 
                 // Jika mutasi memicu Perlu kalibrasi, lakukan kalibrasi ulang 2 hari kemudian agar siap pakai
+                // (lewati bila jatuh sebelum akhir bulan keterlambatan historis yang direncanakan)
                 $equipment->refresh();
-                if ($equipment->status === EquipmentStatus::CalibrationDue && $equipment->equipmentType->requires_calibration) {
+                $canRecalAfterMove = true;
+                if (isset($historicalOverdueByIdx[$mSpec['idx']])) {
+                    $hPlan = $historicalOverdueByIdx[$mSpec['idx']];
+                    $targetEnd = $realNow->copy()->startOfMonth()->subMonthsNoOverflow($hPlan['offset'])->endOfMonth();
+                    if ($movedAt->copy()->addDays(2)->lessThanOrEqualTo($targetEnd)) {
+                        $canRecalAfterMove = false;
+                    }
+                }
+
+                if ($canRecalAfterMove && $equipment->status === EquipmentStatus::CalibrationDue && $equipment->equipmentType->requires_calibration) {
                     $recalAt = $movedAt->copy()->addDays(2);
                     if ($recalAt->lessThan($realNow->copy()->subDay())) {
                         Carbon::setTestNow($recalAt);
@@ -649,9 +714,16 @@ class DummyDataSeeder extends Seeder
                     continue;
                 }
 
-                $monthsRemaining = 4 + ($eqIdx % 7);
-                $validUntil = $realNow->copy()->addMonthsNoOverflow($monthsRemaining);
-                $testedAt = $validUntil->copy()->subMonthsNoOverflow(12);
+                if (isset($historicalOverdueByIdx[$eqIdx])) {
+                    $hPlan = $historicalOverdueByIdx[$eqIdx];
+                    $targetMonthEnd = $realNow->copy()->startOfMonth()->subMonthsNoOverflow($hPlan['offset'])->endOfMonth();
+                    $testedAt = $targetMonthEnd->copy()->addDays($hPlan['recal_after_end']);
+                    $validUntil = $testedAt->copy()->addMonthsNoOverflow(12);
+                } else {
+                    $monthsRemaining = 4 + ($eqIdx % 7);
+                    $validUntil = $realNow->copy()->addMonthsNoOverflow($monthsRemaining);
+                    $testedAt = $validUntil->copy()->subMonthsNoOverflow(12);
+                }
 
                 if ($testedAt->lessThan($realNow->copy()->subDays(2))) {
                     Carbon::setTestNow($testedAt);

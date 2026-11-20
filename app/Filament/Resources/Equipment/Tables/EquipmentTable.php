@@ -58,17 +58,11 @@ class EquipmentTable
                     ->label('Status')
                     ->view('components.sigap.table-status-badge')
                     ->sortable(),
-                TextColumn::make('valid_until_display')
+                ViewColumn::make('valid_until_display')
                     ->label('Berlaku s.d.')
-                    ->state(function (Equipment $record): string {
-                        if ($record->latestValidCalibration?->valid_until) {
-                            return $record->latestValidCalibration->valid_until->translatedFormat('d M Y');
-                        }
-
-                        return '-';
-                    }),
+                    ->view('components.sigap.table-valid-until'),
                 TextColumn::make('book_value')
-                    ->label('Nilai Buku')
+                    ->label('Nilai buku')
                     ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
                     ->alignEnd()
                     ->state(fn (Equipment $record): string => 'Rp'.number_format((float) $record->book_value, 0, ',', '.')),
@@ -82,7 +76,7 @@ class EquipmentTable
                     ->label('Ruangan')
                     ->relationship('room', 'name'),
                 SelectFilter::make('equipment_type_id')
-                    ->label('Jenis Alat')
+                    ->label('Jenis alat')
                     ->relationship('equipmentType', 'name'),
                 SelectFilter::make('status')
                     ->label('Status')
@@ -91,8 +85,22 @@ class EquipmentTable
                     ->label('Jatuh tempo dalam 30 hari')
                     ->query(fn (Builder $query) => $query->dueBetween(today(), today()->addDays(30))),
                 TernaryFilter::make('is_active')
-                    ->label('Status Aktif')
-                    ->default(true),
+                    ->label('Status aktif')
+                    ->default(true)
+                    ->indicateUsing(function (array $state): ?string {
+                        $val = $state['value'] ?? null;
+
+                        if ($val === '0' || $val === false || $val === 0) {
+                            return 'Status aktif: Nonaktif';
+                        }
+
+                        if ($val === '' || $val === null) {
+                            return 'Status aktif: Semua';
+                        }
+
+                        // Hide indicator chip when using the default active-only state.
+                        return null;
+                    }),
             ])
             ->recordActions([
                 ActionGroup::make([
