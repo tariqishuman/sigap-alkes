@@ -108,6 +108,63 @@ Perhitungan nilai buku menggunakan metode garis lurus bulanan (*straight-line de
 - Halaman **Pengaturan → Pengaturan Aplikasi** (khusus `super_admin`) untuk mengatur identitas aplikasi/RS (nama, alamat, telepon, logo, favicon, zona waktu), jadwal & kanal pengingat kalibrasi, ambang rekomendasi *"Pertimbangkan ganti"* (`%`), URL publik QR & teks label, serta konfigurasi **Integrasi SatuSehat** (*sandbox/production*, Organization ID, Client ID, dan Client Secret terenkripsi beserta tombol **Tes koneksi**).
 - Halaman error kustom (`401`, `403`, `404`, `419`, `429`, `500`, `503`) dan 404 QR publik menggunakan layout seragam yang tetap dapat dirender meskipun koneksi database sedang tidak tersedia.
 
+### 6. Interoperabilitas HL7 FHIR R4 & Sinkronisasi SatuSehat (`M6`)
+SIGAP-Alkes menyediakan REST API **HL7 FHIR R4 read-only** (`/api/fhir/r4`, `Content-Type: application/fhir+json`) yang dilindungi **Laravel Sanctum** (maks 60 permintaan/menit per token) tanpa mengekspos data pasien maupun data biaya/finansial, serta sinkronisasi satu arah ke **SatuSehat Kemenkes** untuk sub-organisasi **IPSRS** (`Organization`) dan ruangan (`Location`).
+
+#### Cara Mengisi Kredensial SatuSehat & Sinkronisasi
+1. Login sebagai `super_admin` dan buka **Pengaturan → Integrasi SatuSehat**.
+2. Pilih environment (`Sandbox` / `Production`), lalu isi **Organization ID**, **Auth URL**, **FHIR Base URL**, **Client ID**, dan **Client Secret** (disimpan terenkripsi dan tidak pernah ditampilkan ulang).
+3. Aktifkan toggle **Aktifkan integrasi SatuSehat**, klik **Simpan pengaturan**, lalu klik **Tes koneksi**.
+4. Klik **Sinkronkan sekarang** atau jalankan lewat CLI:
+   ```bash
+   # Sinkronisasi sub-organisasi IPSRS dan seluruh ruangan (via antrean)
+   php artisan satusehat:sync
+
+   # Sinkronisasi spesifik langsung tanpa menunggu worker
+   php artisan satusehat:sync --resource=organization --now
+   php artisan satusehat:sync --resource=location --now
+   ```
+
+#### Contoh Penggunaan API HL7 FHIR R4 SIGAP
+Buat Bearer token di **Pengaturan → Token API** (token hanya ditampilkan satu kali saat dibuat), lalu panggil endpoint:
+
+```bash
+# CapabilityStatement
+curl -H "Authorization: Bearer <TOKEN>" https://sigap-alkes.test/api/fhir/r4/metadata
+
+# Cari Device berdasarkan kode inventaris / ruangan / status
+curl -H "Authorization: Bearer <TOKEN>" "https://sigap-alkes.test/api/fhir/r4/Device?identifier=ALK-ICU-001&_count=20"
+
+# Status kalibrasi alat (DeviceMetric), Ruangan (Location), Organisasi (Organization)
+curl -H "Authorization: Bearer <TOKEN>" https://sigap-alkes.test/api/fhir/r4/DeviceMetric/1
+curl -H "Authorization: Bearer <TOKEN>" https://sigap-alkes.test/api/fhir/r4/Location
+curl -H "Authorization: Bearer <TOKEN>" https://sigap-alkes.test/api/fhir/r4/Organization
+```
+
+Contoh respons `GET /api/fhir/r4/Device/1`:
+```json
+{
+  "resourceType": "Device",
+  "id": "1",
+  "identifier": [
+    { "system": "https://sigap-alkes.its.ac.id/fhir/sid/inventory-code", "value": "ALK-ICU-001" },
+    { "system": "https://sigap-alkes.its.ac.id/fhir/sid/serial-number", "value": "MIN-2100" }
+  ],
+  "status": "active",
+  "statusReason": [{ "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/device-status-reason", "code": "online", "display": "Online" }] }],
+  "extension": [{ "url": "https://sigap-alkes.its.ac.id/fhir/StructureDefinition/sigap-equipment-status", "valueCode": "fit_for_use" }],
+  "deviceName": [{ "name": "Ventilator Mindray #1", "type": "user-friendly-name" }],
+  "manufacturer": "Mindray",
+  "modelNumber": "SV300",
+  "serialNumber": "MIN-2100",
+  "type": { "text": "Ventilator" },
+  "location": { "reference": "Location/1", "display": "Ruang ICU" },
+  "owner": { "reference": "Organization/hospital", "display": "RS Pendidikan ITS" }
+}
+```
+
+Pemetaan lengkap dan bukti percobaan sandbox tersedia di [`docs/fhir-mapping.md`](docs/fhir-mapping.md).
+
 ---
 
 ## Panduan Instalasi Lokal
@@ -208,7 +265,7 @@ Seluruh akun demo menggunakan kata sandi **`password`**:
 - [x] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* dan Kepatuhan Kalibrasi, penanda rekomendasi penggantian aset, *Dashboard* analitik, serta ekspor laporan Excel/PDF dan format ASPAK.
 - [x] **M5 — Seeder Sintetis & Finalisasi**: Seeder sintetis deterministik 12 bulan (6 ruangan, 10 jenis, 60 alat), halaman error kustom, audit penuh hak akses per peran, dan dokumentasi README.
 - [x] **R1 & Pengaturan Aplikasi**: Penyempurnaan teks UI *production-ready*, buku stok suku cadang, penyusutan bulanan, peran baru (`badan_kalibrasi` & `magang`), halaman **Pengaturan Aplikasi** (termasuk kredensial SatuSehat terenkripsi), serta redesain UX Dasbor & tabel operasional.
-- [ ] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 *(Future Todo)***: Pemetaan entitas non-pasien ke resource standar HL7 FHIR R4 (`Equipment` $\rightarrow$ `Device`, `Room` $\rightarrow$ `Location`, `Calibration` $\rightarrow$ `DeviceMetric`, `TestingInstitution` $\rightarrow$ `Organization`), penyediaan REST API `/api/fhir/r4/*`, serta sinkronisasi status kelaikan alat ke SIMRS / SatuSehat.
+- [x] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 & SatuSehat**: Pemetaan entitas non-pasien ke resource HL7 FHIR R4 (`Device`, `DeviceMetric`, `Location`, `Organization`), REST API read-only `/api/fhir/r4/*` ber-Sanctum + `OperationOutcome`, manajemen Token API, serta sinkronisasi sub-organisasi IPSRS & Location ruangan ke sandbox SatuSehat Kemenkes.
 
 ---
 

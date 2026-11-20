@@ -117,3 +117,9 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 - **Detail Alat (§4.3)**: Kartu identitas (foto 96px, chip kode, badge status `lg`, QR + tautan publik) dan Strip KPI (4 kartu untuk role berizin biaya, 2 kartu untuk role lainnya) dirender via `ViewEntry` di `EquipmentInfolist`; penanda "Pertimbangkan ganti" ditampilkan sebagai banner tint kuning di dalam kartu Nilai Aset.
 - **Jadwal Kalibrasi (§4.4)**: Default menampilkan 4 kelompok ber-aksen (`Terlambat`, `Minggu ini`, `Bulan ini`, `Berikutnya`) dengan toggle ke tampilan tabel & ekspor.
 - **Pengaturan Aplikasi (§4.8)**: Menggunakan tab vertikal (`Tabs::make()->vertical()`) dan chip status koneksi SatuSehat (`Terhubung` / `Gagal` / `Belum diatur`) beserta waktu cek terakhir yang tersimpan di `settings`.
+
+## M6 — HL7 FHIR R4 & Sinkronisasi SatuSehat (`m6-fhir-satusehat`)
+
+- **Package `laravel/sanctum`**: Dipasang sesuai instruksi M6 untuk autentikasi Bearer token pada `/api/fhir/r4/*` dan manajemen token di tab **Token API** pada Pengaturan Aplikasi.
+- **URL & Payload SatuSehat**: Mengikuti dokumentasi resmi Playbook SatuSehat (`http://sys-ids.kemkes.go.id/organization/{org_id}` untuk sub-organisasi IPSRS dengan `type = dept` & `partOf`, serta `http://sys-ids.kemkes.go.id/location/{org_id}`, `physicalType = ro`, `managingOrganization = Organization/{org_id}` untuk Location). URL Auth dan FHIR base selalu dibaca dari Pengaturan Aplikasi (sandbox staging `api-satusehat-stg.dto.kemkes.go.id` terverifikasi `201 Created`).
+- **Percobaan `POST /Device`**: Sandbox SatuSehat mengembalikan `HTTP 400` (`RuleNumber: 10995` & `11006`). Sinkronisasi `Device` ke SatuSehat tidak dibangun; data alat tetap tersedia melalui `/api/fhir/r4/Device` dan `/api/fhir/r4/DeviceMetric`.

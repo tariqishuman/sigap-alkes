@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-#[Fillable(['name', 'building', 'floor'])]
+#[Fillable(['name', 'building', 'floor', 'satusehat_id'])]
 class Room extends Model
 {
     use HasFactory, LogsActivity;

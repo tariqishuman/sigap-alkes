@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
+use App\Jobs\SyncSatuSehatJob;
 use App\Services\SettingsService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -16,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
@@ -23,6 +25,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * @property-read Schema $form
@@ -49,6 +52,10 @@ class AppSettings extends Page implements HasSchemas
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
+
+    public string $newTokenName = '';
+
+    public ?string $plainTextTokenOnce = null;
 
     public static function canAccess(): bool
     {
@@ -272,6 +279,14 @@ class AppSettings extends Page implements HasSchemas
                                     ->placeholder($hasSecret ? '•••• (tersimpan)' : 'Masukkan Client Secret')
                                     ->autocomplete('new-password')
                                     ->nullable(),
+                                View::make('filament.settings.satusehat-sync-logs')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        Tab::make('Token API')
+                            ->icon(Heroicon::OutlinedKey)
+                            ->schema([
+                                View::make('filament.settings.api-tokens'),
                             ]),
                     ]),
             ]);
@@ -291,7 +306,66 @@ class AppSettings extends Page implements HasSchemas
                     $result['ok'] ? $notification->success() : $notification->danger();
                     $notification->send();
                 }),
+            Action::make('sync_satusehat')
+                ->label('Sinkronkan sekarang')
+                ->icon(Heroicon::OutlinedArrowPath)
+                ->color('primary')
+                ->action(function (): void {
+                    if (! app(SettingsService::class)->get('satusehat.enabled', false)) {
+                        Notification::make()
+                            ->title('Aktifkan integrasi SatuSehat terlebih dahulu lalu simpan pengaturan.')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    SyncSatuSehatJob::dispatch();
+
+                    Notification::make()
+                        ->title('Sinkronisasi SatuSehat telah dijadwalkan di antrean.')
+                        ->success()
+                        ->send();
+                }),
         ];
+    }
+
+    public function createApiToken(): void
+    {
+        $name = trim($this->newTokenName);
+        if ($name === '') {
+            Notification::make()
+                ->title('Masukkan nama token terlebih dahulu.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $token = $user->createToken($name, ['fhir:read']);
+        $this->plainTextTokenOnce = $token->plainTextToken;
+        $this->newTokenName = '';
+
+        Notification::make()
+            ->title('Token API berhasil dibuat. Salin sekarang sebelum meninggalkan halaman.')
+            ->success()
+            ->send();
+    }
+
+    public function revokeApiToken(int $tokenId): void
+    {
+        PersonalAccessToken::query()->whereKey($tokenId)->delete();
+        $this->plainTextTokenOnce = null;
+
+        Notification::make()
+            ->title('Token API berhasil dicabut.')
+            ->success()
+            ->send();
     }
 
     public function save(SettingsService $settings): void
