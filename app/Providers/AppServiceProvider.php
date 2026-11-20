@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Policies\RolePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -34,5 +35,8 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(60)->by($key);
         });
+
+        // Include Laravel scheduler in `php artisan dev` alongside server, queue, and vite.
+        DevCommands::artisan('schedule:work', 'scheduler');
     }
 }

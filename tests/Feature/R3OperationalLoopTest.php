@@ -31,6 +31,7 @@ use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
@@ -748,6 +749,53 @@ describe('R3 Bagian 6 — Notifikasi push, alert tiers, Saya tangani, dan eskala
         expect($first['acknowledged'])->toBeTrue()
             ->and($second['acknowledged'])->toBeFalse()
             ->and($report->fresh()->acknowledged_by)->toBe($this->teknisi->id);
+    });
+
+    it('requires a valid, unexpired, user-bound signed URL and POST confirmation for Saya tangani', function () {
+        Notification::fake();
+        $teknisi2 = User::factory()->create(['name' => 'Teknisi Lain']);
+        $teknisi2->assignRole(UserRole::Teknisi->value);
+
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-SIGN-01', EquipmentStatus::FitForUse);
+        $report = app(DamageReportService::class)->report([
+            'equipment_id' => $eq->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Monitor kehilangan sinyal ECG secara mendadak.',
+        ], $this->kepalaIcu);
+
+        $notification = new DamageReportedNotification($report);
+        $signedConfirmUrl = $notification->ackUrl($this->teknisi);
+
+        // 1. Unsigned URL rejected with 403
+        $unsignedUrl = route('damage-reports.acknowledge.confirm', ['damageReport' => $report->id, 'user' => $this->teknisi->id]);
+        $this->actingAs($this->teknisi)->get($unsignedUrl)->assertForbidden();
+
+        // 2. Signed URL opened by another user rejected with 403
+        $this->actingAs($teknisi2)->get($signedConfirmUrl)->assertForbidden();
+
+        // 3. Valid signed URL opened by recipient shows confirmation page WITHOUT mutating DB yet
+        $this->actingAs($this->teknisi)
+            ->get($signedConfirmUrl)
+            ->assertOk()
+            ->assertSee('Tandai laporan ini sedang Anda tangani?');
+        expect($report->fresh()->acknowledged_by)->toBeNull();
+
+        // 4. Signed POST by recipient records acknowledgement; another user posting is rejected (403)
+        $signedStoreUrl = URL::temporarySignedRoute(
+            'damage-reports.acknowledge.store',
+            now()->addMinutes(30),
+            ['damageReport' => $report->id, 'user' => $this->teknisi->id],
+        );
+        $this->actingAs($teknisi2)->post($signedStoreUrl)->assertForbidden();
+
+        $this->actingAs($this->teknisi)
+            ->post($signedStoreUrl)
+            ->assertRedirect(DamageReportResource::getUrl('index'));
+        expect($report->fresh()->acknowledged_by)->toBe($this->teknisi->id);
+
+        // 5. Expired signed URL (> 24h) rejected with 403
+        Carbon::setTestNow(now()->addHours(25));
+        $this->actingAs($this->teknisi)->get($signedConfirmUrl)->assertForbidden();
     });
 
     it('escalates unacknowledged critical reports after 15 minutes ONCE to admin_ipsrs and manajemen', function () {
