@@ -3,6 +3,7 @@
 use App\Enums\CalibrationResult;
 use App\Enums\DamageReportStatus;
 use App\Enums\EquipmentStatus;
+use App\Enums\PreventiveMaintenanceResult;
 use App\Enums\TestingInstitutionKind;
 use App\Enums\UserRole;
 use App\Filament\Resources\DamageReports\DamageReportResource;
@@ -10,6 +11,7 @@ use App\Models\Calibration;
 use App\Models\DamageReport;
 use App\Models\Equipment;
 use App\Models\EquipmentType;
+use App\Models\PreventiveMaintenance;
 use App\Models\Room;
 use App\Models\TestingInstitution;
 use App\Models\User;
@@ -18,6 +20,7 @@ use App\Notifications\EquipmentOperationalNotification;
 use App\Notifications\UnsafeReportRateLimitNotification;
 use App\Services\DamageReportService;
 use App\Services\EquipmentStatusService;
+use App\Services\PreventiveMaintenanceService;
 use App\Services\RepairService;
 use App\Services\UptimeCalculator;
 use Carbon\Carbon;
@@ -517,5 +520,80 @@ describe('R3 Bagian 3 — Notifikasi untuk kepala ruangan', function () {
             fn ($n) => $n->event === EquipmentOperationalNotification::EVENT_CLOSED_WITHOUT_REPAIR,
         );
         Notification::assertNotSentTo($this->kepalaIgd, EquipmentOperationalNotification::class);
+    });
+});
+
+describe('R3 Bagian 4 — Pemeliharaan preventif (PM)', function () {
+    it('computes next_due_at from pm_interval_months, flags needs_followup on unhealthy items without changing equipment status', function () {
+        $pmType = EquipmentType::create([
+            'name' => 'Infusion Pump PM',
+            'requires_calibration' => true,
+            'calibration_interval_months' => 12,
+            'pm_interval_months' => 3,
+            'pm_checklist' => ['Kebersihan & kondisi fisik', 'Kabel & konektor', 'Baterai', 'Alarm berfungsi'],
+            'requires_installation' => false,
+        ]);
+
+        $eq = makeR3Equipment($pmType, $this->icuRoom, 'R3-PM-01', EquipmentStatus::FitForUse);
+        $service = app(PreventiveMaintenanceService::class);
+
+        $pm = $service->record([
+            'equipment_id' => $eq->id,
+            'performed_at' => '2026-08-15',
+            'checklist_results' => [
+                ['item' => 'Kebersihan & kondisi fisik', 'status' => 'good', 'note' => null],
+                ['item' => 'Baterai', 'status' => 'needs_attention', 'note' => 'Baterai cepat drop'],
+            ],
+            'notes' => 'Perlu penggantian baterai segera.',
+        ], $this->teknisi);
+
+        expect($pm->next_due_at->toDateString())->toBe('2026-11-15')
+            ->and($pm->result)->toBe(PreventiveMaintenanceResult::NeedsFollowup)
+            ->and($pm->hasUnhealthyItems())->toBeTrue()
+            ->and($pm->unhealthyItemsSummary())->toContain('Baterai (Baterai cepat drop)')
+            ->and($eq->fresh()->status)->toBe(EquipmentStatus::FitForUse);
+    });
+
+    it('enforces role-based PM access (teknisi/admin record, kepala_ruangan room-scoped view, magang/manajemen view, badan_kalibrasi denied)', function () {
+        $pmType = EquipmentType::create([
+            'name' => 'Monitor PM',
+            'requires_calibration' => true,
+            'calibration_interval_months' => 12,
+            'pm_interval_months' => 6,
+            'pm_checklist' => ['Kebersihan', 'Kabel', 'Alarm'],
+            'requires_installation' => false,
+        ]);
+
+        $icuEq = makeR3Equipment($pmType, $this->icuRoom, 'R3-PM-ICU', EquipmentStatus::FitForUse);
+        $igdEq = makeR3Equipment($pmType, $this->igdRoom, 'R3-PM-IGD', EquipmentStatus::FitForUse);
+
+        $pmService = app(PreventiveMaintenanceService::class);
+        $icuPm = $pmService->record([
+            'equipment_id' => $icuEq->id,
+            'performed_at' => today()->toDateString(),
+            'checklist_results' => [['item' => 'Kebersihan', 'status' => 'good', 'note' => null]],
+        ], $this->teknisi);
+        $igdPm = $pmService->record([
+            'equipment_id' => $igdEq->id,
+            'performed_at' => today()->toDateString(),
+            'checklist_results' => [['item' => 'Kebersihan', 'status' => 'good', 'note' => null]],
+        ], $this->admin);
+
+        $manajemen = User::factory()->create(['name' => 'Manajemen PM']);
+        $manajemen->assignRole(UserRole::Manajemen->value);
+
+        $badan = User::factory()->create(['name' => 'Badan PM', 'testing_institution_id' => $this->institution->id]);
+        $badan->assignRole(UserRole::BadanKalibrasi->value);
+
+        expect($this->teknisi->can('create', PreventiveMaintenance::class))->toBeTrue()
+            ->and($this->admin->can('create', PreventiveMaintenance::class))->toBeTrue()
+            ->and($this->kepalaIcu->can('view', $icuPm))->toBeTrue()
+            ->and($this->kepalaIcu->can('view', $igdPm))->toBeFalse()
+            ->and($this->kepalaIcu->can('create', PreventiveMaintenance::class))->toBeFalse()
+            ->and($this->magang->can('view', $icuPm))->toBeTrue()
+            ->and($this->magang->can('create', PreventiveMaintenance::class))->toBeFalse()
+            ->and($manajemen->can('view', $icuPm))->toBeTrue()
+            ->and($badan->can('viewAny', PreventiveMaintenance::class))->toBeFalse()
+            ->and($this->admin->can('delete', $icuPm))->toBeFalse();
     });
 });

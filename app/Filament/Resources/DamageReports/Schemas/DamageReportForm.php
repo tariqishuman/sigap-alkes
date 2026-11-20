@@ -74,6 +74,7 @@ class DamageReportForm
                         Textarea::make('complaint')
                             ->label('Keluhan / Deskripsi Kerusakan')
                             ->placeholder('Jelaskan gejala kerusakan yang ditemukan pada alat (minimal 10 karakter)...')
+                            ->default(fn (): ?string => filled(request()->query('complaint')) ? (string) request()->query('complaint') : null)
                             ->rows(4)
                             ->minLength(10)
                             ->maxLength(2000)

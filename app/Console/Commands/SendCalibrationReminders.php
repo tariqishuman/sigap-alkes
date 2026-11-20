@@ -7,8 +7,10 @@ use App\Enums\ReminderKind;
 use App\Enums\UserRole;
 use App\Models\CalibrationReminder;
 use App\Models\Equipment;
+use App\Models\PreventiveMaintenanceReminder;
 use App\Models\User;
 use App\Notifications\CalibrationDueNotification;
+use App\Notifications\PreventiveMaintenanceDueNotification;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -41,9 +43,48 @@ class SendCalibrationReminders extends Command
                 $equipmentList->each(fn (Equipment $equipment) => $this->remind($equipment, $recipients));
             });
 
-        $this->info('Pengingat kalibrasi sudah diproses.');
+        Equipment::query()
+            ->where('is_active', true)
+            ->whereHas('equipmentType', fn ($query) => $query->whereNotNull('pm_interval_months')->where('pm_interval_months', '>', 0))
+            ->with(['equipmentType', 'latestPreventiveMaintenance'])
+            ->chunkById(100, function ($equipmentList) use ($recipients) {
+                $equipmentList->each(fn (Equipment $equipment) => $this->remindPreventiveMaintenance($equipment, $recipients));
+            });
+
+        $this->info('Pengingat kalibrasi & pemeliharaan preventif sudah diproses.');
 
         return self::SUCCESS;
+    }
+
+    private function remindPreventiveMaintenance(Equipment $equipment, Collection $recipients): void
+    {
+        $dueDate = $equipment->latestPreventiveMaintenance?->next_due_at;
+
+        if (! $dueDate) {
+            return;
+        }
+
+        $daysLeft = (int) today()->diffInDays($dueDate, false);
+        $kind = match (true) {
+            $daysLeft <= 0 => 'h_0',
+            $daysLeft <= 7 => 'h_7',
+            default => null,
+        };
+
+        if (! $kind) {
+            return;
+        }
+
+        DB::transaction(function () use ($equipment, $dueDate, $daysLeft, $kind, $recipients) {
+            $reminder = PreventiveMaintenanceReminder::firstOrCreate(
+                ['equipment_id' => $equipment->id, 'kind' => $kind, 'cycle_due_at' => $dueDate->toDateString()],
+                ['sent_at' => now(), 'channel' => 'database'],
+            );
+
+            if ($reminder->wasRecentlyCreated) {
+                Notification::send($recipients, new PreventiveMaintenanceDueNotification($equipment, $dueDate, $daysLeft));
+            }
+        });
     }
 
     private function remind(Equipment $equipment, Collection $recipients): void

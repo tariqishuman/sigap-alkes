@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EquipmentTypes\Schemas;
 
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -38,6 +39,19 @@ class EquipmentTypeForm
                             ->maxValue(120)
                             ->suffix('bulan')
                             ->required(),
+                        TextInput::make('pm_interval_months')
+                            ->label('Interval Pemeliharaan Preventif (Bulan)')
+                            ->helperText('Kosongkan bila jenis alat ini tidak memerlukan pemeliharaan preventif berkala.')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(60)
+                            ->suffix('bulan')
+                            ->nullable(),
+                        TagsInput::make('pm_checklist')
+                            ->label('Daftar Periksa Pemeliharaan (Checklist PM)')
+                            ->placeholder('Tambah butir lalu tekan Enter (mis. Kebersihan & kondisi fisik)')
+                            ->helperText('Isi 3–6 butir pemeriksaan standar yang muncul otomatis di form pemeliharaan.')
+                            ->columnSpanFull(),
                         TextInput::make('useful_life_years')
                             ->label('Masa Manfaat Penyusutan (Tahun)')
                             ->numeric()

@@ -10,6 +10,7 @@ use App\Filament\Resources\Equipment\Pages\ViewEquipment;
 use App\Filament\Resources\Equipment\RelationManagers\CalibrationsRelationManager;
 use App\Filament\Resources\Equipment\RelationManagers\DamageReportsRelationManager;
 use App\Filament\Resources\Equipment\RelationManagers\MovementsRelationManager;
+use App\Filament\Resources\Equipment\RelationManagers\PreventiveMaintenancesRelationManager;
 use App\Filament\Resources\Equipment\RelationManagers\StatusHistoriesRelationManager;
 use App\Filament\Resources\Equipment\Schemas\EquipmentForm;
 use App\Filament\Resources\Equipment\Schemas\EquipmentInfolist;
@@ -104,6 +105,7 @@ class EquipmentResource extends Resource
     {
         return [
             CalibrationsRelationManager::class,
+            PreventiveMaintenancesRelationManager::class,
             DamageReportsRelationManager::class,
             MovementsRelationManager::class,
             StatusHistoriesRelationManager::class,

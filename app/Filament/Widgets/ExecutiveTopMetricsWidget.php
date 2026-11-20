@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
 use App\Services\DashboardMetricsService;
+use App\Services\PreventiveMaintenanceService;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +41,7 @@ class ExecutiveTopMetricsWidget extends Widget
 
         return [
             'metrics' => app(DashboardMetricsService::class)->executiveTopMetrics($period, is_string($date) ? $date : null, $roomId),
+            'pmCompliance' => app(PreventiveMaintenanceService::class)->complianceRate($roomId),
         ];
     }
 }
