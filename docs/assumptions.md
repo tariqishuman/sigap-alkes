@@ -61,3 +61,15 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 14. **Mutasi tidak bisa diubah/dihapus**: `EquipmentMovementPolicy` menonaktifkan aksi edit dan hapus karena mutasi merupakan rekam jejak audit lokasi aset.
 15. **Halaman QR publik**: Tetap hanya menampilkan identitas alat, lokasi, status kelaikan, dan tanggal berlaku sertifikat — tidak pernah membocorkan biaya perbaikan, nama teknisi, atau isi keluhan kerusakan.
 
+## M4 — Laporan, Nilai Aset, & Dashboard (PRD F5, F6, §5)
+1. **Downtime untuk Uptime (`UptimeCalculator`)**: Hanya status `under_repair` dan `unfit` yang dihitung sebagai downtime (`D`). Status `under_testing` tetap dihitung sebagai uptime.
+2. **Batas waktu periode `T`**: Untuk tiap alat aktif, `T` dimulai dari yang paling akhir antara awal periode dan `equipment.created_at`. Untuk bulan berjalan, `T` dihitung sampai waktu sekarang (`now()`). Alat nonaktif (`is_active = false`) tidak dimasukkan dalam perhitungan.
+3. **Agregasi Uptime**: Uptime per ruangan dan per bulan dihitung dengan rumus gabungan `(ΣT − ΣD) / ΣT × 100%`, bukan rata-rata persentase per alat.
+4. **Keterbatasan mutasi tengah bulan**: Alat yang dimutasi ke ruangan lain di tengah bulan dihitung ke `room_id` alat saat ini (*known limitation* untuk versi ini).
+5. **Kepatuhan kalibrasi (`ComplianceCalculator`)**: Berupa *snapshot* hari ini (`K = Ns / Nw × 100%`), tanpa riwayat kepatuhan historis per bulan. Jika `Nw = 0`, UI menampilkan `"–"` dan tidak melakukan pembagian dengan nol.
+6. **Nilai aset & penanda "Pertimbangkan ganti"**: Menggunakan `DepreciationCalculator` dari M1. Penanda *"Pertimbangkan ganti"* muncul bila total biaya perbaikan kumulatif (`Equipment::totalRepairCost()`) ≥ `X% × nilai buku`, dibandingkan menggunakan perkalian `bcmath` (`repairCost × 100 >= bookValue × X`) tanpa pembagian. Nilai `X` dibaca dari `config/sigap.php` (`SIGAP_REPLACE_THRESHOLD_PERCENT`, default `50`) tanpa tabel settings.
+7. **Visibilitas Kartu Nilai Aset**: Kartu *Nilai Aset* di detail alat (beserta disclaimer PRD §F6) disembunyikan dari `kepala_ruangan` dan tidak pernah tampil di halaman QR publik.
+8. **Dashboard**: Widget statistik, chart uptime 12 bulan, tabel 10 jatuh tempo terdekat, dan chart total nilai buku per ruangan hanya tampil untuk `super_admin`, `admin_ipsrs`, dan `manajemen`.
+9. **Format ekspor ASPAK sementara**: `AspakEquipmentExporter` menggunakan 12 kolom sementara (kode inventaris, nama alat, jenis, merek, tipe/model, nomor seri, ruangan, tahun perolehan, harga perolehan, kondisi dari status, tanggal kalibrasi terakhir, berlaku s.d.) dan diberi penanda eksplisit di UI bahwa format kolom bersifat sementara menunggu konfirmasi RS mitra.
+
+
