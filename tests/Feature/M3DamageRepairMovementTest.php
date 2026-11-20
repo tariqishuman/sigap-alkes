@@ -280,8 +280,15 @@ describe('RepairService & RepairPolicy (PRD §F3 & §F4)', function () {
         $damageService = app(DamageReportService::class);
         $repairService = app(RepairService::class);
 
-        $report1 = $damageService->report(['equipment_id' => $equipment->id, 'complaint' => 'Keluhan 1'], $this->kepalaIcu);
-        $report2 = $damageService->report(['equipment_id' => $equipment->id, 'complaint' => 'Keluhan 2'], $this->kepalaIcu);
+        $report1 = $damageService->report(['equipment_id' => $equipment->id, 'complaint' => 'Keluhan pertama pada alat'], $this->kepalaIcu);
+        $report2 = DamageReport::create([
+            'equipment_id' => $equipment->id,
+            'reported_by' => $this->kepalaIcu->id,
+            'reported_at' => now(),
+            'complaint' => 'Keluhan kedua langsung di database',
+            'is_safe_to_use' => true,
+            'status' => DamageReportStatus::Open,
+        ]);
 
         $repairService->start([
             'damage_report_id' => $report1->id,
@@ -335,7 +342,7 @@ describe('RepairService & RepairPolicy (PRD §F3 & §F4)', function () {
 
     it('validates finished_at >= started_at and locks finished repairs from editing or deleting', function () {
         $equipment = makeM3Equipment($this->typeNonCalibrated, $this->icuRoom, 'ICU-REP-006');
-        $report = app(DamageReportService::class)->report(['equipment_id' => $equipment->id, 'complaint' => 'Error'], $this->kepalaIcu);
+        $report = app(DamageReportService::class)->report(['equipment_id' => $equipment->id, 'complaint' => 'Error pada sensor tekanan'], $this->kepalaIcu);
         $repairService = app(RepairService::class);
 
         expect(fn () => $repairService->start([
@@ -508,6 +515,7 @@ describe('Filament UI, RBAC & Public QR Privacy (M3)', function () {
             ->fillForm([
                 'equipment_id' => $icuEq->id,
                 'reported_at' => now()->format('Y-m-d H:i:s'),
+                'is_safe_to_use' => 1,
                 'complaint' => 'Tombol start tidak responsif',
             ])
             ->call('create')

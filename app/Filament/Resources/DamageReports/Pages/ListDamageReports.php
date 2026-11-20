@@ -33,6 +33,10 @@ class ListDamageReports extends ListRecords
         return [
             'all' => Tab::make('Semua')
                 ->badge((clone $baseQuery())->count()),
+            'pending_verification' => Tab::make('Menunggu verifikasi')
+                ->badge((clone $baseQuery())->where('status', DamageReportStatus::PendingVerification)->count())
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', DamageReportStatus::PendingVerification)),
             'open' => Tab::make('Terbuka')
                 ->badge((clone $baseQuery())->where('status', DamageReportStatus::Open)->count())
                 ->badgeColor('danger')

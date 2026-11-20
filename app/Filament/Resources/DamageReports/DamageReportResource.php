@@ -42,7 +42,10 @@ class DamageReportResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $open = static::getEloquentQuery()
-            ->where('status', DamageReportStatus::Open)
+            ->whereIn('status', [
+                DamageReportStatus::Open,
+                DamageReportStatus::PendingVerification,
+            ])
             ->count();
 
         return $open > 0 ? (string) $open : null;
@@ -58,6 +61,9 @@ class DamageReportResource extends Resource
         $query = parent::getEloquentQuery()->with([
             'equipment.room',
             'reportedByUser',
+            'verifiedByUser',
+            'closedByUser',
+            'notes.reportedByUser',
             'repair.technician',
             'repair.repairSpareParts',
         ]);

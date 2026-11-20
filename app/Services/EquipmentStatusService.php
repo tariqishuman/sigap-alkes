@@ -98,6 +98,73 @@ class EquipmentStatusService
     }
 
     /**
+     * Trigger: reported_unsafe (Milestone R3).
+     * Moves equipment from FitForUse, CalibrationDue, Overdue, or UnderTesting to Unfit.
+     * Leaves UnderRepair and Unfit unchanged (returns null).
+     */
+    public function reportUnsafe(
+        Equipment $equipment,
+        ?int $changedBy = null,
+        string $reason = 'Dilaporkan tidak aman dipakai',
+    ): ?StatusHistory {
+        $allowedFrom = [
+            EquipmentStatus::FitForUse,
+            EquipmentStatus::CalibrationDue,
+            EquipmentStatus::Overdue,
+            EquipmentStatus::UnderTesting,
+        ];
+
+        return DB::transaction(function () use ($equipment, $allowedFrom, $reason, $changedBy): ?StatusHistory {
+            $locked = Equipment::query()->whereKey($equipment->id)->lockForUpdate()->firstOrFail();
+
+            if (! in_array($locked->status, $allowedFrom, true)) {
+                return null;
+            }
+
+            return $this->transition($equipment, $allowedFrom, EquipmentStatus::Unfit, $reason, $changedBy);
+        });
+    }
+
+    /**
+     * Restore equipment marked Unfit by a damage report that was closed without repair (e.g. false alarm).
+     * Evaluates calibration status so valid certificates (>30 days) return to FitForUse,
+     * H-30 or missing certificate to CalibrationDue, and expired certificates to Overdue.
+     */
+    public function restoreAfterCloseWithoutRepair(
+        Equipment $equipment,
+        ?int $changedBy = null,
+        string $reason = 'Laporan ditutup tanpa perbaikan',
+    ): ?StatusHistory {
+        $equipment->loadMissing('equipmentType');
+
+        return DB::transaction(function () use ($equipment, $reason, $changedBy): ?StatusHistory {
+            $locked = Equipment::query()->whereKey($equipment->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== EquipmentStatus::Unfit) {
+                return null;
+            }
+
+            if (! $equipment->equipmentType->requires_calibration) {
+                return $this->transition($equipment, [EquipmentStatus::Unfit], EquipmentStatus::FitForUse, $reason, $changedBy);
+            }
+
+            $validUntil = $equipment->latestValidCalibration()->first()?->valid_until;
+
+            if (! $validUntil) {
+                $target = EquipmentStatus::CalibrationDue;
+            } elseif (today()->gt($validUntil)) {
+                $target = EquipmentStatus::Overdue;
+            } elseif (today()->gte($validUntil->copy()->subDays(30))) {
+                $target = EquipmentStatus::CalibrationDue;
+            } else {
+                $target = EquipmentStatus::FitForUse;
+            }
+
+            return $this->transition($equipment, [EquipmentStatus::Unfit], $target, $reason, $changedBy);
+        });
+    }
+
+    /**
      * The single place that writes a status change. Each public method above is one
      * row of the PRD §F4 table and declares the statuses it may start from. The current
      * status is re-read under a lock, so two simultaneous requests cannot both apply it.

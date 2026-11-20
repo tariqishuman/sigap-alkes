@@ -31,12 +31,28 @@ class DamageReportedNotification extends Notification
         $roomName = $equipment?->room?->name ?? '-';
         $reporterName = $this->damageReport->reportedByUser?->name ?? 'Pengguna';
 
-        $body = "Laporan kerusakan baru untuk {$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} oleh {$reporterName}.";
+        if ($this->damageReport->isPendingVerification()) {
+            $title = 'Verifikasi laporan tidak aman dipakai';
+            $body = "{$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} dilaporkan tidak aman dipakai oleh {$reporterName} (menunggu verifikasi).";
+        } elseif (! $this->damageReport->is_safe_to_use) {
+            $title = 'Alat dilaporkan tidak aman dipakai';
+            $body = "{$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} dilaporkan tidak aman dipakai oleh {$reporterName}.";
+        } else {
+            $title = 'Laporan kerusakan baru';
+            $body = "Laporan kerusakan baru untuk {$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} oleh {$reporterName}.";
+        }
 
-        return FilamentNotification::make()
-            ->title('Laporan kerusakan baru')
-            ->body($body)
-            ->warning()
+        $notification = FilamentNotification::make()
+            ->title($title)
+            ->body($body);
+
+        if (! $this->damageReport->is_safe_to_use && ! $this->damageReport->isPendingVerification()) {
+            $notification->danger();
+        } else {
+            $notification->warning();
+        }
+
+        return $notification
             ->actions([
                 Action::make('view')
                     ->label('Lihat laporan')
