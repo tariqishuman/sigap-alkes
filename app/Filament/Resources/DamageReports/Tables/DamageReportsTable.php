@@ -104,6 +104,11 @@ class DamageReportsTable
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->visible(fn (DamageReport $record): bool => DamageReportResource::canEdit($record))
                     ->url(fn (DamageReport $record): string => DamageReportResource::getUrl('edit', ['record' => $record])),
-            ]);
+            ])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-repair',
+                'title' => 'Tidak ada kerusakan. Semua alat aman.',
+                'description' => 'Belum ada laporan kerusakan yang tercatat untuk filter ini.',
+            ]));
     }
 }

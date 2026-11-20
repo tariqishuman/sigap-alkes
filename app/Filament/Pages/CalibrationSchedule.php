@@ -110,7 +110,12 @@ class CalibrationSchedule extends Page implements HasTable
                 ExportAction::make()
                     ->label('Ekspor')
                     ->exporter(CalibrationScheduleExporter::class),
-            ]);
+            ])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-calibration',
+                'title' => 'Tidak ada jadwal kalibrasi',
+                'description' => 'Tidak ditemukan alat wajib kalibrasi pada filter jadwal saat ini.',
+            ]));
     }
 
     /**

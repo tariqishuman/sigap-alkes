@@ -33,12 +33,16 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('SIGAP-Alkes')
             ->brandLogo(fn () => view('filament.brand'))
             ->brandLogoHeight('2.25rem')
-            ->favicon(asset('images/logo-its.png'))
+            ->favicon(asset('images/brand/favicon.svg'))
             ->login()
             ->darkMode(false)
             ->font('Poppins')
             ->sidebarCollapsibleOnDesktop()
             ->databaseNotifications()
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
+                fn () => view('filament.auth.login-illustration'),
+            )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn () => view('components.watermark-kelompok2'),

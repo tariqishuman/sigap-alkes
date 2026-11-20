@@ -137,7 +137,12 @@ class AssetValueReport extends Page implements HasTable
                 SelectFilter::make('equipment_type_id')
                     ->label('Jenis Alat')
                     ->relationship('equipmentType', 'name'),
-            ]);
+            ])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-report',
+                'title' => 'Tidak ada data nilai aset',
+                'description' => 'Tidak ada alat aktif yang sesuai dengan filter saat ini.',
+            ]));
     }
 
     public function downloadPdf(): StreamedResponse

@@ -40,6 +40,11 @@ class MovementsRelationManager extends RelationManager
             ])
             ->headerActions([])
             ->recordActions([])
-            ->toolbarActions([]);
+            ->toolbarActions([])
+            ->emptyState(view('filament.tables.empty-state', [
+                'image' => 'empty-movement',
+                'title' => 'Belum ada mutasi alat',
+                'description' => 'Alat ini belum pernah dipindahkan ke ruangan lain.',
+            ]));
     }
 }
