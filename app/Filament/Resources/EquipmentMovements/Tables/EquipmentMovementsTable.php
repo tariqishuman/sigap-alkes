@@ -18,13 +18,11 @@ class EquipmentMovementsTable
                     ->label('Tanggal Mutasi')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
-                TextColumn::make('equipment.inventory_code')
-                    ->label('Kode Inventaris')
-                    ->fontFamily('mono')
-                    ->searchable(),
                 TextColumn::make('equipment.name')
                     ->label('Alat')
-                    ->searchable(),
+                    ->weight('medium')
+                    ->searchable(['name', 'inventory_code'])
+                    ->description(fn ($record): string => $record->equipment?->inventory_code ?? '-'),
                 TextColumn::make('fromRoom.name')
                     ->label('Dari Ruangan'),
                 TextColumn::make('toRoom.name')

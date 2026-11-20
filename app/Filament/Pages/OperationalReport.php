@@ -163,15 +163,12 @@ class OperationalReport extends Page implements HasTable
             ->query(fn (): Builder => $this->baseEquipmentQuery())
             ->defaultSort('inventory_code')
             ->columns([
-                TextColumn::make('inventory_code')
-                    ->label('Kode Inventaris')
-                    ->fontFamily('mono')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('name')
                     ->label('Nama Alat')
-                    ->searchable()
-                    ->sortable(),
+                    ->weight('medium')
+                    ->searchable(['name', 'inventory_code'])
+                    ->sortable()
+                    ->description(fn (Equipment $record): string => $record->inventory_code),
                 TextColumn::make('room.name')
                     ->label('Ruangan'),
                 TextColumn::make('status')
@@ -179,6 +176,7 @@ class OperationalReport extends Page implements HasTable
                     ->badge(),
                 TextColumn::make('total_hours')
                     ->label('Total Jam Operasi')
+                    ->alignEnd()
                     ->state(function (Equipment $record): string {
                         [$start, $end] = $this->getSelectedPeriod();
                         $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);
@@ -187,6 +185,7 @@ class OperationalReport extends Page implements HasTable
                     }),
                 TextColumn::make('downtime_hours')
                     ->label('Downtime')
+                    ->alignEnd()
                     ->state(function (Equipment $record): string {
                         [$start, $end] = $this->getSelectedPeriod();
                         $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);
@@ -196,6 +195,7 @@ class OperationalReport extends Page implements HasTable
                 TextColumn::make('uptime_percent')
                     ->label('Uptime')
                     ->weight('bold')
+                    ->alignEnd()
                     ->state(function (Equipment $record): string {
                         [$start, $end] = $this->getSelectedPeriod();
                         $metrics = app(UptimeCalculator::class)->forEquipment($record, $start, $end);

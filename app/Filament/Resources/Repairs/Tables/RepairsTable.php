@@ -6,6 +6,7 @@ use App\Filament\Resources\Repairs\RepairResource;
 use App\Models\Repair;
 use App\Services\RepairService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Textarea;
@@ -22,32 +23,34 @@ class RepairsTable
     {
         return $table
             ->defaultSort('started_at', 'desc')
+            ->recordUrl(fn (Repair $record): ?string => RepairResource::canView($record)
+                ? RepairResource::getUrl('view', ['record' => $record])
+                : null)
             ->columns([
                 TextColumn::make('started_at')
-                    ->label('Waktu Mulai')
+                    ->label('Waktu')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
-                TextColumn::make('finished_at')
-                    ->label('Waktu Selesai')
-                    ->dateTime('d M Y H:i')
-                    ->placeholder('Berlangsung')
-                    ->sortable(),
-                TextColumn::make('damageReport.equipment.inventory_code')
-                    ->label('Kode Inventaris')
-                    ->fontFamily('mono')
-                    ->searchable(),
+                    ->sortable()
+                    ->description(fn (Repair $record): string => $record->finished_at
+                        ? 'Selesai: '.$record->finished_at->translatedFormat('d M Y H:i')
+                        : 'Masih berlangsung'),
                 TextColumn::make('damageReport.equipment.name')
                     ->label('Alat')
-                    ->searchable(),
+                    ->weight('medium')
+                    ->limit(24)
+                    ->searchable()
+                    ->description(fn (Repair $record): string => $record->damageReport?->equipment?->inventory_code ?? '-'),
                 TextColumn::make('technician.name')
                     ->label('Teknisi')
+                    ->limit(18)
                     ->placeholder('-'),
                 TextColumn::make('damageReport.status')
-                    ->label('Status Laporan')
+                    ->label('Status')
                     ->badge(),
                 TextColumn::make('total_cost')
                     ->label('Total Biaya')
                     ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
+                    ->alignEnd()
                     ->state(fn (Repair $record): string => 'Rp'.number_format((float) $record->totalCost(), 0, ',', '.')),
             ])
             ->filters([
@@ -63,7 +66,7 @@ class RepairsTable
             ])
             ->recordActions([
                 Action::make('finish_repair')
-                    ->label('Tandai perbaikan selesai')
+                    ->label('Selesaikan')
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
                     ->visible(fn (Repair $record): bool => ! $record->isFinished() && RepairResource::canEdit($record))
@@ -84,13 +87,15 @@ class RepairsTable
                     ->action(function (Repair $record, array $data): void {
                         app(RepairService::class)->finish($record, $data, Auth::id());
                     }),
-                ViewAction::make()
-                    ->label('Detail'),
-                Action::make('edit')
-                    ->label('Ubah')
-                    ->icon(Heroicon::OutlinedPencilSquare)
-                    ->visible(fn (Repair $record): bool => RepairResource::canEdit($record))
-                    ->url(fn (Repair $record): string => RepairResource::getUrl('edit', ['record' => $record])),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->label('Detail'),
+                    Action::make('edit')
+                        ->label('Ubah')
+                        ->icon(Heroicon::OutlinedPencilSquare)
+                        ->visible(fn (Repair $record): bool => RepairResource::canEdit($record))
+                        ->url(fn (Repair $record): string => RepairResource::getUrl('edit', ['record' => $record])),
+                ])->tooltip('Aksi lainnya'),
             ])
             ->emptyState(view('filament.tables.empty-state', [
                 'image' => 'empty-repair',

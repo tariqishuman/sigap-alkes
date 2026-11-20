@@ -13,6 +13,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -39,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->darkMode(false)
             ->font('Poppins')
+            ->maxContentWidth(Width::Full)
             ->sidebarCollapsibleOnDesktop()
             ->databaseNotifications()
             ->renderHook(
@@ -50,7 +52,19 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('components.watermark-kelompok2'),
             )
             ->colors([
-                'primary' => Color::hex('#0E7C7B'),
+                'primary' => [
+                    50 => '#EEF6F5',
+                    100 => '#D5ECEA',
+                    200 => '#ADDAD6',
+                    300 => '#7BC2BC',
+                    400 => '#4BA69F',
+                    500 => '#0E7C7B',
+                    600 => '#0B6463',
+                    700 => '#09504F',
+                    800 => '#083F3E',
+                    900 => '#063231',
+                    950 => '#031E1E',
+                ],
                 'success' => Color::hex('#2E9E6B'),
                 'warning' => Color::hex('#E0A23B'),
                 'danger' => Color::hex('#D9534F'),

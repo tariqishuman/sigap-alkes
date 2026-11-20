@@ -88,22 +88,20 @@ class AssetValueReport extends Page implements HasTable
             )
             ->defaultSort('inventory_code')
             ->columns([
-                TextColumn::make('inventory_code')
-                    ->label('Kode Inventaris')
-                    ->fontFamily('mono')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('name')
-                    ->label('Nama Alat')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('room.name')
-                    ->label('Ruangan'),
+                    ->label('Alat')
+                    ->weight('medium')
+                    ->limit(28)
+                    ->searchable(['name', 'inventory_code'])
+                    ->sortable()
+                    ->description(fn (Equipment $record): string => "{$record->inventory_code} • ".($record->room?->name ?? '-')),
                 TextColumn::make('acquisition_cost')
                     ->label('Harga Perolehan')
+                    ->alignEnd()
                     ->formatStateUsing(fn ($state): string => 'Rp'.number_format((float) $state, 0, ',', '.')),
                 TextColumn::make('monthly_depreciation')
-                    ->label('Penyusutan per Bulan')
+                    ->label('Penyusutan / Bln')
+                    ->alignEnd()
                     ->state(fn (Equipment $record): string => 'Rp'.number_format(
                         (float) app(DepreciationCalculator::class)->calculateForEquipment($record)['monthly_depreciation'],
                         0,
@@ -113,6 +111,7 @@ class AssetValueReport extends Page implements HasTable
                 TextColumn::make('book_value')
                     ->label('Nilai Buku')
                     ->weight('bold')
+                    ->alignEnd()
                     ->state(fn (Equipment $record): string => 'Rp'.number_format(
                         (float) app(DepreciationCalculator::class)->calculateForEquipment($record)['book_value'],
                         0,
@@ -121,6 +120,7 @@ class AssetValueReport extends Page implements HasTable
                     )),
                 TextColumn::make('total_repair_cost')
                     ->label('Total Perbaikan')
+                    ->alignEnd()
                     ->state(fn (Equipment $record): string => 'Rp'.number_format((float) $record->totalRepairCost(), 0, ',', '.')),
                 TextColumn::make('replacement_flag')
                     ->label('Indikator')

@@ -8,6 +8,7 @@ use App\Filament\Resources\Repairs\RepairResource;
 use App\Models\DamageReport;
 use App\Models\Room;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -27,25 +28,27 @@ class DamageReportsTable
         ];
 
         if (! $forEquipmentRelation) {
-            $columns[] = TextColumn::make('equipment.inventory_code')
-                ->label('Kode Inventaris')
-                ->fontFamily('mono')
-                ->searchable();
             $columns[] = TextColumn::make('equipment.name')
                 ->label('Alat')
-                ->searchable();
-            $columns[] = TextColumn::make('equipment.room.name')
-                ->label('Ruangan');
+                ->weight('medium')
+                ->limit(28)
+                ->searchable(['name', 'inventory_code'])
+                ->description(fn (DamageReport $record): string => sprintf(
+                    '%s • %s',
+                    $record->equipment?->inventory_code ?? '-',
+                    $record->equipment?->room?->name ?? '-',
+                ));
         }
 
         $columns = array_merge($columns, [
             TextColumn::make('complaint')
                 ->label('Keluhan')
-                ->limit(60)
+                ->limit(38)
                 ->wrap()
                 ->searchable(),
             TextColumn::make('reportedByUser.name')
                 ->label('Pelapor')
+                ->limit(18)
                 ->placeholder('-'),
             TextColumn::make('status')
                 ->label('Status')
@@ -89,23 +92,25 @@ class DamageReportsTable
             ->filters($filters)
             ->recordActions([
                 Action::make('start_repair')
-                    ->label('Mulai perbaikan')
+                    ->label('Perbaiki')
                     ->icon(Heroicon::OutlinedWrenchScrewdriver)
                     ->color('primary')
                     ->visible(fn (DamageReport $record): bool => $record->isOpen()
                         && ($record->equipment?->is_active ?? false)
                         && RepairResource::canCreate())
                     ->url(fn (DamageReport $record): string => RepairResource::getUrl('create', ['damage_report_id' => $record->id])),
-                Action::make('view_repair')
-                    ->label('Lihat perbaikan')
-                    ->icon(Heroicon::OutlinedEye)
-                    ->visible(fn (DamageReport $record): bool => $record->repair !== null && RepairResource::canView($record->repair))
-                    ->url(fn (DamageReport $record): string => RepairResource::getUrl('view', ['record' => $record->repair])),
-                Action::make('edit')
-                    ->label('Ubah')
-                    ->icon(Heroicon::OutlinedPencilSquare)
-                    ->visible(fn (DamageReport $record): bool => DamageReportResource::canEdit($record))
-                    ->url(fn (DamageReport $record): string => DamageReportResource::getUrl('edit', ['record' => $record])),
+                ActionGroup::make([
+                    Action::make('view_repair')
+                        ->label('Lihat perbaikan')
+                        ->icon(Heroicon::OutlinedEye)
+                        ->visible(fn (DamageReport $record): bool => $record->repair !== null && RepairResource::canView($record->repair))
+                        ->url(fn (DamageReport $record): string => RepairResource::getUrl('view', ['record' => $record->repair])),
+                    Action::make('edit')
+                        ->label('Ubah keluhan')
+                        ->icon(Heroicon::OutlinedPencilSquare)
+                        ->visible(fn (DamageReport $record): bool => DamageReportResource::canEdit($record))
+                        ->url(fn (DamageReport $record): string => DamageReportResource::getUrl('edit', ['record' => $record])),
+                ])->tooltip('Aksi lainnya'),
             ])
             ->emptyState(view('filament.tables.empty-state', [
                 'image' => 'empty-repair',

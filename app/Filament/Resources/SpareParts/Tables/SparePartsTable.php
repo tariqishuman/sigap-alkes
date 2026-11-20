@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SpareParts\Tables;
 use App\Models\SparePart;
 use App\Services\SparePartStockService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -74,41 +75,43 @@ class SparePartsTable
                             ->success()
                             ->send();
                     }),
-                Action::make('adjust_stock')
-                    ->label('Sesuaikan stok')
-                    ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
-                    ->color('gray')
-                    ->visible(fn (): bool => Auth::user()?->can('Update:SparePart') ?? false)
-                    ->fillForm(fn (SparePart $record): array => [
-                        'new_stock' => $record->stock,
-                    ])
-                    ->form([
-                        TextInput::make('new_stock')
-                            ->label('Stok Aktual (Hasil Opname)')
-                            ->integer()
-                            ->minValue(0)
-                            ->required(),
-                        Textarea::make('notes')
-                            ->label('Alasan Penyesuaian')
-                            ->rows(3)
-                            ->required(),
-                    ])
-                    ->action(function (SparePart $record, array $data): void {
-                        app(SparePartStockService::class)->adjust(
-                            $record,
-                            (int) $data['new_stock'],
-                            (string) $data['notes'],
-                            Auth::id(),
-                        );
+                ActionGroup::make([
+                    Action::make('adjust_stock')
+                        ->label('Sesuaikan stok')
+                        ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
+                        ->color('gray')
+                        ->visible(fn (): bool => Auth::user()?->can('Update:SparePart') ?? false)
+                        ->fillForm(fn (SparePart $record): array => [
+                            'new_stock' => $record->stock,
+                        ])
+                        ->form([
+                            TextInput::make('new_stock')
+                                ->label('Stok Aktual (Hasil Opname)')
+                                ->integer()
+                                ->minValue(0)
+                                ->required(),
+                            Textarea::make('notes')
+                                ->label('Alasan Penyesuaian')
+                                ->rows(3)
+                                ->required(),
+                        ])
+                        ->action(function (SparePart $record, array $data): void {
+                            app(SparePartStockService::class)->adjust(
+                                $record,
+                                (int) $data['new_stock'],
+                                (string) $data['notes'],
+                                Auth::id(),
+                            );
 
-                        Notification::make()
-                            ->title('Stok berhasil disesuaikan')
-                            ->success()
-                            ->send();
-                    }),
-                ViewAction::make()->label('Detail'),
-                EditAction::make()->label('Ubah'),
-                DeleteAction::make()->label('Hapus'),
+                            Notification::make()
+                                ->title('Stok berhasil disesuaikan')
+                                ->success()
+                                ->send();
+                        }),
+                    ViewAction::make()->label('Riwayat & detail'),
+                    EditAction::make()->label('Ubah'),
+                    DeleteAction::make()->label('Hapus'),
+                ])->tooltip('Aksi lainnya'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
