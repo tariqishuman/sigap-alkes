@@ -21,6 +21,7 @@ use App\Services\EquipmentStatusService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -642,6 +643,7 @@ describe('Filament pages', function () {
     });
 
     it('records a calibration from the form, prefilled from the equipment page', function () {
+        Storage::fake('local');
         $equipment = makeEquipment();
 
         Livewire::actingAs($this->teknisi)
@@ -654,6 +656,7 @@ describe('Filament pages', function () {
                 'tested_at' => '2027-01-10',
                 'certificate_number' => 'CERT-200',
                 'valid_until' => '2028-01-10',
+                'certificate_path' => UploadedFile::fake()->create('sertifikat.pdf', 100, 'application/pdf'),
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -663,6 +666,7 @@ describe('Filament pages', function () {
     });
 
     it('shows service validation errors under the form fields, in Indonesian', function () {
+        Storage::fake('local');
         $equipment = makeEquipment();
 
         Livewire::actingAs($this->teknisi)
@@ -674,6 +678,7 @@ describe('Filament pages', function () {
                 'tested_at' => '2027-01-10',
                 'certificate_number' => 'CERT-200',
                 'valid_until' => '2029-01-10',
+                'certificate_path' => UploadedFile::fake()->create('sertifikat.pdf', 100, 'application/pdf'),
             ])
             ->call('create')
             ->assertHasFormErrors(['valid_until'])

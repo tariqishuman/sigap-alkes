@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CalibrationCertificateController;
 use App\Http\Controllers\DamageReportPhotoController;
 use App\Http\Controllers\PublicEquipmentController;
 use Illuminate\Support\Facades\Route;
@@ -20,3 +21,7 @@ Route::get('/admin/damage-reports/{damageReport}/photos/{index}', [DamageReportP
     ->middleware('auth')
     ->whereNumber('index')
     ->name('damage-reports.photo');
+
+Route::get('/admin/calibrations/{calibration}/certificate', [CalibrationCertificateController::class, 'show'])
+    ->middleware('auth')
+    ->name('calibrations.certificate');

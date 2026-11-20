@@ -10,7 +10,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Storage;
 
 class CalibrationsTable
 {
@@ -44,6 +43,12 @@ class CalibrationsTable
                     ->date('d M Y')
                     ->placeholder('-')
                     ->sortable(),
+                TextColumn::make('certificate_path')
+                    ->label('File sertifikat')
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? 'PDF tersedia' : 'Belum diunggah')
+                    ->badge()
+                    ->color(fn (?string $state): string => filled($state) ? 'success' : 'gray')
+                    ->placeholder('Belum diunggah'),
                 TextColumn::make('recordedByUser.name')
                     ->label('Dicatat oleh')
                     ->placeholder('-')
@@ -58,11 +63,12 @@ class CalibrationsTable
                     ->relationship('testingInstitution', 'name'),
             ])
             ->recordActions([
-                Action::make('download_certificate')
-                    ->label('Unduh sertifikat')
-                    ->icon(Heroicon::OutlinedArrowDownTray)
+                Action::make('view_certificate')
+                    ->label('Lihat sertifikat')
+                    ->icon(Heroicon::OutlinedDocumentText)
                     ->visible(fn (Calibration $record): bool => filled($record->certificate_path))
-                    ->action(fn (Calibration $record) => Storage::disk('local')->download($record->certificate_path)),
+                    ->url(fn (Calibration $record): string => route('calibrations.certificate', $record))
+                    ->openUrlInNewTab(),
                 Action::make('edit')
                     ->label('Ubah')
                     ->icon(Heroicon::OutlinedPencilSquare)

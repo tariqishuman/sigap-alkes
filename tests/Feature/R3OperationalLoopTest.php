@@ -597,3 +597,57 @@ describe('R3 Bagian 4 — Pemeliharaan preventif (PM)', function () {
             ->and($this->admin->can('delete', $icuPm))->toBeFalse();
     });
 });
+
+describe('R3 Bagian 5 — Sertifikat kalibrasi (PDF)', function () {
+    it('serves calibration PDF certificate only to authorized users and keeps it off public QR page', function () {
+        Storage::fake('local');
+        Storage::disk('local')->put('calibration-certificates/cert-r3.pdf', '%PDF-1.4 fake pdf content');
+
+        $otherInstitution = TestingInstitution::create([
+            'name' => 'Lab Swasta Lain',
+            'kind' => TestingInstitutionKind::Swasta,
+        ]);
+
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-CERT-01', EquipmentStatus::FitForUse);
+        $calibration = Calibration::create([
+            'equipment_id' => $eq->id,
+            'testing_institution_id' => $this->institution->id,
+            'tested_at' => today()->subWeek(),
+            'result' => CalibrationResult::Pass,
+            'certificate_number' => 'CERT-R3-001',
+            'valid_until' => today()->addMonths(12),
+            'certificate_path' => 'calibration-certificates/cert-r3.pdf',
+            'recorded_by' => $this->teknisi->id,
+        ]);
+
+        $certUrl = route('calibrations.certificate', $calibration);
+
+        // Public QR page does NOT link certificate file
+        $this->get(route('public.equipment.show', ['qr_token' => $eq->qr_token]))
+            ->assertOk()
+            ->assertDontSee($certUrl)
+            ->assertDontSee('cert-r3.pdf');
+
+        // Unauthenticated cannot download
+        $this->get($certUrl)->assertRedirect();
+
+        // Teknisi & Kepala Ruangan ICU can view
+        $this->actingAs($this->teknisi)->get($certUrl)->assertOk();
+        $this->actingAs($this->kepalaIcu)->get($certUrl)->assertOk();
+
+        // Kepala Ruangan IGD (different room) cannot view
+        $this->actingAs($this->kepalaIgd)->get($certUrl)->assertForbidden();
+
+        // Badan kalibrasi of same institution can view & update; other institution cannot
+        $badanSame = User::factory()->create(['testing_institution_id' => $this->institution->id]);
+        $badanSame->assignRole(UserRole::BadanKalibrasi->value);
+
+        $badanOther = User::factory()->create(['testing_institution_id' => $otherInstitution->id]);
+        $badanOther->assignRole(UserRole::BadanKalibrasi->value);
+
+        $this->actingAs($badanSame)->get($certUrl)->assertOk();
+        $this->actingAs($badanOther)->get($certUrl)->assertForbidden();
+        expect($badanSame->can('update', $calibration))->toBeTrue()
+            ->and($badanOther->can('update', $calibration))->toBeFalse();
+    });
+});
