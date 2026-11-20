@@ -101,10 +101,10 @@ class AssetValueReport extends Page implements HasTable
                 TextColumn::make('acquisition_cost')
                     ->label('Harga Perolehan')
                     ->formatStateUsing(fn ($state): string => 'Rp'.number_format((float) $state, 0, ',', '.')),
-                TextColumn::make('annual_depreciation')
-                    ->label('Penyusutan / Th')
+                TextColumn::make('monthly_depreciation')
+                    ->label('Penyusutan per Bulan')
                     ->state(fn (Equipment $record): string => 'Rp'.number_format(
-                        (float) app(DepreciationCalculator::class)->calculateForEquipment($record)['annual_depreciation'],
+                        (float) app(DepreciationCalculator::class)->calculateForEquipment($record)['monthly_depreciation'],
                         0,
                         ',',
                         '.',

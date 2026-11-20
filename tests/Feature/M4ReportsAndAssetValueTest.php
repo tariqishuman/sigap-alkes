@@ -92,13 +92,17 @@ function makeM4Equipment(
 }
 
 describe('DepreciationCalculator & Replacement Threshold (PRD §F6)', function () {
-    it('passes the mandatory PRD §F6 straight-line depreciation test case (30 jt / 3 jt / 5 th)', function () {
+    it('passes the mandatory PRD §F6 straight-line monthly depreciation test case (30 jt / 3 jt / 5 th)', function () {
         $calc = app(DepreciationCalculator::class);
 
+        $at1 = $calc->calculate('30000000.00', '3000000.00', 5, 1);
         $at36 = $calc->calculate('30000000.00', '3000000.00', 5, 36);
         $at72 = $calc->calculate('30000000.00', '3000000.00', 5, 72);
 
-        expect($at36['annual_depreciation'])->toBe('5400000.00')
+        expect($at1['monthly_depreciation'])->toBe('450000.00')
+            ->and($at1['book_value'])->toBe('29550000.00')
+            ->and($at36['monthly_depreciation'])->toBe('450000.00')
+            ->and($at36['annual_depreciation'])->toBe('5400000.00')
             ->and($at36['accumulated_depreciation'])->toBe('16200000.00')
             ->and($at36['book_value'])->toBe('13800000.00')
             ->and($at72['book_value'])->toBe('3000000.00');

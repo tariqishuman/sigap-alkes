@@ -126,12 +126,12 @@ class EquipmentInfolist
                         TextEntry::make('acquisition_cost')
                             ->label('Harga Perolehan')
                             ->formatStateUsing(fn ($state): string => 'Rp'.number_format((float) $state, 0, ',', '.')),
-                        TextEntry::make('annual_depreciation_display')
-                            ->label('Penyusutan / Tahun')
+                        TextEntry::make('monthly_depreciation_display')
+                            ->label('Penyusutan per Bulan')
                             ->state(function (Equipment $record): string {
                                 $calc = app(DepreciationCalculator::class)->calculateForEquipment($record);
 
-                                return 'Rp'.number_format((float) $calc['annual_depreciation'], 0, ',', '.');
+                                return 'Rp'.number_format((float) $calc['monthly_depreciation'], 0, ',', '.');
                             }),
                         TextEntry::make('accumulated_depreciation_display')
                             ->label('Akumulasi Penyusutan')
