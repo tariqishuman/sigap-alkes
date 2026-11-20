@@ -227,3 +227,68 @@ it('shows each role only its designated dashboard widgets and hides all cost/ass
         true,
     ],
 ]);
+
+it('computes non-zero previous-month overdue count and accurate delta when equipment was already overdue last month', function () {
+    $this->seed(RoleAndPermissionSeeder::class);
+    Cache::flush();
+
+    $room = Room::create(['name' => 'Ruang Tren Uji', 'building' => 'Gedung B', 'floor' => '1']);
+    $type = EquipmentType::create(['name' => 'Infusion Pump Uji', 'requires_calibration' => true, 'calibration_interval_months' => 12, 'useful_life_years' => 5]);
+    $inst = TestingInstitution::create(['name' => 'BPFK Tren', 'kind' => 'bpafk', 'accreditation_number' => 'KAN-TREN-1']);
+
+    $lastMonthEnd = now()->startOfMonth()->subMonthNoOverflow()->endOfMonth();
+
+    // Eq 1: expired 10 days BEFORE last month end -> overdue both last month AND this month
+    $eq1 = Equipment::create([
+        'inventory_code' => 'TRN-001',
+        'name' => 'Pump Lama Terlambat',
+        'equipment_type_id' => $type->id,
+        'room_id' => $room->id,
+        'is_active' => true,
+        'acquisition_date' => now()->subYears(2)->toDateString(),
+        'acquisition_cost' => 10_000_000,
+        'residual_value' => 1_000_000,
+    ]);
+    $eq1->forceFill(['status' => EquipmentStatus::Overdue, 'created_at' => now()->subYear()])->saveQuietly();
+    Calibration::create([
+        'equipment_id' => $eq1->id,
+        'testing_institution_id' => $inst->id,
+        'tested_at' => $lastMonthEnd->copy()->subYear()->subDays(10)->toDateString(),
+        'valid_until' => $lastMonthEnd->copy()->subDays(10)->toDateString(),
+        'result' => CalibrationResult::Pass,
+        'certificate_number' => 'CERT-TRN-1',
+    ]);
+
+    // Eq 2: expired 2 days ago (in current month) -> valid at last month end, overdue this month
+    $eq2 = Equipment::create([
+        'inventory_code' => 'TRN-002',
+        'name' => 'Pump Baru Terlambat',
+        'equipment_type_id' => $type->id,
+        'room_id' => $room->id,
+        'is_active' => true,
+        'acquisition_date' => now()->subYears(2)->toDateString(),
+        'acquisition_cost' => 10_000_000,
+        'residual_value' => 1_000_000,
+    ]);
+    $eq2->forceFill(['status' => EquipmentStatus::Overdue, 'created_at' => now()->subYear()])->saveQuietly();
+    Calibration::create([
+        'equipment_id' => $eq2->id,
+        'testing_institution_id' => $inst->id,
+        'tested_at' => now()->subYear()->subDays(2)->toDateString(),
+        'valid_until' => now()->subDays(2)->toDateString(),
+        'result' => CalibrationResult::Pass,
+        'certificate_number' => 'CERT-TRN-2',
+    ]);
+
+    $service = app(DashboardMetricsService::class);
+    $top = $service->executiveTopMetrics('monthly', now()->toDateString(), $room->id);
+
+    $overdueSpark = $top['overdue']['sparkline'];
+    $prevMonthOverdue = $overdueSpark[count($overdueSpark) - 2];
+
+    // Last month had 1 overdue (eq1), this month has 2 overdue (eq1 + eq2) => delta = +1
+    expect($prevMonthOverdue)->toBe(1)
+        ->and($top['overdue']['count'])->toBe(2)
+        ->and($top['overdue']['delta'])->toBe(1)
+        ->and($top['overdue']['delta_label'])->toBe('1 alat');
+});

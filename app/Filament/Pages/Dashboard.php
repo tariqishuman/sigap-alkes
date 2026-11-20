@@ -21,9 +21,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
+use Filament\Pages\Dashboard\Concerns\HasFiltersAction;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -31,7 +29,7 @@ use UnitEnum;
 
 class Dashboard extends BaseDashboard
 {
-    use HasFiltersForm;
+    use HasFiltersAction;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 
@@ -62,49 +60,9 @@ class Dashboard extends BaseDashboard
         ];
     }
 
-    public function filtersForm(Schema $schema): Schema
-    {
-        if (! $this->isExecutiveRole()) {
-            return $schema->components([]);
-        }
-
-        return $schema->components([
-            Section::make()
-                ->columnSpanFull()
-                ->columns([
-                    'default' => 1,
-                    'sm' => 3,
-                ])
-                ->extraAttributes(['class' => 'sigap-dashboard-filters'])
-                ->schema([
-                    DatePicker::make('date')
-                        ->label('Tanggal acuan')
-                        ->default(now()->toDateString())
-                        ->native(false)
-                        ->displayFormat('d M Y')
-                        ->live(),
-                    Select::make('period')
-                        ->label('Periode')
-                        ->options([
-                            'monthly' => 'Bulanan',
-                            'weekly' => 'Mingguan',
-                            'daily' => 'Harian',
-                        ])
-                        ->default('monthly')
-                        ->selectablePlaceholder(false)
-                        ->live(),
-                    Select::make('room_id')
-                        ->label('Ruangan')
-                        ->placeholder('Semua ruangan')
-                        ->options(fn (): array => Room::query()->orderBy('name')->pluck('name', 'id')->all())
-                        ->searchable()
-                        ->preload()
-                        ->live(),
-                ]),
-        ]);
-    }
-
     /**
+     * Compact pill filter & export actions in the page header (§2.3 & §4.1).
+     *
      * @return array<Action>
      */
     protected function getHeaderActions(): array
@@ -113,7 +71,74 @@ class Dashboard extends BaseDashboard
             return [];
         }
 
+        $period = (string) ($this->filters['period'] ?? 'monthly');
+        $date = is_string($this->filters['date'] ?? null) ? $this->filters['date'] : now()->toDateString();
+        $roomId = filled($this->filters['room_id'] ?? null) ? (int) $this->filters['room_id'] : null;
+
+        $window = app(DashboardMetricsService::class)->resolvePeriod($period, $date);
+        $periodName = match ($period) {
+            'daily' => 'Harian',
+            'weekly' => 'Mingguan',
+            default => 'Bulanan',
+        };
+        $roomName = $roomId ? (Room::find($roomId)?->name ?? 'Ruangan') : 'Semua ruangan';
+
         return [
+            Action::make('filter_period')
+                ->label("{$window['label']}  |  {$periodName}")
+                ->icon(Heroicon::OutlinedCalendarDays)
+                ->color('gray')
+                ->modalHeading('Periode Ringkasan')
+                ->modalWidth('sm')
+                ->modalSubmitActionLabel('Terapkan')
+                ->fillForm([
+                    'date' => $date,
+                    'period' => $period,
+                ])
+                ->schema([
+                    DatePicker::make('date')
+                        ->label('Tanggal acuan')
+                        ->native(false)
+                        ->displayFormat('d M Y')
+                        ->required(),
+                    Select::make('period')
+                        ->label('Rentang periode')
+                        ->options([
+                            'monthly' => 'Bulanan',
+                            'weekly' => 'Mingguan',
+                            'daily' => 'Harian',
+                        ])
+                        ->selectablePlaceholder(false)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $this->filters['date'] = $data['date'] ?? now()->toDateString();
+                    $this->filters['period'] = $data['period'] ?? 'monthly';
+                }),
+
+            Action::make('filter_room')
+                ->label($roomName)
+                ->icon(Heroicon::OutlinedBuildingOffice)
+                ->color('gray')
+                ->modalHeading('Filter Ruangan')
+                ->modalWidth('sm')
+                ->modalSubmitActionLabel('Terapkan')
+                ->fillForm([
+                    'room_id' => $roomId,
+                ])
+                ->schema([
+                    Select::make('room_id')
+                        ->label('Ruangan')
+                        ->placeholder('Semua ruangan')
+                        ->options(fn (): array => Room::query()->orderBy('name')->pluck('name', 'id')->all())
+                        ->searchable()
+                        ->preload()
+                        ->nullable(),
+                ])
+                ->action(function (array $data): void {
+                    $this->filters['room_id'] = $data['room_id'] ?? null;
+                }),
+
             Action::make('export_pdf')
                 ->label('Ekspor')
                 ->icon(Heroicon::OutlinedArrowDownTray)

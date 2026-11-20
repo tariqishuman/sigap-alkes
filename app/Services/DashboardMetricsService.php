@@ -96,7 +96,13 @@ class DashboardMetricsService
             $activeEquipment = Equipment::query()
                 ->where('is_active', true)
                 ->when($roomId, fn (Builder $q) => $q->where('room_id', $roomId))
-                ->with(['room', 'statusHistories', 'latestValidCalibration'])
+                ->with([
+                    'room',
+                    'equipmentType',
+                    'statusHistories',
+                    'latestValidCalibration',
+                    'calibrations' => fn ($q) => $q->where('result', CalibrationResult::Pass),
+                ])
                 ->get();
 
             // 1. Total Alat Aktif + 6-status counts
@@ -757,31 +763,33 @@ class DashboardMetricsService
             }
         }
 
-        // Reconstruct overdue count at end of each of the last 12 months from status_histories.
+        // Compute historical overdue count at end of each of the last 12 months from passed calibration certificates:
+        // active equipment requiring calibration whose latest passed certificate (tested_at <= pointEnd) has valid_until < pointDay.
+        $calibrationRequired = $activeEquipment->filter(fn (Equipment $eq): bool => (bool) $eq->equipmentType?->requires_calibration);
+
         $sparkline = [];
         for ($offset = 11; $offset >= 0; $offset--) {
-            $pointEnd = $offset === 0
-                ? $asOf->copy()
-                : $asOf->copy()->startOfMonth()->subMonthsNoOverflow($offset)->endOfMonth();
-
             if ($offset === 0) {
                 $sparkline[] = $overdueNow->count();
 
                 continue;
             }
 
+            $pointDay = $asOf->copy()->startOfMonth()->subMonthsNoOverflow($offset)->endOfMonth()->startOfDay();
+            $pointEnd = $pointDay->copy()->endOfDay();
+
             $countAtPoint = 0;
-            foreach ($activeEquipment as $eq) {
+            foreach ($calibrationRequired as $eq) {
                 if ($eq->created_at !== null && $eq->created_at->greaterThan($pointEnd)) {
                     continue;
                 }
 
-                $lastHistory = $eq->statusHistories
-                    ->filter(fn ($h) => $h->changed_at !== null && $h->changed_at->lessThanOrEqualTo($pointEnd))
-                    ->sortBy([['changed_at', 'asc'], ['id', 'asc']])
-                    ->last();
+                $latestAtPoint = $eq->calibrations
+                    ->filter(fn ($cal) => $cal->tested_at !== null && $cal->tested_at->copy()->startOfDay()->lessThanOrEqualTo($pointEnd))
+                    ->sortByDesc(fn ($cal) => $cal->tested_at->timestamp)
+                    ->first();
 
-                if ($lastHistory && $lastHistory->to_status === EquipmentStatus::Overdue) {
+                if ($latestAtPoint && $latestAtPoint->valid_until !== null && $latestAtPoint->valid_until->copy()->startOfDay()->lessThan($pointDay)) {
                     $countAtPoint++;
                 }
             }

@@ -106,3 +106,7 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 - **Grafik stacked bar Kerusakan**: Porsi "Masih terbuka" memakai warna `aqua` (`#5CC8C4`) polos di Chart.js (sesuai opsi resmi di `design.md` §3.8) agar tidak perlu menambah library eksternal.
 - **Target uptime**: Ditambahkan sebagai pengaturan baru `asset.uptime_target_percent` (default `95%`) di Tab Nilai Aset pada Pengaturan Aplikasi.
 - **Cache dashboard**: Semua agregasi di `DashboardMetricsService` di-cache 10 menit per kombinasi filter (`period`, `date`, `room_id`, `group_by`).
+
+### Perbaikan Dashboard Tahap B
+- **Sumber tunggal tren historis Kepatuhan & Terlambat**: Dihitung dari sertifikat kalibrasi lulus (`calibrations.result = pass` dengan `tested_at <= akhir bulan` dan `valid_until` dibandingkan terhadap akhir bulan) untuk 12 titik akhir bulan. Dipilih karena seeder tidak menulis snapshot `status_histories` harian untuk bulan lampau, sehingga sertifikat menjadi sumber data historis yang akurat dan konsisten antara Kepatuhan dan Terlambat.
+- **Filter dashboard ringkas**: Kartu `filtersForm` besar dihapus dan diganti 3 tombol pill sejajar di kanan header halaman (`[📅 1 – 30 Nov 2026 | Bulanan]`, `[Semua ruangan]`, `[Ekspor]`) via `HasFiltersAction` + modal kecil Filament 5.

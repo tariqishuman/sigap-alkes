@@ -87,8 +87,43 @@ class DamagesBreakdownChart extends ChartWidget
                     'stack' => 'damages',
                 ],
             ],
-            'labels' => array_map(fn (array $item): string => $item['label'], $items),
+            'labels' => array_map(fn (array $item): string|array => $this->wrapLabel($item['label']), $items),
         ];
+    }
+
+    /**
+     * Wrap long category labels onto at most 2 short horizontal lines (max 16 chars each)
+     * so the X-axis stays completely horizontal while Chart.js tooltips still display the full name.
+     *
+     * @return string|array<int, string>
+     */
+    private function wrapLabel(string $label, int $maxLine = 16): string|array
+    {
+        if (mb_strlen($label) <= $maxLine) {
+            return $label;
+        }
+
+        $words = preg_split('/\s+/', trim($label)) ?: [$label];
+        $line1 = '';
+        $line2 = '';
+
+        foreach ($words as $word) {
+            if ($line1 === '' || mb_strlen($line1.' '.$word) <= $maxLine) {
+                $line1 = $line1 === '' ? $word : $line1.' '.$word;
+            } else {
+                $line2 = $line2 === '' ? $word : $line2.' '.$word;
+            }
+        }
+
+        if ($line2 === '') {
+            return mb_substr($line1, 0, $maxLine - 1).'…';
+        }
+
+        if (mb_strlen($line2) > $maxLine) {
+            $line2 = mb_substr($line2, 0, $maxLine - 1).'…';
+        }
+
+        return [$line1, $line2];
     }
 
     protected function getOptions(): array
@@ -114,6 +149,9 @@ class DamagesBreakdownChart extends ChartWidget
                     'ticks' => [
                         'color' => '#97A6A9',
                         'font' => ['size' => 11],
+                        'maxRotation' => 0,
+                        'minRotation' => 0,
+                        'autoSkip' => false,
                     ],
                 ],
                 'y' => [
