@@ -65,7 +65,7 @@ class EquipmentMovementForm
                             ->required(),
                         Toggle::make('is_reinstallation')
                             ->label('Termasuk reinstalasi alat')
-                            ->helperText('Jika aktif (atau jenis alat memerlukan instalasi) dan status alat Laik pakai, status berubah menjadi Perlu kalibrasi.')
+                            ->helperText('Alat perlu dikalibrasi ulang setelah dipindah.')
                             ->default(false)
                             ->columnSpanFull(),
                         Textarea::make('notes')

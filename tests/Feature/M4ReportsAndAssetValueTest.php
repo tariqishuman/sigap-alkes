@@ -308,7 +308,7 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             ->assertDontSee('Nilai Aset')
             ->assertDontSee('13.800.000')
             ->assertDontSee('Pertimbangkan ganti')
-            ->assertDontSee('bukan pengganti pembukuan akuntansi resmi RS');
+            ->assertDontSee('bukan pembukuan resmi RS');
 
         // Admin IPSRS sees Nilai Aset, disclaimer, and Pertimbangkan ganti
         $this->flushSession();
@@ -317,7 +317,7 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             ->assertSee('Nilai Aset')
             ->assertSee('13.800.000')
             ->assertSee('Pertimbangkan ganti')
-            ->assertSee('bukan pengganti pembukuan akuntansi resmi RS');
+            ->assertSee('Nilai buku adalah estimasi, bukan pembukuan resmi RS.');
 
         // Public QR page must NOT show any asset value or replacement flag
         $this->get(route('public.equipment.show', ['qr_token' => $equipment->qr_token]))
@@ -373,7 +373,7 @@ describe('Asset Value Visibility, Dashboard & Reports UI (M4)', function () {
             ->assertFileDownloaded();
 
         Livewire::test(AssetValueReport::class)
-            ->assertSee('bukan pengganti pembukuan akuntansi resmi RS')
+            ->assertSee('Nilai buku adalah estimasi, bukan pembukuan resmi RS.')
             ->assertCanSeeTableRecords([$icuEq, $igdEq])
             ->callAction('export_pdf')
             ->assertFileDownloaded();

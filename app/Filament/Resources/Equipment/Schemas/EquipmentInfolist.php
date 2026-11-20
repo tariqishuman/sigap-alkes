@@ -100,7 +100,7 @@ class EquipmentInfolist
                     ]),
 
                 Section::make('Nilai Aset')
-                    ->description('Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.')
+                    ->description('Nilai buku adalah estimasi, bukan pembukuan resmi RS.')
                     ->visible(function (): bool {
                         $user = Auth::user();
 
@@ -157,7 +157,7 @@ class EquipmentInfolist
                             ->badge()
                             ->color('warning')
                             ->state('Pertimbangkan ganti')
-                            ->helperText(fn (): string => 'Total biaya perbaikan ≥ '.config('sigap.replace_threshold_percent', 50).'% nilai buku saat ini.')
+                            ->helperText(fn (): string => 'Biaya perbaikan sudah mencapai '.config('sigap.replace_threshold_percent', 50).'% dari nilai buku.')
                             ->visible(fn (Equipment $record): bool => app(DepreciationCalculator::class)->shouldConsiderReplacement($record)),
                     ]),
             ]);

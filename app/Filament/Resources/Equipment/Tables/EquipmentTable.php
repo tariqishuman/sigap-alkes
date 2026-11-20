@@ -99,7 +99,7 @@ class EquipmentTable
                     ->label('Status')
                     ->options(EquipmentStatus::class),
                 Filter::make('due_soon')
-                    ->label('Jatuh tempo ≤ 30 hari')
+                    ->label('Jatuh tempo dalam 30 hari')
                     ->query(fn (Builder $query) => $query->dueBetween(today(), today()->addDays(30))),
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif')

@@ -51,7 +51,7 @@ class AssetValueReport extends Page implements HasTable
 
     public function getSubheading(): ?string
     {
-        return 'Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.';
+        return 'Nilai buku adalah estimasi, bukan pembukuan resmi RS.';
     }
 
     public function content(Schema $schema): Schema

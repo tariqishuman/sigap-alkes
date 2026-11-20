@@ -24,8 +24,8 @@
     </div>
 
     <div class="disclaimer">
-        Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.
-        Penanda "Pertimbangkan ganti" muncul bila total biaya perbaikan &ge; {{ $threshold }}% nilai buku saat ini.
+        Nilai buku adalah estimasi, bukan pembukuan resmi RS.
+        Penanda "Pertimbangkan ganti" muncul bila biaya perbaikan sudah mencapai {{ $threshold }}% dari nilai buku.
     </div>
 
     <table class="data">
