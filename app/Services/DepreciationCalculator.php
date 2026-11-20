@@ -112,4 +112,38 @@ class DepreciationCalculator
             'book_value' => $bookValue,
         ];
     }
+
+    /**
+     * Check whether cumulative repair cost >= X% of current book value (PRD §F6).
+     * Uses bcmath multiplication (repairCost * 100 >= bookValue * X) to avoid division rounding.
+     */
+    public function shouldConsiderReplacement(
+        Equipment $equipment,
+        ?CarbonInterface $asOf = null,
+        ?int $thresholdPercent = null,
+    ): bool {
+        $threshold = $thresholdPercent ?? (int) config('sigap.replace_threshold_percent', 50);
+        $repairCost = $equipment->totalRepairCost();
+        $bookValue = $this->calculateForEquipment($equipment, $asOf)['book_value'];
+
+        return $this->meetsReplacementThreshold($repairCost, $bookValue, $threshold);
+    }
+
+    public function meetsReplacementThreshold(
+        string $repairCost,
+        string $bookValue,
+        int $thresholdPercent,
+    ): bool {
+        $repair = bcadd($repairCost, '0', 2);
+        $book = bcadd($bookValue, '0', 2);
+
+        if (bccomp($repair, '0.00', 2) <= 0) {
+            return false;
+        }
+
+        $left = bcmul($repair, '100', 2);
+        $right = bcmul($book, (string) max(0, $thresholdPercent), 2);
+
+        return bccomp($left, $right, 2) >= 0;
+    }
 }

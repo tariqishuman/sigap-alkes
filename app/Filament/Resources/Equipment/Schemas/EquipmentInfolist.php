@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Equipment\Schemas;
 
+use App\Enums\UserRole;
 use App\Models\Equipment;
 use App\Services\DepreciationCalculator;
 use App\Services\QrLabelService;
@@ -10,6 +11,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
 class EquipmentInfolist
@@ -98,6 +100,24 @@ class EquipmentInfolist
                     ]),
 
                 Section::make('Nilai Aset')
+                    ->description('Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS.')
+                    ->visible(function (): bool {
+                        $user = Auth::user();
+
+                        if (! $user) {
+                            return false;
+                        }
+
+                        return ! (
+                            $user->hasRole(UserRole::KepalaRuangan->value)
+                            && ! $user->hasAnyRole([
+                                UserRole::SuperAdmin->value,
+                                UserRole::AdminIpsrs->value,
+                                UserRole::Manajemen->value,
+                                UserRole::Teknisi->value,
+                            ])
+                        );
+                    })
                     ->columns(4)
                     ->schema([
                         TextEntry::make('acquisition_date')
@@ -132,6 +152,13 @@ class EquipmentInfolist
                             ->label('Total Biaya Perbaikan')
                             ->weight('bold')
                             ->state(fn (Equipment $record): string => 'Rp'.number_format((float) $record->totalRepairCost(), 0, ',', '.')),
+                        TextEntry::make('replacement_indicator')
+                            ->label('Indikator Penggantian')
+                            ->badge()
+                            ->color('warning')
+                            ->state('Pertimbangkan ganti')
+                            ->helperText(fn (): string => 'Total biaya perbaikan ≥ '.config('sigap.replace_threshold_percent', 50).'% nilai buku saat ini.')
+                            ->visible(fn (Equipment $record): bool => app(DepreciationCalculator::class)->shouldConsiderReplacement($record)),
                     ]),
             ]);
     }
