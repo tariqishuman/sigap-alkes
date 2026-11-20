@@ -11,13 +11,15 @@ class MonthlyUptimeChart extends ChartWidget
 {
     protected static ?int $sort = 2;
 
-    protected ?string $heading = 'Uptime Rata-Rata 12 Bulan Terakhir (%)';
+    protected ?string $heading = 'Uptime 12 Bulan Terakhir (%)';
 
     protected ?string $description = 'Rata-rata seluruh alat aktif';
 
+    protected ?string $maxHeight = '280px';
+
     protected int|string|array $columnSpan = [
-        'md' => 2,
-        'xl' => 2,
+        'default' => 'full',
+        'xl' => 6,
     ];
 
     public static function canView(): bool
@@ -39,12 +41,46 @@ class MonthlyUptimeChart extends ChartWidget
                     'label' => 'Uptime (%)',
                     'data' => array_map(fn (array $point): ?float => $point['uptime_percent'], $series),
                     'borderColor' => '#0E7C7B',
-                    'backgroundColor' => 'rgba(14, 124, 123, 0.12)',
+                    'backgroundColor' => 'rgba(14, 124, 123, 0.10)',
+                    'borderWidth' => 2.5,
+                    'pointRadius' => 3.5,
+                    'pointHoverRadius' => 5.5,
+                    'pointBackgroundColor' => '#FFFFFF',
+                    'pointBorderColor' => '#0E7C7B',
+                    'pointBorderWidth' => 2,
                     'fill' => true,
-                    'tension' => 0.25,
+                    'tension' => 0.3,
                 ],
             ],
             'labels' => array_map(fn (array $point): string => $point['label'], $series),
+        ];
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'display' => false,
+                ],
+            ],
+            'scales' => [
+                'y' => [
+                    'suggestedMin' => 85,
+                    'suggestedMax' => 100,
+                    'ticks' => [
+                        'stepSize' => 5,
+                    ],
+                    'grid' => [
+                        'color' => 'rgba(221, 231, 230, 0.7)',
+                    ],
+                ],
+                'x' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
         ];
     }
 

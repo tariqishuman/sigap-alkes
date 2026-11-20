@@ -226,8 +226,7 @@ class AppSettings extends Page implements HasSchemas
                                 TextInput::make('satusehat_client_secret')
                                     ->label('Client Secret')
                                     ->password()
-                                    ->placeholder($hasSecret ? '•••• (tersimpan — isi baru untuk mengganti)' : 'Masukkan Client Secret')
-                                    ->helperText('Disimpan terenkripsi dan tidak pernah ditampilkan ulang.')
+                                    ->placeholder($hasSecret ? '•••• (tersimpan)' : 'Masukkan Client Secret')
                                     ->autocomplete('new-password')
                                     ->nullable(),
                             ]),
