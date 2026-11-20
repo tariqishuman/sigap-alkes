@@ -5,6 +5,7 @@ use App\Enums\DamageReportStatus;
 use App\Enums\EquipmentStatus;
 use App\Enums\TestingInstitutionKind;
 use App\Enums\UserRole;
+use App\Filament\Resources\DamageReports\DamageReportResource;
 use App\Models\Calibration;
 use App\Models\DamageReport;
 use App\Models\Equipment;
@@ -383,5 +384,51 @@ describe('R3 Bagian 1 — Laporan kerusakan memengaruhi status & pengaman', func
 
         // Teknisi -> 200
         $this->actingAs($this->teknisi)->get($url)->assertOk();
+    });
+});
+
+describe('R3 Bagian 2 — Lapor kerusakan dari halaman QR publik', function () {
+    it('shows Laporkan kerusakan button on public QR page and redirects guest to login with intended URL', function () {
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-QR-01', EquipmentStatus::FitForUse);
+
+        $publicUrl = route('public.equipment.show', ['qr_token' => $eq->qr_token]);
+        $reportUrl = route('public.equipment.report', ['qr_token' => $eq->qr_token]);
+
+        $this->get($publicUrl)
+            ->assertOk()
+            ->assertSee('Laporkan kerusakan')
+            ->assertSee($reportUrl, false)
+            ->assertDontSee('30.000.000');
+
+        // Guest clicking report button -> redirected to login with intended URL
+        $response = $this->get($reportUrl);
+        $response->assertRedirect('/admin/login');
+        expect(session('url.intended'))->toBe($reportUrl);
+
+        // Once logged in as kepala_ruangan of same room -> redirected to prefilled create form
+        $this->actingAs($this->kepalaIcu)
+            ->get($reportUrl)
+            ->assertRedirect(DamageReportResource::getUrl('create', ['equipment_id' => $eq->id]));
+    });
+
+    it('shows clear Indonesian message when user lacks permission to report equipment from QR', function () {
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-QR-02', EquipmentStatus::FitForUse);
+        $reportUrl = route('public.equipment.report', ['qr_token' => $eq->qr_token]);
+
+        // Kepala ruangan IGD trying to report ICU equipment
+        $this->actingAs($this->kepalaIgd)
+            ->get($reportUrl)
+            ->assertForbidden()
+            ->assertSee('Tidak dapat melaporkan kerusakan untuk alat ini')
+            ->assertSee('ruangan Anda sendiri');
+
+        // Manajemen trying to report
+        $manajemen = User::factory()->create(['name' => 'Manajemen R3']);
+        $manajemen->assignRole(UserRole::Manajemen->value);
+
+        $this->actingAs($manajemen)
+            ->get($reportUrl)
+            ->assertForbidden()
+            ->assertSee('tidak memiliki izin untuk membuat laporan kerusakan');
     });
 });

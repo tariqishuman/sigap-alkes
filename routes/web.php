@@ -12,6 +12,10 @@ Route::get('/alat/{qr_token}', [PublicEquipmentController::class, 'show'])
     ->middleware('throttle:60,1')
     ->name('public.equipment.show');
 
+Route::get('/alat/{qr_token}/lapor', [PublicEquipmentController::class, 'report'])
+    ->middleware('throttle:60,1')
+    ->name('public.equipment.report');
+
 Route::get('/admin/damage-reports/{damageReport}/photos/{index}', [DamageReportPhotoController::class, 'show'])
     ->middleware('auth')
     ->whereNumber('index')
