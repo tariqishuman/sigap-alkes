@@ -188,7 +188,8 @@ class DamageReportService
         $report->wasMergedIntoActiveReport = $wasMerged;
 
         if ($shouldNotify) {
-            $recipients = User::role([UserRole::Teknisi->value, UserRole::AdminIpsrs->value])->get();
+            $recipients = app(NotificationRecipientResolver::class)
+                ->damageAndStatusRecipients($report->equipment, $reporter->id);
 
             if ($recipients->isNotEmpty()) {
                 Notification::send($recipients, new DamageReportedNotification($report));
@@ -274,7 +275,7 @@ class DamageReportService
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
         ], [], ['reason' => 'alasan penutupan'])->validate();
 
-        return DB::transaction(function () use ($report, $validated, $actor): DamageReport {
+        $closed = DB::transaction(function () use ($report, $validated, $actor): DamageReport {
             $locked = DamageReport::query()->whereKey($report->id)->lockForUpdate()->firstOrFail();
 
             if (! $locked->canBeClosedWithoutRepair()) {
@@ -302,8 +303,21 @@ class DamageReportService
                 }
             }
 
-            return $locked->fresh();
+            return $locked->fresh('equipment.room');
         });
+
+        if (! EquipmentStatusService::$suppressNotifications && $closed->equipment) {
+            $roomHeads = app(NotificationRecipientResolver::class)->roomHeadsFor($closed->equipment);
+            if ($roomHeads->isNotEmpty()) {
+                Notification::send($roomHeads, new \App\Notifications\EquipmentOperationalNotification(
+                    $closed->equipment,
+                    \App\Notifications\EquipmentOperationalNotification::EVENT_CLOSED_WITHOUT_REPAIR,
+                    $closed->closed_without_repair_reason,
+                ));
+            }
+        }
+
+        return $closed;
     }
 
     /**

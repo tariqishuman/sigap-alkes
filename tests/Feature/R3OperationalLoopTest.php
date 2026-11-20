@@ -14,6 +14,7 @@ use App\Models\Room;
 use App\Models\TestingInstitution;
 use App\Models\User;
 use App\Notifications\DamageReportedNotification;
+use App\Notifications\EquipmentOperationalNotification;
 use App\Notifications\UnsafeReportRateLimitNotification;
 use App\Services\DamageReportService;
 use App\Services\EquipmentStatusService;
@@ -430,5 +431,91 @@ describe('R3 Bagian 2 — Lapor kerusakan dari halaman QR publik', function () {
             ->get($reportUrl)
             ->assertForbidden()
             ->assertSee('tidak memiliki izin untuk membuat laporan kerusakan');
+    });
+});
+
+describe('R3 Bagian 3 — Notifikasi untuk kepala ruangan', function () {
+    it('notifies kepala_ruangan ONLY for equipment in their own room across status & repair events without cost data', function () {
+        Notification::fake();
+        $statusService = app(EquipmentStatusService::class);
+        $damageService = app(DamageReportService::class);
+        $repairService = app(RepairService::class);
+
+        $icuEq = makeR3Equipment(
+            $this->typeCalibrated,
+            $this->icuRoom,
+            'R3-NOTIF-ICU',
+            EquipmentStatus::CalibrationDue,
+            $this->institution,
+            today()->subDay()->toDateString(),
+        );
+
+        // 1. Overdue
+        $statusService->evaluate($icuEq);
+        Notification::assertSentTo(
+            $this->kepalaIcu,
+            EquipmentOperationalNotification::class,
+            fn ($n) => $n->event === EquipmentOperationalNotification::EVENT_OVERDUE
+                && ! str_contains($n->body(), 'Rp'),
+        );
+        Notification::assertNotSentTo($this->kepalaIgd, EquipmentOperationalNotification::class);
+
+        // 2. Unfit (via unsafe report by teknisi)
+        $report = $damageService->report([
+            'equipment_id' => $icuEq->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Sensor aliran udara tidak terbaca di monitor.',
+        ], $this->teknisi);
+
+        Notification::assertSentTo(
+            $this->kepalaIcu,
+            EquipmentOperationalNotification::class,
+            fn ($n) => $n->event === EquipmentOperationalNotification::EVENT_UNFIT,
+        );
+        Notification::assertNotSentTo($this->kepalaIgd, EquipmentOperationalNotification::class);
+
+        // 3. Repair started
+        $repair = $repairService->start([
+            'damage_report_id' => $report->id,
+            'started_at' => now(),
+            'labor_cost' => '750000',
+            'action' => 'Penggantian sensor aliran udara',
+        ], $this->teknisi->id);
+
+        Notification::assertSentTo(
+            $this->kepalaIcu,
+            EquipmentOperationalNotification::class,
+            fn ($n) => $n->event === EquipmentOperationalNotification::EVENT_REPAIR_STARTED
+                && ! str_contains($n->body(), '750'),
+        );
+
+        // 4. Repair finished
+        $repairService->finish($repair, [
+            'finished_at' => now()->addHour(),
+            'action' => 'Sensor diganti dan uji fungsi normal',
+        ], $this->teknisi->id);
+
+        Notification::assertSentTo(
+            $this->kepalaIcu,
+            EquipmentOperationalNotification::class,
+            fn ($n) => $n->event === EquipmentOperationalNotification::EVENT_REPAIR_FINISHED
+                && ! str_contains($n->body(), '750'),
+        );
+
+        // 5. Close without repair
+        $icuEq2 = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-NOTIF-ICU-2', EquipmentStatus::FitForUse);
+        $report2 = $damageService->report([
+            'equipment_id' => $icuEq2->id,
+            'is_safe_to_use' => false,
+            'complaint' => 'Alarm baterai rendah muncul terus menerus.',
+        ], $this->teknisi);
+        $damageService->closeWithoutRepair($report2, 'Kabel adaptor hanya longgar.', $this->admin);
+
+        Notification::assertSentTo(
+            $this->kepalaIcu,
+            EquipmentOperationalNotification::class,
+            fn ($n) => $n->event === EquipmentOperationalNotification::EVENT_CLOSED_WITHOUT_REPAIR,
+        );
+        Notification::assertNotSentTo($this->kepalaIgd, EquipmentOperationalNotification::class);
     });
 });

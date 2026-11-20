@@ -5,12 +5,17 @@ namespace App\Services;
 use App\Enums\EquipmentStatus;
 use App\Models\Equipment;
 use App\Models\StatusHistory;
+use App\Notifications\EquipmentOperationalNotification;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class EquipmentStatusService
 {
+    /** Allow seeders to suppress operational notifications during historical backfill. */
+    public static bool $suppressNotifications = false;
+
     /**
      * Daily date-based rules: Laik pakai -> Perlu kalibrasi from H-30,
      * Perlu kalibrasi -> Terlambat once valid_until has passed.
@@ -184,7 +189,7 @@ class EquipmentStatusService
 
             $equipment->forceFill(['status' => $to])->save();
 
-            return StatusHistory::create([
+            $history = StatusHistory::create([
                 'equipment_id' => $equipment->id,
                 'from_status' => $from,
                 'to_status' => $to,
@@ -192,7 +197,35 @@ class EquipmentStatusService
                 'reason' => $reason,
                 'changed_by' => $changedBy ?? Auth::id(),
             ]);
+
+            if (! self::$suppressNotifications && $from !== $to) {
+                $this->notifyStatusChange($equipment, $to, $changedBy ?? Auth::id());
+            }
+
+            return $history;
         });
+    }
+
+    private function notifyStatusChange(Equipment $equipment, EquipmentStatus $to, ?int $actorId): void
+    {
+        $resolver = app(NotificationRecipientResolver::class);
+
+        if ($to === EquipmentStatus::Overdue) {
+            $recipients = $resolver->damageAndStatusRecipients($equipment);
+            if ($recipients->isNotEmpty()) {
+                Notification::send($recipients, new EquipmentOperationalNotification($equipment, EquipmentOperationalNotification::EVENT_OVERDUE));
+            }
+        } elseif ($to === EquipmentStatus::Unfit) {
+            $recipients = $resolver->damageAndStatusRecipients($equipment, $actorId);
+            if ($recipients->isNotEmpty()) {
+                Notification::send($recipients, new EquipmentOperationalNotification($equipment, EquipmentOperationalNotification::EVENT_UNFIT));
+            }
+        } elseif ($to === EquipmentStatus::FitForUse) {
+            $roomHeads = $resolver->roomHeadsFor($equipment);
+            if ($roomHeads->isNotEmpty()) {
+                Notification::send($roomHeads, new EquipmentOperationalNotification($equipment, EquipmentOperationalNotification::EVENT_FIT_FOR_USE));
+            }
+        }
     }
 
     /**

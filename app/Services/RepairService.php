@@ -7,8 +7,10 @@ use App\Enums\EquipmentStatus;
 use App\Models\DamageReport;
 use App\Models\Equipment;
 use App\Models\Repair;
+use App\Notifications\EquipmentOperationalNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -79,7 +81,7 @@ class RepairService
             'spare_parts.*.unit_price' => ['required', 'numeric', 'min:0'],
         ], [], $this->validationAttributes())->validate();
 
-        return DB::transaction(function () use ($validated, $actorId): Repair {
+        $repair = DB::transaction(function () use ($validated, $actorId): Repair {
             $report = DamageReport::query()
                 ->whereKey($validated['damage_report_id'])
                 ->lockForUpdate()
@@ -123,8 +125,23 @@ class RepairService
                 $report->update(['status' => DamageReportStatus::Resolved]);
             }
 
-            return $repair->fresh(['damageReport.equipment', 'technician', 'repairSpareParts.sparePart']);
+            return $repair->fresh(['damageReport.equipment.room', 'technician', 'repairSpareParts.sparePart']);
         });
+
+        if (! EquipmentStatusService::$suppressNotifications && $repair->damageReport?->equipment) {
+            $equipment = $repair->damageReport->equipment;
+            $roomHeads = app(NotificationRecipientResolver::class)->roomHeadsFor($equipment);
+
+            if ($roomHeads->isNotEmpty()) {
+                $event = $repair->isFinished()
+                    ? EquipmentOperationalNotification::EVENT_REPAIR_FINISHED
+                    : EquipmentOperationalNotification::EVENT_REPAIR_STARTED;
+
+                Notification::send($roomHeads, new EquipmentOperationalNotification($equipment, $event));
+            }
+        }
+
+        return $repair;
     }
 
     /**
@@ -163,7 +180,7 @@ class RepairService
             'spare_parts.*.unit_price' => ['required', 'numeric', 'min:0'],
         ], [], $this->validationAttributes())->validate();
 
-        return DB::transaction(function () use ($repair, $validated, $hasSparePartsKey, $actorId): Repair {
+        $updated = DB::transaction(function () use ($repair, $validated, $hasSparePartsKey, $actorId): Repair {
             $lockedRepair = Repair::query()->whereKey($repair->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedRepair->isFinished()) {
@@ -192,8 +209,21 @@ class RepairService
                 $report->update(['status' => DamageReportStatus::Resolved]);
             }
 
-            return $lockedRepair->fresh(['damageReport.equipment', 'technician', 'repairSpareParts.sparePart']);
+            return $lockedRepair->fresh(['damageReport.equipment.room', 'technician', 'repairSpareParts.sparePart']);
         });
+
+        if (! EquipmentStatusService::$suppressNotifications && ! empty($validated['finished_at']) && $updated->damageReport?->equipment) {
+            $equipment = $updated->damageReport->equipment;
+            $roomHeads = app(NotificationRecipientResolver::class)->roomHeadsFor($equipment);
+            if ($roomHeads->isNotEmpty()) {
+                Notification::send($roomHeads, new EquipmentOperationalNotification(
+                    $equipment,
+                    EquipmentOperationalNotification::EVENT_REPAIR_FINISHED,
+                ));
+            }
+        }
+
+        return $updated;
     }
 
     /**
