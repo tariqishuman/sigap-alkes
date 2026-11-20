@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGAP-Alkes · Referensi Dashboard v2</title>
+<!--
+  Mockup statis untuk design.md v2. BUKAN kode produksi.
+  Dipakai agent sebagai acuan visual: spacing, hierarki, komponen, dan isi kartu.
+-->
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#F4F7F7; --surface:#FFFFFF; --border:#E3EAEA; --border-strong:#D3DEDD;
+  --ink:#13262B; --ink-2:#3A4D52; --muted:#6B7C80; --subtle:#97A6A9;
+  --primary:#0E7C7B; --primary-600:#0B6463; --primary-50:#E8F4F3; --primary-100:#D5ECEA;
+  --aqua:#5CC8C4; --aqua-50:#E6F7F6;
+  --success:#2E9E6B; --success-50:#E7F5EE; --warning:#E0A23B; --warning-50:#FCF3E2;
+  --danger:#D9534F; --danger-50:#FBEAEA; --info:#3B82F6; --info-50:#EAF1FE; --neutral:#8A9699; --neutral-50:#EFF2F2;
+  --r-sm:8px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  --shadow-card:0 1px 2px rgba(19,38,43,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--canvas);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+/* Sidebar */
+.sb{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 14px}
+.sb-head{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:-.01em}
+.brand b{color:var(--primary);font-weight:700}
+.collapse{width:30px;height:30px;border:1px solid var(--border);border-radius:var(--r-sm);display:grid;place-items:center;color:var(--muted)}
+.grp{margin-top:14px}
+.grp-label{font-size:11px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:.06em;padding:0 10px 6px}
+.item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);color:var(--ink-2);font-weight:500;font-size:13.5px}
+.item svg{width:18px;height:18px;color:var(--muted);flex:none}
+.item.active{background:var(--primary-50);color:var(--primary);font-weight:600}
+.item.active svg{color:var(--primary)}
+.item .count{margin-left:auto;font-size:11px;font-weight:600;background:var(--danger-50);color:var(--danger);border-radius:var(--r-pill);padding:1px 7px}
+.sb-foot{margin-top:auto;border-top:1px solid var(--border);padding-top:10px}
+/* Main */
+.top{height:64px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 24px}
+.search{flex:0 1 420px;display:flex;align-items:center;gap:10px;height:38px;border:1px solid var(--border);background:var(--canvas);border-radius:var(--r-pill);padding:0 8px 0 14px;color:var(--subtle);font-size:13px}
+.search svg{width:16px;height:16px}
+.kbd{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.split{display:flex;border-radius:var(--r-pill);overflow:hidden;background:var(--primary);color:#fff;font-weight:600;font-size:13px}
+.split span{display:flex;align-items:center;gap:6px;padding:9px 14px}
+.split span+span{border-left:1px solid rgba(255,255,255,.25);padding:9px 10px}
+.bell{position:relative;width:36px;height:36px;display:grid;place-items:center;color:var(--ink-2)}
+.bell i{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid #fff}
+.user{display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-100);color:var(--primary);display:grid;place-items:center;font-weight:700;font-size:12px}
+.user small{display:block;color:var(--muted);font-size:11.5px}
+.content{padding:22px 24px 32px}
+.ph{display:flex;align-items:flex-end;gap:12px;margin-bottom:18px}
+.ph h1{font-size:22px;font-weight:700;letter-spacing:-.015em}
+.ph p{color:var(--muted);font-size:13px;margin-top:2px}
+.ph-actions{margin-left:auto;display:flex;gap:8px}
+.btn{display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-pill);font-weight:600;font-size:13px;color:var(--ink-2)}
+.btn svg{width:15px;height:15px;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-pill);overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.seg .btn+.btn{border-left:1px solid var(--border)}
+/* Grid & cards */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:16px 18px;position:relative;overflow:hidden}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c3{grid-column:span 3}.c9{grid-column:span 9}.c8{grid-column:span 8}.c12{grid-column:span 12}
+.r2{grid-row:span 2}
+.ch{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.ch svg{width:18px;height:18px;color:var(--ink-2)}
+.ch .more{margin-left:auto;color:var(--subtle);font-size:18px;line-height:1}
+.cap{color:var(--muted);font-size:12.5px;margin-top:10px}
+.kpi{display:flex;align-items:baseline;gap:8px;margin-top:4px}
+.kpi strong{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.kpi em{font-style:normal;color:var(--muted);font-size:13px}
+.delta{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;border-radius:var(--r-pill);padding:2px 7px}
+.delta.up{background:var(--success-50);color:var(--success)}
+.delta.down-good{background:var(--success-50);color:var(--success)}
+.delta.bad{background:var(--danger-50);color:var(--danger)}
+.spark{position:absolute;right:16px;top:14px;width:38%;height:58px}
+.has-spark .cap{max-width:56%}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:1px solid var(--border);padding-top:12px}
+.stats div{text-align:center}
+.stats div+div{border-left:1px solid var(--border)}
+.stats small{display:block;color:var(--muted);font-size:12px}
+.stats b{font-size:16px;font-weight:700}
+/* status bar */
+.sbar{display:flex;gap:3px;height:10px;margin-top:14px}
+.sbar i{border-radius:3px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12px;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:8px;height:8px;border-radius:50%}
+.legend b{font-weight:700;color:var(--ink)}
+/* gauge */
+.gauge{display:block;margin:10px auto 0;width:100%;max-width:240px}
+.gl{display:flex;justify-content:space-around;margin-top:6px;text-align:center}
+.gl small{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:12px}
+.gl small i{width:14px;height:6px;border-radius:3px}
+.gl b{font-size:15px;font-weight:700}
+.note{margin-top:14px;background:var(--canvas);border-radius:var(--r-md);padding:8px 10px;font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px;justify-content:center}
+/* summary row */
+.sum{display:flex;gap:0;margin-top:14px}
+.sum div{padding-right:22px;margin-right:22px;border-right:1px solid var(--border)}
+.sum div:last-child{border:0}
+.sum small{display:block;color:var(--muted);font-size:12px}
+.sum b{font-size:14px;font-weight:700}
+.tabs{margin-left:auto;display:flex;background:var(--canvas);border-radius:var(--r-pill);padding:3px}
+.tabs span{font-size:12px;font-weight:600;color:var(--muted);padding:5px 12px;border-radius:var(--r-pill)}
+.tabs span.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+/* list */
+.list{margin-top:10px}
+.list .lh{display:grid;grid-template-columns:1fr auto;font-size:11.5px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--border)}
+.row{display:grid;grid-template-columns:3px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border:0}
+.row .bar{width:3px;height:30px;border-radius:2px}
+.row b{display:block;font-size:13px;font-weight:600}
+.row small{color:var(--muted);font-size:11.5px}
+.chip{font-size:11px;font-weight:600;border-radius:var(--r-pill);padding:3px 8px;white-space:nowrap}
+.chip.w{background:var(--warning-50);color:#A66F12}.chip.d{background:var(--danger-50);color:var(--danger)}
+/* h-bars */
+.hb{margin-top:14px;display:grid;gap:12px}
+.hb div{display:grid;grid-template-columns:104px 1fr 72px;align-items:center;gap:10px;font-size:12.5px}
+.hb span{color:var(--ink-2)}
+.hb i{height:10px;border-radius:5px;background:var(--primary);display:block}
+.hb em{font-style:normal;font-weight:700;text-align:right}
+.axis{font-size:11px;fill:var(--subtle);font-family:inherit}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-5"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5z"/><path d="M14.5 6.5 17 4l3 3-2.5 2.5"/></symbol>
+    <symbol id="i-move" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></symbol>
+    <symbol id="i-pkg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6v2M12 16v2"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M9 7h1M14 7h1M9 11h1M14 11h1"/></symbol>
+    <symbol id="i-award" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="m8.5 14-1.5 7 5-3 5 3-1.5-7"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 7.8 8 9 4.6-1.2 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-5 4 10 2-5h7"/></symbol>
+    <linearGradient id="g-area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0E7C7B" stop-opacity=".18"/><stop offset="1" stop-color="#0E7C7B" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g-area-d" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#D9534F" stop-opacity=".16"/><stop offset="1" stop-color="#D9534F" stop-opacity="0"/></linearGradient>
+    <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#E6F7F6"/><line x1="0" y1="0" x2="0" y2="5" stroke="#5CC8C4" stroke-width="2.4"/></pattern>
+  </defs>
+</svg>
+
+<div class="app">
+  <aside class="sb">
+    <div class="sb-head">
+      <div class="brand">
+        <svg width="28" height="28" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#0E7C7B"/><path d="M10 35H21L26 22L33 45L38 35H44" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50.5" cy="35" r="4" fill="#9FD3D1"/><path d="M46 12V22M41 17H51" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg>
+        <span>SIGAP<b>-Alkes</b></span>
+      </div>
+      <div class="collapse"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6M5 4v16"/></svg></div>
+    </div>
+
+    <div class="grp"><div class="grp-label">Umum</div>
+      <div class="item active"><svg><use href="#i-grid"/></svg>Ringkasan</div>
+    </div>
+    <div class="grp"><div class="grp-label">Alat</div>
+      <div class="item"><svg><use href="#i-box"/></svg>Daftar Alat</div>
+      <div class="item"><svg><use href="#i-cal"/></svg>Jadwal Kalibrasi</div>
+      <div class="item"><svg><use href="#i-alert"/></svg>Laporan Kerusakan<span class="count">5</span></div>
+    </div>
+    <div class="grp"><div class="grp-label">Kegiatan</div>
+      <div class="item"><svg><use href="#i-gauge"/></svg>Kalibrasi</div>
+      <div class="item"><svg><use href="#i-wrench"/></svg>Perbaikan</div>
+      <div class="item"><svg><use href="#i-move"/></svg>Mutasi Alat</div>
+      <div class="item"><svg><use href="#i-pkg"/></svg>Stok Suku Cadang</div>
+    </div>
+    <div class="grp"><div class="grp-label">Laporan</div>
+      <div class="item"><svg><use href="#i-chart"/></svg>Uptime &amp; Kepatuhan</div>
+      <div class="item"><svg><use href="#i-coin"/></svg>Nilai Aset</div>
+    </div>
+    <div class="grp"><div class="grp-label">Data Master</div>
+      <div class="item"><svg><use href="#i-building"/></svg>Ruangan</div>
+      <div class="item"><svg><use href="#i-award"/></svg>Lembaga Penguji</div>
+    </div>
+    <div class="sb-foot">
+      <div class="item"><svg><use href="#i-gear"/></svg>Pengaturan</div>
+      <div class="item"><svg><use href="#i-help"/></svg>Bantuan</div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="search"><svg><use href="#i-search"/></svg>Cari alat, kode inventaris, atau nomor seri…<span class="kbd">Ctrl K</span></div>
+      <div class="top-right">
+        <div class="split"><span>+ Tambah</span><span>▾</span></div>
+        <div class="bell"><svg width="20" height="20"><use href="#i-bell"/></svg><i></i></div>
+        <div class="user"><div class="avatar">AZ</div><div><b style="font-size:13px">Azka</b><small>Admin IPSRS</small></div></div>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="ph">
+        <div><h1>Ringkasan</h1><p>Kondisi alat kesehatan RS per 20 November 2026</p></div>
+        <div class="ph-actions">
+          <div class="seg"><span class="btn"><svg><use href="#i-cal"/></svg>1 – 30 Nov 2026</span><span class="btn">Bulanan ▾</span></div>
+          <span class="btn">Semua ruangan ▾</span>
+          <span class="btn"><svg><use href="#i-dl"/></svg>Ekspor</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- Total alat -->
+        <div class="card c4">
+          <div class="ch"><svg><use href="#i-box"/></svg>Total Alat Aktif<span class="more">⋯</span></div>
+          <div class="kpi num"><strong>60</strong><em>unit di 6 ruangan</em></div>
+          <div class="sbar">
+            <i style="flex:35;background:var(--success)"></i><i style="flex:9;background:var(--warning)"></i><i style="flex:6;background:var(--danger)"></i><i style="flex:3;background:var(--info)"></i><i style="flex:4;background:var(--neutral)"></i><i style="flex:3;background:#B83C38"></i>
+          </div>
+          <div class="legend num">
+            <span><i style="background:var(--success)"></i>Laik pakai <b>35</b></span>
+            <span><i style="background:var(--warning)"></i>Perlu kalibrasi <b>9</b></span>
+            <span><i style="background:var(--danger)"></i>Terlambat <b>6</b></span>
+            <span><i style="background:var(--info)"></i>Dalam uji <b>3</b></span>
+            <span><i style="background:var(--neutral)"></i>Perbaikan <b>4</b></span>
+            <span><i style="background:#B83C38"></i>Tidak laik <b>3</b></span>
+          </div>
+        </div>
+
+        <!-- Kepatuhan -->
+        <div class="card c5 has-spark">
+          <div class="ch"><svg><use href="#i-shield"/></svg>Kepatuhan Kalibrasi</div>
+          <svg class="spark" viewBox="0 0 200 70" preserveAspectRatio="none"><path d="M0 52 L18 48 L36 50 L54 40 L72 44 L90 34 L108 38 L126 28 L144 30 L162 20 L180 24 L200 12 L200 70 L0 70Z" fill="url(#g-area)"/><path d="M0 52 L18 48 L36 50 L54 40 L72 44 L90 34 L108 38 L126 28 L144 30 L162 20 L180 24 L200 12" fill="none" stroke="#0E7C7B" stroke-width="2"/></svg>
+          <div class="cap">Alat wajib kalibrasi dengan sertifikat berlaku</div>
+          <div class="kpi num"><strong>87%</strong><span class="delta up">▲ 2,1%</span></div>
+          <div class="stats num">
+            <div><small>Wajib kalibrasi</small><b>54</b></div>
+            <div><small>Bersertifikat</small><b>47</b></div>
+            <div><small>Jatuh tempo ≤ 30 hari</small><b>9</b></div>
+          </div>
+        </div>
+
+        <!-- Gauge uptime -->
+        <div class="card c3 r2">
+          <div class="ch"><svg><use href="#i-pulse"/></svg>Uptime Bulan Ini</div>
+          <svg class="gauge" viewBox="0 0 200 118">
+            <path d="M22 104 A78 78 0 0 1 178 104" fill="none" stroke="#EFF2F2" stroke-width="24"/>
+            <path d="M22 104 A78 78 0 0 1 178 104" fill="none" stroke="#0E7C7B" stroke-width="24" pathLength="100" stroke-dasharray="95.8 100"/>
+            <path d="M22 104 A78 78 0 0 1 178 104" fill="none" stroke="#5CC8C4" stroke-width="24" pathLength="100" stroke-dasharray="0 95.8 4.2 100"/>
+            <text x="100" y="92" text-anchor="middle" font-size="30" font-weight="700" fill="#13262B" font-family="Plus Jakarta Sans, sans-serif">95,8%</text>
+            <text x="100" y="110" text-anchor="middle" font-size="11" fill="#6B7C80" font-family="Plus Jakarta Sans, sans-serif">rata-rata seluruh alat</text>
+          </svg>
+          <div class="gl num">
+            <div><small><i style="background:var(--primary)"></i>Jam operasi</small><b>26.755</b></div>
+            <div><small><i style="background:var(--aqua)"></i>Downtime</small><b>1.186</b></div>
+          </div>
+          <div class="note">✓ Di atas target 95%</div>
+          <div class="stats num" style="grid-template-columns:1fr 1fr">
+            <div><small>Bulan lalu</small><b>94,5%</b></div>
+            <div><small>Terendah</small><b>ICU</b></div>
+          </div>
+        </div>
+
+        <!-- MTTR -->
+        <div class="card c4">
+          <div class="ch"><svg><use href="#i-clock"/></svg>Rata-rata Lama Perbaikan<span class="more">⋯</span></div>
+          <div class="cap">Dari laporan kerusakan sampai alat selesai diperbaiki</div>
+          <div class="kpi num"><strong>2,4</strong><em>hari</em><span class="delta down-good">▼ 0,6 hari</span></div>
+          <div class="stats num"><div><small>Selesai bulan ini</small><b>12</b></div><div><small>Masih berjalan</small><b>4</b></div><div><small>Terlama</small><b>6 hari</b></div></div>
+        </div>
+
+        <!-- Terlambat -->
+        <div class="card c5 has-spark">
+          <div class="ch"><svg><use href="#i-alert"/></svg>Terlambat Kalibrasi</div>
+          <svg class="spark" viewBox="0 0 200 70" preserveAspectRatio="none"><path d="M0 30 L25 34 L50 26 L75 40 L100 36 L125 46 L150 42 L175 50 L200 44 L200 70 L0 70Z" fill="url(#g-area-d)"/><path d="M0 30 L25 34 L50 26 L75 40 L100 36 L125 46 L150 42 L175 50 L200 44" fill="none" stroke="#D9534F" stroke-width="2"/></svg>
+          <div class="cap">Alat dengan sertifikat yang sudah lewat</div>
+          <div class="kpi num"><strong>6</strong><em>alat</em><span class="delta down-good">▼ 2 alat</span></div>
+          <div class="stats num"><div><small>Lewat ≤ 7 hari</small><b>3</b></div><div><small>Lewat 8–30 hari</small><b>2</b></div><div><small>Lewat &gt; 30 hari</small><b>1</b></div></div>
+        </div>
+
+        <!-- Kerusakan per jenis -->
+        <div class="card c9">
+          <div class="ch"><svg><use href="#i-wrench"/></svg>Kerusakan per Jenis Alat
+            <div class="tabs"><span class="on">Jenis alat</span><span>Ruangan</span></div>
+          </div>
+          <div class="sum">
+            <div><small>Paling sering rusak</small><b>Infusion Pump</b></div>
+            <div><small>Masih terbuka</small><b class="num">8 laporan</b></div>
+            <div><small>Ruangan terbanyak</small><b>ICU</b></div>
+            <div class="legend" style="margin:0 0 0 auto;border:0;padding:0"><span><i style="background:var(--primary)"></i>Selesai</span><span><i style="background:var(--aqua)"></i>Masih terbuka</span></div>
+          </div>
+          <svg viewBox="0 0 760 250" style="width:100%;margin-top:10px">
+            <g stroke="#E3EAEA" stroke-dasharray="4 4"><line x1="40" x2="750" y1="20" y2="20"/><line x1="40" x2="750" y1="86.7" y2="86.7"/><line x1="40" x2="750" y1="153.3" y2="153.3"/></g>
+            <line x1="40" x2="750" y1="220" y2="220" stroke="#D3DEDD"/>
+            <g class="axis" text-anchor="end"><text x="30" y="24">15</text><text x="30" y="91">10</text><text x="30" y="157">5</text><text x="30" y="224">0</text></g>
+            <!-- 7 bars: total [14,9,11,6,4,3,7], open [2,1,2,1,0,1,1]; scale 13.33px per unit -->
+            <g>
+              <rect x="78"  y="33"  width="44" height="27" rx="6" fill="url(#hatch)"/><rect x="78"  y="58"  width="44" height="162" rx="6" fill="#0E7C7B"/>
+              <rect x="178" y="100" width="44" height="13" rx="6" fill="url(#hatch)"/><rect x="178" y="111" width="44" height="109" rx="6" fill="#0E7C7B"/>
+              <rect x="278" y="73"  width="44" height="27" rx="6" fill="url(#hatch)"/><rect x="278" y="98"  width="44" height="122" rx="6" fill="#0E7C7B"/>
+              <rect x="378" y="140" width="44" height="13" rx="6" fill="url(#hatch)"/><rect x="378" y="151" width="44" height="69" rx="6" fill="#0E7C7B"/>
+              <rect x="478" y="167" width="44" height="53" rx="6" fill="#0E7C7B"/>
+              <rect x="578" y="180" width="44" height="13" rx="6" fill="url(#hatch)"/><rect x="578" y="191" width="44" height="29" rx="6" fill="#0E7C7B"/>
+              <rect x="678" y="127" width="44" height="13" rx="6" fill="url(#hatch)"/><rect x="678" y="138" width="44" height="82" rx="6" fill="#0E7C7B"/>
+            </g>
+            <g class="axis" text-anchor="middle"><text x="100" y="242">Infusion Pump</text><text x="200" y="242">Syringe Pump</text><text x="300" y="242">Monitor Pasien</text><text x="400" y="242">Ventilator</text><text x="500" y="242">Defibrilator</text><text x="600" y="242">Suction</text><text x="700" y="242">EKG</text></g>
+          </svg>
+        </div>
+
+        <!-- Jatuh tempo -->
+        <div class="card c3">
+          <div class="ch"><svg><use href="#i-cal"/></svg>Jatuh Tempo Terdekat</div>
+          <div class="list">
+            <div class="lh"><span>Alat</span><span>Sisa</span></div>
+            <div class="row"><i class="bar" style="background:var(--danger)"></i><div><b>Ventilator</b><small>ICU-004 · ICU</small></div><span class="chip d">Lewat 4 hr</span></div>
+            <div class="row"><i class="bar" style="background:var(--danger)"></i><div><b>Defibrilator</b><small>IGD-002 · IGD</small></div><span class="chip d">Lewat 1 hr</span></div>
+            <div class="row"><i class="bar" style="background:var(--warning)"></i><div><b>Infusion Pump</b><small>ICU-012 · ICU</small></div><span class="chip w">3 hari</span></div>
+            <div class="row"><i class="bar" style="background:var(--warning)"></i><div><b>Monitor Pasien</b><small>RI-007 · Rawat Inap</small></div><span class="chip w">7 hari</span></div>
+            <div class="row"><i class="bar" style="background:var(--warning)"></i><div><b>Suction Pump</b><small>OK-003 · Kamar Operasi</small></div><span class="chip w">12 hari</span></div>
+            <div class="row"><i class="bar" style="background:var(--warning)"></i><div><b>Syringe Pump</b><small>IGD-006 · IGD</small></div><span class="chip w">18 hari</span></div>
+          </div>
+        </div>
+
+        <!-- Uptime 12 bulan -->
+        <div class="card c8">
+          <div class="ch"><svg><use href="#i-pulse"/></svg>Uptime 12 Bulan Terakhir<div class="legend" style="margin:0 0 0 auto"><span><i style="background:var(--primary)"></i>Uptime</span><span><i style="background:var(--subtle)"></i>Target 95%</span></div></div>
+          <svg viewBox="0 0 680 220" style="width:100%;margin-top:12px">
+            <g stroke="#E3EAEA" stroke-dasharray="4 4"><line x1="40" x2="670" y1="20" y2="20"/><line x1="40" x2="670" y1="70" y2="70"/><line x1="40" x2="670" y1="120" y2="120"/></g>
+            <line x1="40" x2="670" y1="170" y2="170" stroke="#D3DEDD"/>
+            <line x1="40" x2="670" y1="145" y2="145" stroke="#97A6A9" stroke-dasharray="6 5"/>
+            <g class="axis" text-anchor="end"><text x="30" y="24">100%</text><text x="30" y="74">98%</text><text x="30" y="124">96%</text><text x="30" y="174">94%</text></g>
+            <!-- y = 170 - (v-94)*25 ; x step 55 -->
+            <path d="M55 105 L110 153 L165 92 L220 165 L275 151 L330 78 L385 131 L440 154 L495 105 L550 159 L605 159 L660 126 L660 170 L55 170Z" fill="url(#g-area)"/>
+            <path d="M55 105 L110 153 L165 92 L220 165 L275 151 L330 78 L385 131 L440 154 L495 105 L550 159 L605 159 L660 126" fill="none" stroke="#0E7C7B" stroke-width="2.5" stroke-linejoin="round"/>
+            <g fill="#fff" stroke="#0E7C7B" stroke-width="2"><circle cx="660" cy="126" r="4.5"/></g>
+            <g class="axis" text-anchor="middle"><text x="55" y="196">Des</text><text x="110" y="196">Jan</text><text x="165" y="196">Feb</text><text x="220" y="196">Mar</text><text x="275" y="196">Apr</text><text x="330" y="196">Mei</text><text x="385" y="196">Jun</text><text x="440" y="196">Jul</text><text x="495" y="196">Agt</text><text x="550" y="196">Sep</text><text x="605" y="196">Okt</text><text x="660" y="196">Nov</text></g>
+          </svg>
+        </div>
+
+        <!-- Nilai buku per ruangan -->
+        <div class="card c4">
+          <div class="ch"><svg><use href="#i-coin"/></svg>Nilai Buku per Ruangan</div>
+          <div class="cap">Total <b class="num" style="color:var(--ink)">Rp1,79 M</b> · estimasi, bukan pembukuan resmi</div>
+          <div class="hb num">
+            <div><span>Radiologi</span><i style="width:100%"></i><em>Rp520 jt</em></div>
+            <div><span>ICU</span><i style="width:79%"></i><em>Rp412 jt</em></div>
+            <div><span>Kamar Operasi</span><i style="width:68%"></i><em>Rp355 jt</em></div>
+            <div><span>IGD</span><i style="width:52%"></i><em>Rp268 jt</em></div>
+            <div><span>Rawat Inap</span><i style="width:27%"></i><em>Rp142 jt</em></div>
+            <div><span>Laboratorium</span><i style="width:18%"></i><em>Rp96 jt</em></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
