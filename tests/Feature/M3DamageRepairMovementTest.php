@@ -452,6 +452,49 @@ describe('Filament UI, RBAC & Public QR Privacy (M3)', function () {
             ->assertCanSeeTableRecords([$icuReport, $igdReport]);
     });
 
+    it('filters damage reports across status tabs (all, open, in_progress, resolved)', function () {
+        $openEq = makeM3Equipment($this->typeCalibrated, $this->icuRoom, 'ICU-TAB-001');
+        $inProgressEq = makeM3Equipment($this->typeCalibrated, $this->icuRoom, 'ICU-TAB-002');
+        $resolvedEq = makeM3Equipment($this->typeCalibrated, $this->igdRoom, 'IGD-TAB-003');
+
+        $damageService = app(DamageReportService::class);
+        $repairService = app(RepairService::class);
+
+        $openReport = $damageService->report(['equipment_id' => $openEq->id, 'complaint' => 'Tab terbuka'], $this->kepalaIcu);
+
+        $inProgressReport = $damageService->report(['equipment_id' => $inProgressEq->id, 'complaint' => 'Tab diproses'], $this->kepalaIcu);
+        $repairService->start([
+            'damage_report_id' => $inProgressReport->id,
+            'started_at' => now(),
+            'action' => 'Pengecekan modul',
+        ], $this->teknisi->id);
+
+        $resolvedReport = $damageService->report(['equipment_id' => $resolvedEq->id, 'complaint' => 'Tab selesai'], $this->teknisi);
+        $repair = $repairService->start([
+            'damage_report_id' => $resolvedReport->id,
+            'started_at' => now()->subHours(2),
+            'action' => 'Penggantian sekring',
+        ], $this->teknisi->id);
+        $repairService->finish($repair, [
+            'finished_at' => now(),
+            'action' => 'Selesai diganti',
+        ], $this->teknisi->id);
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ListDamageReports::class)
+            ->assertCanSeeTableRecords([$openReport, $inProgressReport, $resolvedReport])
+            ->set('activeTab', 'open')
+            ->assertCanSeeTableRecords([$openReport])
+            ->assertCanNotSeeTableRecords([$inProgressReport, $resolvedReport])
+            ->set('activeTab', 'in_progress')
+            ->assertCanSeeTableRecords([$inProgressReport])
+            ->assertCanNotSeeTableRecords([$openReport, $resolvedReport])
+            ->set('activeTab', 'resolved')
+            ->assertCanSeeTableRecords([$resolvedReport])
+            ->assertCanNotSeeTableRecords([$openReport, $inProgressReport]);
+    });
+
     it('shows Laporkan kerusakan action on equipment detail for kepala_ruangan and creates report via form', function () {
         $icuEq = makeM3Equipment($this->typeCalibrated, $this->icuRoom, 'ICU-UI-002');
 

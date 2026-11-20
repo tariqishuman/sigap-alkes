@@ -36,15 +36,15 @@ class ListDamageReports extends ListRecords
             'open' => Tab::make('Terbuka')
                 ->badge((clone $baseQuery())->where('status', DamageReportStatus::Open)->count())
                 ->badgeColor('danger')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', DamageReportStatus::Open)),
+                ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', DamageReportStatus::Open)),
             'in_progress' => Tab::make('Diproses')
                 ->badge((clone $baseQuery())->where('status', DamageReportStatus::InProgress)->count())
                 ->badgeColor('warning')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', DamageReportStatus::InProgress)),
+                ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', DamageReportStatus::InProgress)),
             'resolved' => Tab::make('Selesai')
                 ->badge((clone $baseQuery())->where('status', DamageReportStatus::Resolved)->count())
                 ->badgeColor('success')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', DamageReportStatus::Resolved)),
+                ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', DamageReportStatus::Resolved)),
         ];
     }
 }
