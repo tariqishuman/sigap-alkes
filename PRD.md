@@ -94,10 +94,12 @@ Aturan transisi (semua perubahan lewat satu service dan dicatat di `status_histo
 | Laik pakai / Perlu kalibrasi / Terlambat | Alat dikirim / mulai diuji | Dalam uji & kalibrasi |
 | Dalam uji & kalibrasi | Hasil lulus | Laik pakai |
 | Dalam uji & kalibrasi | Hasil tidak lulus | Tidak laik pakai |
+| Laik pakai / Perlu kalibrasi / Terlambat / Dalam uji & kalibrasi | Laporan kerusakan tidak aman dipakai (`reported_unsafe`; magang setelah verifikasi) | Tidak laik pakai |
+| Tidak laik pakai (karena laporan tidak aman) | Laporan ditutup tanpa perbaikan (`closed_without_repair`) | Hasil evaluasi kalibrasi (Laik pakai / Perlu kalibrasi / Terlambat) |
 
-Prinsip: **alat hanya bisa kembali Laik pakai lewat uji & kalibrasi** (kecuali jenis yang tidak wajib kalibrasi).
+Prinsip: **alat hanya bisa kembali Laik pakai lewat uji & kalibrasi** (kecuali jenis yang tidak wajib kalibrasi, atau pemulihan laporan palsu yang ditutup tanpa perbaikan).
 
-Halaman publik `/alat/{qr_token}`: tampilkan nama alat, ruangan, status (badge warna), sertifikat berlaku s.d. Tanpa login. Jangan tampilkan biaya, harga, nama teknisi, atau data akun.
+Halaman publik `/alat/{qr_token}`: tampilkan nama alat, ruangan, status (badge warna), sertifikat berlaku s.d., dan tombol sekunder **"Laporkan kerusakan"** (mengarahkan ke login terlebih dahulu). Tanpa login untuk melihat status. Jangan tampilkan biaya, harga, nama teknisi, tautan file sertifikat, atau data akun.
 
 ### F5. Laporan uptime dan kepatuhan kalibrasi
 - **Uptime** per alat / ruangan / bulan:
@@ -133,11 +135,15 @@ Nama tabel/kolom pakai **bahasa Inggris** (konvensi Laravel). Label UI pakai **b
 | Tabel | Padanan di proposal | Kolom utama |
 |---|---|---|
 | `rooms` | ruangan | name, building, floor |
-| `equipment_types` | jenis_alat | name, requires_calibration, requires_installation, calibration_interval_months (default 12), useful_life_years, residual_value_percent |
+| `equipment_types` | jenis_alat | name, requires_calibration, requires_installation, is_critical, calibration_interval_months (default 12), pm_interval_months (nullable), pm_checklist (json), useful_life_years, residual_value_percent, fhir_type_code, fhir_type_display |
 | `testing_institutions` | lembaga_penguji | name, kind (bpafk / swasta / internal_rs), accreditation_number |
 | `equipment` | alat | inventory_code (unique), name, equipment_type_id, room_id, brand, model, serial_number, acquisition_date, acquisition_cost decimal(15,2), residual_value decimal(15,2) nullable, status (enum), qr_token (uuid unique), photo_path, is_active, notes |
-| `calibrations` | kalibrasi | equipment_id, testing_institution_id, recorded_by (user), tested_at, result (pass/fail), certificate_number, valid_until, certificate_path |
-| `damage_reports` | laporan_kerusakan | equipment_id, reported_by, reported_at, complaint, status (open/in_progress/resolved) |
+| `calibrations` | kalibrasi | equipment_id, testing_institution_id, recorded_by (user), tested_at, result (pass/fail), certificate_number, valid_until, certificate_path (PDF disk private, maks 5 MB) |
+| `damage_reports` | laporan_kerusakan | equipment_id, reported_by, reported_at, complaint (min 10 char), is_safe_to_use, photos (json disk private), status (pending_verification/open/in_progress/resolved/rejected), marked_unfit_by_report, verified_by/at, rejected_reason, closed_without_repair_reason, closed_by/at, acknowledged_by/at, escalated_at |
+| `damage_report_notes` | catatan_laporan | damage_report_id, reported_by, content, is_safe_to_use, photos, reported_at |
+| `preventive_maintenances` | pemeliharaan_preventif | equipment_id, performed_at, performed_by, checklist_results (json), result (good/needs_followup), notes, next_due_at |
+| `preventive_maintenance_reminders` | pengingat_pm | equipment_id, kind (h_7/h_0), cycle_due_at, sent_at, channel |
+| `push_subscriptions` | langganan_push | user_id, endpoint (unique), public_key, auth_token, content_encoding, user_agent |
 | `repairs` | perbaikan | damage_report_id, technician_id, action, started_at, finished_at, labor_cost |
 | `spare_parts` | suku_cadang | name, unit, stock, min_stock |
 | `spare_part_movements` | buku_stok | spare_part_id, type (in/out/return/adjustment), quantity, repair_id nullable, user_id, notes, moved_at |

@@ -10,6 +10,7 @@ use App\Models\DamageReportNote;
 use App\Models\Equipment;
 use App\Models\User;
 use App\Notifications\DamageReportedNotification;
+use App\Notifications\EquipmentOperationalNotification;
 use App\Notifications\UnsafeReportRateLimitNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -309,9 +310,9 @@ class DamageReportService
         if (! EquipmentStatusService::$suppressNotifications && $closed->equipment) {
             $roomHeads = app(NotificationRecipientResolver::class)->roomHeadsFor($closed->equipment);
             if ($roomHeads->isNotEmpty()) {
-                Notification::send($roomHeads, new \App\Notifications\EquipmentOperationalNotification(
+                Notification::send($roomHeads, new EquipmentOperationalNotification(
                     $closed->equipment,
-                    \App\Notifications\EquipmentOperationalNotification::EVENT_CLOSED_WITHOUT_REPAIR,
+                    EquipmentOperationalNotification::EVENT_CLOSED_WITHOUT_REPAIR,
                     $closed->closed_without_repair_reason,
                 ));
             }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\UserRole;
 use App\Models\Equipment;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class NotificationRecipientResolver
@@ -18,8 +19,9 @@ class NotificationRecipientResolver
             return collect();
         }
 
-        return User::role(UserRole::KepalaRuangan->value)
+        return User::query()
             ->where('room_id', $equipment->room_id)
+            ->whereHas('roles', fn (Builder $q) => $q->where('name', UserRole::KepalaRuangan->value))
             ->get();
     }
 
@@ -28,10 +30,12 @@ class NotificationRecipientResolver
      */
     public function ipsrsOperators(): Collection
     {
-        return User::role([
-            UserRole::Teknisi->value,
-            UserRole::AdminIpsrs->value,
-        ])->get();
+        return User::query()
+            ->whereHas('roles', fn (Builder $q) => $q->whereIn('name', [
+                UserRole::Teknisi->value,
+                UserRole::AdminIpsrs->value,
+            ]))
+            ->get();
     }
 
     /**

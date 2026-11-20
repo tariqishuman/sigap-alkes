@@ -416,3 +416,14 @@ Tidak berubah dari v1: 60 × 40 mm, hitam putih, QR kiri, nama + kode + "Scan un
 - [ ] Login, QR publik, error 404/500/503, PDF, email memakai font & token v2.
 - [ ] Fokus keyboard terlihat di semua tombol, input, item menu.
 - [ ] Waktu muat dashboard < 1 detik dengan data seeder (cache hangat).
+
+---
+
+## 10. Komponen UI Baru (Milestone R3)
+
+- **Form Laporan Kerusakan**: Pertanyaan wajib radio *"Apakah alat masih aman dipakai?"* (Ya / Tidak) dengan deskripsi dampak status + unggah maks 3 foto (JPG/PNG, maks 3 MB, disk private).
+- **Halaman QR Publik (`/alat/{qr_token}`)**: Tombol pill sekunder **"Laporkan kerusakan"** (tinggi ≥ 44px) yang mengarahkan ke alur login (intended URL) lalu form laporan terisi otomatis, atau halaman pesan akses terbatas yang jelas (`public/equipment-report-denied.blade.php`).
+- **Jadwal Kalibrasi & Pemeliharaan**: Tab tingkat atas **"Kalibrasi"** | **"Pemeliharaan"** di halaman Jadwal Kalibrasi, dengan 4 kelompok ber-aksen (`Terlambat`, `Minggu ini`, `Bulan ini`, `Berikutnya`) dan tautan langsung **+ Catat pemeliharaan**.
+- **Dashboard KPI Kepatuhan**: Sub-stat ringkas **"Kepatuhan pemeliharaan"** di dalam kartu Kepatuhan Kalibrasi tanpa mengubah tata letak 4 baris.
+- **Notifikasi di Perangkat Ini (`/admin/notifikasi-perangkat`)**: Diakses dari menu pengguna, berisi kontrol aktifkan/nonaktifkan Web Push, tombol **"Kirim notifikasi uji"**, dan preferensi tingkat alert (Penting / Info; Kritis selalu aktif untuk teknisi & Admin IPSRS).
+

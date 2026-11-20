@@ -6,9 +6,12 @@ use App\Enums\TestingInstitutionKind;
 use App\Models\Calibration;
 use App\Models\CalibrationReminder;
 use App\Models\DamageReport;
+use App\Models\DamageReportNote;
 use App\Models\Equipment;
 use App\Models\EquipmentMovement;
 use App\Models\EquipmentType;
+use App\Models\PreventiveMaintenance;
+use App\Models\PreventiveMaintenanceReminder;
 use App\Models\Repair;
 use App\Models\RepairSparePart;
 use App\Models\Room;
@@ -28,8 +31,11 @@ class ClearDummyDataSeeder extends Seeder
         DB::transaction(function () {
             CalibrationReminder::query()->delete();
             Calibration::query()->delete();
+            PreventiveMaintenanceReminder::query()->delete();
+            PreventiveMaintenance::query()->delete();
             RepairSparePart::query()->delete();
             Repair::query()->delete();
+            DamageReportNote::query()->delete();
             DamageReport::query()->delete();
             EquipmentMovement::query()->delete();
             StatusHistory::query()->delete();

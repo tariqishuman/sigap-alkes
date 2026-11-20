@@ -64,10 +64,7 @@ class CalibrationSchedule extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        $user = Auth::user();
-
-        return ($user?->can('ViewAny:Calibration') ?? false)
-            || ($user?->can('ViewAny:PreventiveMaintenance') ?? false);
+        return Auth::user()?->can('ViewAny:Calibration') ?? false;
     }
 
     public function canViewPreventiveMaintenanceTab(): bool
