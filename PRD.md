@@ -27,6 +27,8 @@ Sumber: proposal Kelompok 3, mata kuliah Manajemen Data, Teknologi Kedokteran IT
 | `teknisi` | Teknisi elektromedis | Lihat semua alat; lihat, catat, dan ubah kalibrasi (tanpa hapus); CRUD perbaikan dan mutasi alat |
 | `kepala_ruangan` | Kepala ruangan / perawat | Lihat alat **di ruangannya saja**; buat laporan kerusakan |
 | `manajemen` | Manajemen RS / tim akreditasi | Lihat dashboard dan laporan; ekspor |
+| `badan_kalibrasi` | Petugas BPAFK / lab kalibrasi mitra | Lihat daftar alat & jadwal kalibrasi (tanpa harga/biaya/nilai aset); catat & ubah kalibrasi **hanya untuk lembaganya sendiri** |
+| `magang` | Mahasiswa / staf magang | Lihat alat, kalibrasi, kerusakan, perbaikan, dan mutasi semua ruangan (tanpa harga/biaya/nilai aset/stok); buat laporan kerusakan |
 | (publik, tanpa login) | Siapa pun yang scan QR | Hanya halaman status alat (nama, ruangan, status, berlaku s.d.) |
 
 Role dikelola dengan **Filament Shield** (spatie/laravel-permission).
@@ -59,6 +61,7 @@ Role dikelola dengan **Filament Shield** (spatie/laravel-permission).
 ### F3. Riwayat perbaikan
 - Kepala ruangan membuat **laporan kerusakan** (alat, keluhan, waktu lapor).
 - Teknisi menindaklanjuti dengan **perbaikan**: tindakan, waktu mulai, waktu selesai, biaya jasa, suku cadang (nama, jumlah, harga satuan).
+- **Stok suku cadang**: pencatatan stok masuk (penerimaan), pemakaian otomatis saat perbaikan aktif, pengembalian/penambahan selisih saat ubah baris perbaikan aktif, dan penyesuaian (*stock opname*) oleh `admin_ipsrs` lewat buku stok `spare_part_movements`. Stok tidak boleh negatif; notifikasi ke `admin_ipsrs` saat stok `≤ min_stock`.
 - **Mutasi alat**: catat pindah ruangan (dari, ke, tanggal, oleh siapa).
 
 **Aturan validasi**
@@ -106,17 +109,17 @@ Halaman publik `/alat/{qr_token}`: tampilkan nama alat, ruangan, status (badge w
 - Ekspor laporan ke **Excel (xlsx)** dan **PDF**.
 
 ### F6. Nilai aset (penyusutan) — *permintaan dosen*
-- Metode **garis lurus**:
-  - Penyusutan per tahun: `P = (HP − NR) / MM`
-  - Nilai buku: `NB = HP − (P × n)`, dengan batas bawah `NB ≥ NR`
-  - HP = harga perolehan, NR = nilai residu, MM = masa manfaat (tahun), n = umur pakai (tahun, dihitung dari bulan penuh sejak `acquisition_date` ÷ 12).
+- Metode **garis lurus (bulanan)**:
+  - Penyusutan per bulan: `Pb = (HP − NR) / (MM × 12)`
+  - Nilai buku: `NB = HP − ((HP − NR) × n / (MM × 12))`, dengan batas bawah `NB ≥ NR` (dihitung langsung dengan `bcmath` dan dibulatkan 2 desimal di akhir).
+  - HP = harga perolehan, NR = nilai residu, MM = masa manfaat (tahun), n = jumlah bulan penuh sejak `acquisition_date`.
 - `useful_life_years` dan `residual_value_percent` disimpan per **jenis alat** (bisa diubah admin). Alat boleh override nilai residu sendiri (`residual_value`).
-- Ditampilkan di halaman detail alat: harga perolehan, penyusutan per tahun, akumulasi penyusutan, nilai buku saat ini, total biaya perbaikan kumulatif.
+- Ditampilkan di halaman detail alat: harga perolehan, penyusutan per bulan, akumulasi penyusutan, nilai buku saat ini, total biaya perbaikan kumulatif.
 - Penanda **"Pertimbangkan ganti"** jika total biaya perbaikan ≥ X% nilai buku (X = setting, default 50%). Ini hanya penanda bantu, bukan keputusan.
 - Widget dashboard: total nilai buku aset per ruangan.
-- Disclaimer di UI: *"Nilai buku adalah estimasi untuk kebutuhan manajemen, bukan pengganti pembukuan akuntansi resmi RS."*
+- Disclaimer di UI: *"Nilai buku adalah estimasi, bukan pembukuan resmi RS."*
 
-**Test case wajib**: HP = 30.000.000, NR = 3.000.000, MM = 5 → P = 5.400.000/tahun; setelah 36 bulan NB = 13.800.000; setelah 72 bulan NB = 3.000.000.
+**Test case wajib**: HP = 30.000.000, NR = 3.000.000, MM = 5 → Pb = 450.000/bulan; setelah 1 bulan NB = 29.550.000; setelah 36 bulan NB = 13.800.000; setelah 72 bulan NB = 3.000.000.
 
 ## 5. Dashboard (manajemen & admin)
 - Stat: jumlah alat aktif, % kepatuhan kalibrasi, alat terlambat, alat jatuh tempo ≤ 30 hari, total nilai buku aset.
@@ -136,12 +139,13 @@ Nama tabel/kolom pakai **bahasa Inggris** (konvensi Laravel). Label UI pakai **b
 | `calibrations` | kalibrasi | equipment_id, testing_institution_id, recorded_by (user), tested_at, result (pass/fail), certificate_number, valid_until, certificate_path |
 | `damage_reports` | laporan_kerusakan | equipment_id, reported_by, reported_at, complaint, status (open/in_progress/resolved) |
 | `repairs` | perbaikan | damage_report_id, technician_id, action, started_at, finished_at, labor_cost |
-| `spare_parts` | suku_cadang | name, unit |
+| `spare_parts` | suku_cadang | name, unit, stock, min_stock |
+| `spare_part_movements` | buku_stok | spare_part_id, type (in/out/return/adjustment), quantity, repair_id nullable, user_id, notes, moved_at |
 | `repair_spare_part` | perbaikan_suku_cadang | repair_id, spare_part_id, quantity, unit_price |
 | `equipment_movements` | mutasi_alat | equipment_id, from_room_id, to_room_id, moved_by, moved_at, is_reinstallation, notes |
 | `status_histories` | riwayat_status | equipment_id, from_status, to_status, changed_at, reason, changed_by (nullable = sistem) |
 | `calibration_reminders` | pengingat | equipment_id, kind (h30/h7/h0), cycle_valid_until, sent_at, channel; unique(equipment_id, kind, cycle_valid_until) |
-| `users` | pengguna | + room_id nullable (untuk kepala ruangan) |
+| `users` | pengguna | + room_id nullable (untuk kepala ruangan), testing_institution_id nullable (untuk badan kalibrasi) |
 | activity log | log_audit | pakai spatie/laravel-activitylog |
 
 Unik tambahan: (testing_institution_id, certificate_number).

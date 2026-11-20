@@ -6,6 +6,7 @@ use App\Filament\Resources\DamageReports\Pages\ListDamageReports;
 use App\Filament\Resources\Equipment\Pages\ListEquipment;
 use App\Filament\Resources\EquipmentMovements\Pages\ListEquipmentMovements;
 use App\Filament\Resources\Repairs\Pages\ListRepairs;
+use App\Filament\Resources\SpareParts\Pages\ListSpareParts;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,4 +64,7 @@ it('renders illustrated empty states across equipment, calibration, repair, move
 
     Livewire::test(OperationalReport::class)
         ->assertSee('images/illustrations/empty-report.svg');
+
+    Livewire::test(ListSpareParts::class)
+        ->assertSee('images/illustrations/empty-search.svg');
 });
