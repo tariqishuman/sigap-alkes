@@ -216,7 +216,7 @@
                 <span>{{ $statusLabel }}</span>
             </div>
             <div class="status-meta">
-                Sertifikat berlaku s.d. <strong>{{ $validUntilFormatted }}</strong>
+                {{ $certificateStatusLine ?? ('Sertifikat berlaku s.d. ' . $validUntilFormatted) }}
             </div>
         </div>
 

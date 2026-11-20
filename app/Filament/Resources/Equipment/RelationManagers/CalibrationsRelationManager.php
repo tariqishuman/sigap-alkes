@@ -14,6 +14,6 @@ class CalibrationsRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        return CalibrationsTable::configure($table);
+        return CalibrationsTable::configure($table, forEquipmentRelation: true);
     }
 }

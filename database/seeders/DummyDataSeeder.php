@@ -302,8 +302,10 @@ class DummyDataSeeder extends Seeder
                 53 => ['offset' => 3, 'days_late' => 16, 'recal_after_end' => 7],
                 57 => ['offset' => 3, 'days_late' => 28, 'recal_after_end' => 9],
                 58 => ['offset' => 2, 'days_late' => 12, 'recal_after_end' => 11],
-                4 => ['offset' => 2, 'days_late' => 20, 'recal_after_end' => 8],
             ];
+
+            /** @var array<int, int> $repairRecalCounts Batasi maksimal 1 kalibrasi ulang pasca-perbaikan per alat */
+            $repairRecalCounts = [];
 
             /** @var array<int, Equipment> $allEquipment */
             $allEquipment = [];
@@ -518,7 +520,15 @@ class DummyDataSeeder extends Seeder
 
                     if ($canRecalNow && $equipment->equipmentType->requires_calibration && $offset > 0) {
                         $recalAt = $repairEnd->copy()->addHours(6);
-                        if ($recalAt->lessThan($realNow->copy()->subDay())) {
+                        $latestPassed = $equipment->calibrations()->where('result', CalibrationResult::Pass)->latest('tested_at')->first();
+                        $daysSinceLastCal = $latestPassed?->tested_at ? (int) $latestPassed->tested_at->diffInDays($recalAt, false) : 999;
+
+                        if (
+                            $recalAt->lessThan($realNow->copy()->subDay())
+                            && ($repairRecalCounts[$eqIdx] ?? 0) < 1
+                            && ! in_array($eqIdx, $replaceCandidateIndices, true)
+                            && $daysSinceLastCal >= 45
+                        ) {
                             Carbon::setTestNow($recalAt);
                             $inst = $eqIdx % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
                             $calibrationService->record([
@@ -529,6 +539,7 @@ class DummyDataSeeder extends Seeder
                                 'certificate_number' => sprintf('CERT-RECAL-%04d', $certCounter++),
                                 'valid_until' => $recalAt->copy()->addMonthsNoOverflow(12)->toDateString(),
                             ], $teknisi->id);
+                            $repairRecalCounts[$eqIdx] = ($repairRecalCounts[$eqIdx] ?? 0) + 1;
                         }
                     }
 
@@ -726,6 +737,14 @@ class DummyDataSeeder extends Seeder
                 }
 
                 if ($testedAt->lessThan($realNow->copy()->subDays(2))) {
+                    $latestPassed = $equipment->calibrations()->where('result', CalibrationResult::Pass)->latest('tested_at')->first();
+                    $minIntervalDays = max(60, ($equipment->equipmentType->calibration_interval_months * 30) - 60);
+                    $daysSinceLastCal = $latestPassed?->tested_at ? abs((int) $latestPassed->tested_at->diffInDays($testedAt, false)) : 999;
+
+                    if ($daysSinceLastCal < $minIntervalDays) {
+                        continue;
+                    }
+
                     Carbon::setTestNow($testedAt);
                     $inst = $eqIdx % 2 === 0 ? $institutions['bpafk'] : $institutions['swasta'];
                     $calibrationService->record([

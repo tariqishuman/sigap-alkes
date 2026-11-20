@@ -367,12 +367,13 @@
 }
 
 .fi-ta-header-cell,
+.fi-ta-header-cell > *,
 .fi-ta-header-cell-label,
 .fi-ta-header-cell-sort-btn {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-sigap-muted);
-    text-transform: none;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: var(--color-sigap-muted) !important;
+    text-transform: none !important;
 }
 
 .fi-ta-row {

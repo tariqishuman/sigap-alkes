@@ -11,6 +11,7 @@ use App\Models\Equipment;
 use App\Services\EquipmentStatusService;
 use App\Services\QrLabelService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
@@ -20,55 +21,112 @@ class ViewEquipment extends ViewRecord
 {
     protected static string $resource = EquipmentResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Detail alat';
+    }
+
+    public function getHeading(): string
+    {
+        return 'Detail alat';
+    }
+
+    /**
+     * Header actions per design.md §2.3 & §3.14: max 3 controls
+     * (1 primary pill, 1 secondary pill, overflow menu "⋯"). No status/warning colors on buttons.
+     *
+     * @return array<Action|ActionGroup>
+     */
     protected function getHeaderActions(): array
     {
-        return [
+        $canCalibrate = CalibrationResource::canCreate();
+        $canReportDamage = DamageReportResource::canCreate();
+        $canMove = EquipmentMovementResource::canCreate();
+
+        $primaryIsCalibration = $canCalibrate;
+        $secondaryIsDamage = $primaryIsCalibration && $canReportDamage;
+        $secondaryIsMove = ! $secondaryIsDamage && $canMove;
+
+        $actions = [];
+
+        if ($primaryIsCalibration) {
+            $actions[] = Action::make('record_calibration')
+                ->label('Catat hasil kalibrasi')
+                ->icon(Heroicon::OutlinedClipboardDocumentCheck)
+                ->color('primary')
+                ->visible(fn (Equipment $record): bool => $record->is_active
+                    && in_array($record->status, EquipmentStatus::CALIBRATABLE, true))
+                ->url(fn (Equipment $record): string => CalibrationResource::getUrl('create', ['equipment_id' => $record->id]));
+        } elseif ($canReportDamage) {
+            $actions[] = Action::make('report_damage')
+                ->label('Lapor kerusakan')
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('primary')
+                ->visible(fn (Equipment $record): bool => $record->is_active)
+                ->url(fn (Equipment $record): string => DamageReportResource::getUrl('create', ['equipment_id' => $record->id]));
+        }
+
+        if ($secondaryIsDamage) {
+            $actions[] = Action::make('report_damage')
+                ->label('Lapor kerusakan')
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('gray')
+                ->visible(fn (Equipment $record): bool => $record->is_active)
+                ->url(fn (Equipment $record): string => DamageReportResource::getUrl('create', ['equipment_id' => $record->id]));
+        } elseif ($secondaryIsMove) {
+            $actions[] = Action::make('move_equipment')
+                ->label('Mutasi')
+                ->icon(Heroicon::OutlinedArrowsRightLeft)
+                ->color('gray')
+                ->visible(fn (Equipment $record): bool => $record->is_active)
+                ->url(fn (Equipment $record): string => EquipmentMovementResource::getUrl('create', ['equipment_id' => $record->id]));
+        }
+
+        $overflowActions = [
             Action::make('start_testing')
                 ->label('Mulai uji & kalibrasi')
                 ->icon(Heroicon::OutlinedBeaker)
-                ->color('gray')
                 ->requiresConfirmation()
                 ->modalHeading('Mulai uji & kalibrasi')
                 ->modalDescription('Status alat akan berubah menjadi "Dalam uji & kalibrasi".')
                 ->visible(fn (Equipment $record): bool => $record->is_active
                     && $record->status !== EquipmentStatus::UnderTesting
                     && in_array($record->status, EquipmentStatus::CALIBRATABLE, true)
-                    && CalibrationResource::canCreate())
+                    && $canCalibrate)
                 ->action(function (Equipment $record) {
                     app(EquipmentStatusService::class)->startTesting($record, Auth::id());
 
                     return redirect(static::getResource()::getUrl('view', ['record' => $record]));
                 }),
-            Action::make('record_calibration')
-                ->label('Catat hasil kalibrasi')
-                ->icon(Heroicon::OutlinedClipboardDocumentCheck)
-                ->visible(fn (Equipment $record): bool => $record->is_active
-                    && in_array($record->status, EquipmentStatus::CALIBRATABLE, true)
-                    && CalibrationResource::canCreate())
-                ->url(fn (Equipment $record): string => CalibrationResource::getUrl('create', ['equipment_id' => $record->id])),
-            Action::make('report_damage')
-                ->label('Laporkan kerusakan')
-                ->icon(Heroicon::OutlinedExclamationTriangle)
-                ->color('warning')
-                ->visible(fn (Equipment $record): bool => $record->is_active && DamageReportResource::canCreate())
-                ->url(fn (Equipment $record): string => DamageReportResource::getUrl('create', ['equipment_id' => $record->id])),
-            Action::make('move_equipment')
+        ];
+
+        if (! $secondaryIsMove) {
+            $overflowActions[] = Action::make('move_equipment')
                 ->label('Mutasi alat')
                 ->icon(Heroicon::OutlinedArrowsRightLeft)
-                ->color('gray')
-                ->visible(fn (Equipment $record): bool => $record->is_active && EquipmentMovementResource::canCreate())
-                ->url(fn (Equipment $record): string => EquipmentMovementResource::getUrl('create', ['equipment_id' => $record->id])),
-            Action::make('print_qr')
-                ->label('Cetak label QR')
-                ->icon(Heroicon::OutlinedQrCode)
-                ->color('primary')
-                ->visible(fn (): bool => Auth::user()?->can('Update:Equipment') ?? false)
-                ->action(fn (Equipment $record) => app(QrLabelService::class)->downloadLabelsPdf(
-                    collect([$record]),
-                    "label-qr-{$record->inventory_code}.pdf",
-                )),
-            EditAction::make()
-                ->label('Ubah'),
-        ];
+                ->visible(fn (Equipment $record): bool => $record->is_active && $canMove)
+                ->url(fn (Equipment $record): string => EquipmentMovementResource::getUrl('create', ['equipment_id' => $record->id]));
+        }
+
+        $overflowActions[] = Action::make('print_qr')
+            ->label('Cetak label QR')
+            ->icon(Heroicon::OutlinedQrCode)
+            ->visible(fn (): bool => Auth::user()?->can('Update:Equipment') ?? false)
+            ->action(fn (Equipment $record) => app(QrLabelService::class)->downloadLabelsPdf(
+                collect([$record]),
+                "label-qr-{$record->inventory_code}.pdf",
+            ));
+
+        $overflowActions[] = EditAction::make()
+            ->label('Ubah');
+
+        $actions[] = ActionGroup::make($overflowActions)
+            ->icon(Heroicon::OutlinedEllipsisHorizontal)
+            ->color('gray')
+            ->button()
+            ->label('')
+            ->tooltip('Aksi lainnya');
+
+        return $actions;
     }
 }

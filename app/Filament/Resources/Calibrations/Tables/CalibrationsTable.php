@@ -15,16 +15,16 @@ use Illuminate\Support\Facades\Storage;
 class CalibrationsTable
 {
     // Also used by the equipment relation manager, so edit is a plain link rather than a modal.
-    public static function configure(Table $table): Table
+    public static function configure(Table $table, bool $forEquipmentRelation = false): Table
     {
         return $table
             ->defaultSort('tested_at', 'desc')
-            ->columns([
+            ->columns(array_values(array_filter([
                 TextColumn::make('tested_at')
-                    ->label('Tanggal Uji')
+                    ->label('Tanggal uji')
                     ->date('d M Y')
                     ->sortable(),
-                TextColumn::make('equipment.name')
+                $forEquipmentRelation ? null : TextColumn::make('equipment.name')
                     ->label('Alat')
                     ->weight('medium')
                     ->searchable(['name', 'inventory_code'])
@@ -33,10 +33,10 @@ class CalibrationsTable
                     ->label('Hasil')
                     ->badge(),
                 TextColumn::make('testingInstitution.name')
-                    ->label('Lembaga Penguji')
+                    ->label('Lembaga penguji')
                     ->placeholder('-'),
                 TextColumn::make('certificate_number')
-                    ->label('Nomor Sertifikat')
+                    ->label('Nomor sertifikat')
                     ->placeholder('-')
                     ->searchable(),
                 TextColumn::make('valid_until')
@@ -45,10 +45,10 @@ class CalibrationsTable
                     ->placeholder('-')
                     ->sortable(),
                 TextColumn::make('recordedByUser.name')
-                    ->label('Dicatat Oleh')
+                    ->label('Dicatat oleh')
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ])))
             ->filters([
                 SelectFilter::make('result')
                     ->label('Hasil')

@@ -60,8 +60,22 @@ class PublicEquipmentController extends Controller
         };
 
         $validUntilFormatted = 'Belum ada sertifikat';
+        $certificateStatusLine = 'Belum ada sertifikat kalibrasi';
         if ($equipment->latestValidCalibration?->valid_until) {
-            $validUntilFormatted = $equipment->latestValidCalibration->valid_until->translatedFormat('d F Y');
+            $validUntil = $equipment->latestValidCalibration->valid_until->copy()->startOfDay();
+            $validUntilFormatted = $validUntil->translatedFormat('d F Y');
+            $daysDiff = (int) today()->diffInDays($validUntil, false);
+
+            if ($status->isDangerousToUse() || $daysDiff < 0) {
+                $daysPast = abs($daysDiff);
+                $certificateStatusLine = $daysDiff < 0
+                    ? "Sertifikat berakhir {$validUntilFormatted} (lewat {$daysPast} hari)"
+                    : "Sertifikat berakhir {$validUntilFormatted}";
+            } elseif ($daysDiff === 0) {
+                $certificateStatusLine = "Sertifikat berlaku s.d. {$validUntilFormatted} (hari ini)";
+            } else {
+                $certificateStatusLine = "Sertifikat berlaku s.d. {$validUntilFormatted} ({$daysDiff} hari lagi)";
+            }
         }
 
         $updatedAt = $equipment->updated_at;
@@ -83,6 +97,7 @@ class PublicEquipmentController extends Controller
             'statusColors' => $statusBadgeColors,
             'isDangerousToUse' => $status->isDangerousToUse(),
             'validUntilFormatted' => $validUntilFormatted,
+            'certificateStatusLine' => $certificateStatusLine,
             'updatedAtFormatted' => $updatedAtFormatted,
         ]);
     }
