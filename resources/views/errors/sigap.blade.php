@@ -43,12 +43,7 @@
         .card {
             width: 100%;
             max-width: 28rem;
-            background: #FFFFFF;
-            border: 1px solid var(--line);
-            border-radius: 1rem;
-            padding: 1.75rem 1.5rem 1.5rem;
             text-align: center;
-            box-shadow: 0 1px 2px rgba(27, 43, 48, .04), 0 12px 32px -12px rgba(14, 124, 123, .18);
         }
         .brand {
             display: inline-flex;
