@@ -41,22 +41,26 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     const payload = event.notification.data || {};
-    let targetUrl = payload.url || '/admin';
+    const targetUrl = (event.action === 'ack' && payload.ackUrl)
+        ? payload.ackUrl
+        : (payload.url || '/admin');
 
-    if (event.action === 'ack' && payload.ackUrl) {
-        targetUrl = payload.ackUrl;
-    }
+    const normalizedTarget = new URL(targetUrl, self.location.origin).href;
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            // Focus an existing SIGAP tab only if it is already on the exact target URL.
+            // Never navigate an open tab so unsaved form inputs are preserved.
             for (const client of clientList) {
-                if ('focus' in client) {
-                    client.navigate(targetUrl);
-                    return client.focus();
-                }
+                try {
+                    if (new URL(client.url).href === normalizedTarget && 'focus' in client) {
+                        return client.focus();
+                    }
+                } catch (e) {}
             }
+
             if (self.clients.openWindow) {
-                return self.clients.openWindow(targetUrl);
+                return self.clients.openWindow(normalizedTarget);
             }
         })
     );

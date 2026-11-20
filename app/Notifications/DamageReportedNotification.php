@@ -10,6 +10,7 @@ use App\Notifications\Channels\WebPushChannel;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\URL;
 
 class DamageReportedNotification extends Notification
 {
@@ -76,9 +77,17 @@ class DamageReportedNotification extends Notification
         return "Laporan kerusakan baru untuk {$equipment?->name} ({$equipment?->inventory_code}) di {$roomName} oleh {$reporterName}.";
     }
 
-    public function ackUrl(): string
+    public function ackUrl(object $notifiable): string
     {
-        return DamageReportResource::getUrl('index', ['ack' => $this->damageReport->id]);
+        if ($notifiable instanceof User) {
+            return URL::temporarySignedRoute(
+                'damage-reports.acknowledge.confirm',
+                now()->addHours(24),
+                ['damageReport' => $this->damageReport->id, 'user' => $notifiable->id],
+            );
+        }
+
+        return DamageReportResource::getUrl('index');
     }
 
     /**
@@ -100,7 +109,7 @@ class DamageReportedNotification extends Notification
             ->actions([
                 Action::make('ack')
                     ->label('Saya tangani')
-                    ->url($this->ackUrl()),
+                    ->url($this->ackUrl($notifiable)),
                 Action::make('view')
                     ->label('Lihat laporan')
                     ->url(DamageReportResource::getUrl('index')),
@@ -119,7 +128,7 @@ class DamageReportedNotification extends Notification
             'title' => $this->title(),
             'body' => $this->body(),
             'url' => DamageReportResource::getUrl('index'),
-            'ackUrl' => $this->ackUrl(),
+            'ackUrl' => $this->ackUrl($notifiable),
             'tag' => "damage-report-{$this->damageReport->id}",
             'requireInteraction' => $isCritical,
             'actions' => [

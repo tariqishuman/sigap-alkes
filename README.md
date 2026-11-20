@@ -278,7 +278,12 @@ Seluruh akun demo menggunakan kata sandi **`password`**:
    php artisan webpush:vapid
    ```
 2. Pastikan `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, dan `VAPID_PRIVATE_KEY` terisi di `.env` (placeholder tersedia di `.env.example`).
-3. Jalankan scheduler (`php artisan schedule:work`) agar pengingat kalibrasi/PM, ringkasan harian Info, dan eskalasi laporan kritis (tiap menit) aktif.
+3. **Scheduler wajib berjalan** agar eskalasi laporan kritis (tiap menit), evaluasi status harian, pengingat kalibrasi/PM, dan email ringkasan harian Info berfungsi:
+   - Saat development: `php artisan dev` (otomatis menjalankan `server`, `queue`, `vite`, dan `schedule:work`) atau jalankan `php artisan schedule:work` secara terpisah.
+   - Di server produksi: tambahkan cron berikut pada crontab server:
+     ```cron
+     * * * * * cd /path/ke/sigap-alkes && php artisan schedule:run >> /dev/null 2>&1
+     ```
 4. **Pengguna iPhone / iOS (16.4+)**: Buka SIGAP-Alkes di Safari → ketuk tombol **Bagikan (Share)** → pilih **Tambahkan ke Layar Utama (Add to Home Screen)** → buka aplikasi dari ikon layar utama → buka menu profil → **Notifikasi di perangkat ini** → tekan **Aktifkan notifikasi di perangkat ini**.
 
 ---
