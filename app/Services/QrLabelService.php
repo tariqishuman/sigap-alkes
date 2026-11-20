@@ -15,7 +15,7 @@ class QrLabelService
 {
     public function generateQrDataUri(Equipment $equipment): string
     {
-        $url = route('public.equipment.show', ['qr_token' => $equipment->qr_token]);
+        $url = app(SettingsService::class)->publicEquipmentUrl($equipment->qr_token);
 
         $options = new QROptions([
             'outputType' => QROutputInterface::MARKUP_SVG,
@@ -33,18 +33,23 @@ class QrLabelService
      */
     public function generateLabelsPdf(Collection $equipmentList): \Barryvdh\DomPDF\PDF
     {
-        $items = $equipmentList->map(function (Equipment $equipment): array {
+        $settings = app(SettingsService::class);
+
+        $items = $equipmentList->map(function (Equipment $equipment) use ($settings): array {
             $equipment->loadMissing(['room', 'equipmentType']);
 
             return [
                 'equipment' => $equipment,
                 'qr_data_uri' => $this->generateQrDataUri($equipment),
-                'public_url' => route('public.equipment.show', ['qr_token' => $equipment->qr_token]),
+                'public_url' => $settings->publicEquipmentUrl($equipment->qr_token),
             ];
         });
 
         return Pdf::loadView('pdf.equipment-qr-labels', [
             'items' => $items,
+            'appName' => $settings->appName(),
+            'hospitalName' => $settings->hospitalName(),
+            'labelFooterText' => (string) $settings->get('qr.label_footer_text', 'Scan QR untuk cek status alat'),
         ])->setPaper('a4', 'portrait');
     }
 

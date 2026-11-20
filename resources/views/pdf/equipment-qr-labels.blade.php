@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Label QR Alat Kesehatan — RS When yh</title>
+    <title>Label QR Alat Kesehatan — {{ $appName ?? 'SIGAP-Alkes' }}</title>
     <style>
         @page {
             size: A4 portrait;
@@ -113,13 +113,13 @@
                             <div class="qr-id-tag">{{ \Illuminate\Support\Str::limit($eq->inventory_code, 14) }}</div>
                         </td>
                         <td class="info-cell">
-                            <div class="brand-header">RS When yh • INVENTARIS ALKES</div>
+                            <div class="brand-header">{{ $hospitalName ?? 'SIGAP-Alkes' }} • INVENTARIS ALKES</div>
                             <div class="equipment-name">{{ \Illuminate\Support\Str::limit($eq->name, 30) }}</div>
                             @if ($brandModel !== '')
                                 <div class="meta-line">Tipe: {{ \Illuminate\Support\Str::limit($brandModel, 24) }}</div>
                             @endif
                             <div class="meta-line">Ruang: {{ \Illuminate\Support\Str::limit($eq->room?->name ?? '-', 22) }}</div>
-                            <div class="scan-hint">Scan QR untuk cek status alat</div>
+                            <div class="scan-hint">{{ $labelFooterText ?? 'Scan QR untuk cek status alat' }}</div>
                         </td>
                     </tr>
                 </table>

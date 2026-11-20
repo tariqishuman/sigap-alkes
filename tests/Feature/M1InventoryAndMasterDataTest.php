@@ -277,7 +277,8 @@ it('renders public QR page without leaking acquisition_cost, residual_value, or 
     $response = $this->get("/alat/{$equipment->qr_token}");
 
     $response->assertOk()
-        ->assertSee('RS When yh')
+        ->assertSee('SIGAP-Alkes')
+        ->assertSee('RS Pendidikan ITS')
         ->assertSee('ICU-VENT-99')
         ->assertSee('Ventilator Hamilton C1')
         ->assertSee('Hamilton C1')

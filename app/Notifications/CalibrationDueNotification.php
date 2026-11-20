@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Filament\Resources\Equipment\EquipmentResource;
 use App\Models\Equipment;
+use App\Services\SettingsService;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
@@ -24,7 +25,13 @@ class CalibrationDueNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $channels = ['database'];
+
+        if (app(SettingsService::class)->get('reminder.email_enabled', true)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
     }
 
     public function toDatabase(object $notifiable): array
@@ -48,7 +55,7 @@ class CalibrationDueNotification extends Notification implements ShouldQueue
             ->greeting('Halo,')
             ->line($this->message())
             ->action('Lihat alat', $this->equipmentUrl())
-            ->salutation('Salam, SIGAP-Alkes');
+            ->salutation('Salam, '.app(SettingsService::class)->appName());
     }
 
     public function message(): string

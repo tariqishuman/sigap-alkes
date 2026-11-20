@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Filament\Exports\AspakEquipmentExporter;
 use App\Models\Equipment;
 use App\Services\DepreciationCalculator;
+use App\Services\SettingsService;
 use BackedEnum;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
@@ -148,7 +149,7 @@ class AssetValueReport extends Page implements HasTable
     public function downloadPdf(): StreamedResponse
     {
         $calculator = app(DepreciationCalculator::class);
-        $threshold = (int) config('sigap.replace_threshold_percent', 50);
+        $threshold = app(SettingsService::class)->replaceThresholdPercent();
 
         $equipmentList = Equipment::query()
             ->where('is_active', true)

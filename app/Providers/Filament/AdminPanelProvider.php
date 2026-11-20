@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Services\SettingsService;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -25,15 +26,17 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        $settings = app(SettingsService::class);
+
         return $panel
             ->default()
             ->id('admin')
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->brandName('SIGAP-Alkes')
+            ->brandName(fn (): string => $settings->appName())
             ->brandLogo(fn () => view('filament.brand'))
             ->brandLogoHeight('2.25rem')
-            ->favicon(asset('images/brand/favicon.svg'))
+            ->favicon(fn (): string => $settings->faviconUrl())
             ->login()
             ->darkMode(false)
             ->font('Poppins')

@@ -1,9 +1,17 @@
+@php
+    $settings = app(\App\Services\SettingsService::class);
+    $appName = $settings->appName();
+    $hospitalName = $settings->hospitalName();
+    $logoUrl = $settings->logoUrl();
+    $faviconUrl = $settings->faviconUrl();
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $equipmentName }} ({{ $inventoryCode }}) — Status Alat | RS When yh</title>
+    <title>{{ $equipmentName }} ({{ $inventoryCode }}) — Status Alat | {{ $appName }}</title>
+    <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=poppins:400,500,600,700&display=swap" rel="stylesheet" />
     <style>
@@ -142,8 +150,8 @@
     <main class="card">
         <div class="brand">
             <div class="brand-left">
-                <img src="{{ asset('images/logo-its.png') }}" alt="Logo ITS">
-                <span>RS When yh</span>
+                <img src="{{ $logoUrl }}" alt="Logo {{ $appName }}">
+                <span>{{ $hospitalName }}</span>
             </div>
             <span class="inventory-pill">ID: {{ $inventoryCode }}</span>
         </div>

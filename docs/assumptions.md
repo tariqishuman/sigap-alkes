@@ -83,6 +83,13 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 5. **Role `magang`**: Dapat melihat alat, kalibrasi, laporan kerusakan, perbaikan, dan mutasi di semua ruangan **tanpa harga, biaya, nilai aset, atau stok**, serta dapat membuat laporan kerusakan untuk alat di ruangan mana saja (tidak dapat mengedit/menghapus data lain).
 6. **Kartu halaman error**: Gaya `.card` pada `resources/views/errors/sigap.blade.php` dikembalikan memiliki latar putih, border, radius, dan shadow kartu sesuai commit `ebbdab3`.
 
+## Pengaturan Aplikasi (`app-settings`)
+1. **Tabel `settings` + `SettingsService` (tanpa package tambahan)**: Dipilih tabel `settings` (`key`, `value` json, `is_encrypted`) + `SettingsService` dengan cache dibanding menambah `filament/spatie-laravel-settings-plugin`, supaya tetap mematuhi daftar package di `AGENTS.md`, mendukung enkripsi kredensial (`Crypt::encryptString`) tanpa pernah masuk `activity_log`, serta aman memakai `try/catch` fallback ketika database tidak tersedia.
+2. **Keamanan Client Secret SatuSehat**: `satusehat.client_secret` selalu disimpan terenkripsi (`is_encrypted = true`), tidak pernah dimuat kembali ke form (hanya placeholder `••••`, isi baru untuk mengganti), dan tombol *Tes koneksi* tidak pernah menampilkan atau mencatat access token.
+3. **Ketahanan halaman error**: `resources/views/errors/sigap.blade.php` membaca nama aplikasi, logo, dan favicon dari `SettingsService` di dalam blok `try/catch` dengan nilai bawaan (`SIGAP-Alkes`, `images/logo-its.png`, `images/brand/favicon.svg`) agar halaman 500/503 tetap ter-render saat koneksi database mati.
+4. **Ambang "Pertimbangkan ganti"**: Dipindahkan ke pengaturan `asset.replace_threshold_percent` dengan `config('sigap.replace_threshold_percent')` (`SIGAP_REPLACE_THRESHOLD_PERCENT`, default `50`) sebagai nilai awal bawaan.
+
+
 
 
 
