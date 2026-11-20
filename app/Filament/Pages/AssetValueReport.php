@@ -31,6 +31,8 @@ class AssetValueReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::Banknotes;
+
     protected static string|UnitEnum|null $navigationGroup = 'Laporan';
 
     protected static ?string $navigationLabel = 'Nilai Aset';

@@ -19,7 +19,9 @@ class EquipmentTypeResource extends Resource
 {
     protected static ?string $model = EquipmentType::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
+
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::Tag;
 
     protected static string|UnitEnum|null $navigationGroup = 'Data Master';
 

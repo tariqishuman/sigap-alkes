@@ -35,17 +35,27 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName(fn (): string => $settings->appName())
             ->brandLogo(fn () => view('filament.brand'))
-            ->brandLogoHeight('2.25rem')
+            ->brandLogoHeight('1.75rem')
             ->favicon(fn (): string => $settings->faviconUrl())
             ->login()
             ->darkMode(false)
-            ->font('Poppins')
+            ->font('Plus Jakarta Sans')
             ->maxContentWidth(Width::Full)
+            ->sidebarWidth('248px')
             ->sidebarCollapsibleOnDesktop()
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->databaseNotifications()
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 fn () => view('filament.auth.login-illustration'),
+            )
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn () => view('filament.topbar.quick-create'),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_FOOTER,
+                fn () => view('filament.sidebar.footer'),
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
@@ -53,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->colors([
                 'primary' => [
-                    50 => '#EEF6F5',
+                    50 => '#E8F4F3',
                     100 => '#D5ECEA',
                     200 => '#ADDAD6',
                     300 => '#7BC2BC',
@@ -72,11 +82,12 @@ class AdminPanelProvider extends PanelProvider
                 'gray' => Color::Zinc,
             ])
             ->navigationGroups([
-                NavigationGroup::make('Alat'),
-                NavigationGroup::make('Kegiatan'),
-                NavigationGroup::make('Laporan'),
-                NavigationGroup::make('Data Master'),
-                NavigationGroup::make('Pengaturan'),
+                NavigationGroup::make('Umum')->collapsible(false),
+                NavigationGroup::make('Alat')->collapsible(false),
+                NavigationGroup::make('Kegiatan')->collapsible(false),
+                NavigationGroup::make('Laporan')->collapsible(false),
+                NavigationGroup::make('Data Master')->collapsible(false),
+                NavigationGroup::make('Admin')->collapsible(false),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -87,7 +98,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([])
             ->plugins([
                 FilamentShieldPlugin::make()
-                    ->navigationGroup('Pengaturan')
+                    ->navigationGroup('Admin')
                     ->navigationLabel('Role')
                     ->modelLabel('Role')
                     ->pluralModelLabel('Role'),

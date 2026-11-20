@@ -2,57 +2,130 @@
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
+@source '../../../../resources/views/components/sigap/**/*';
 
 @theme {
+    /* §1.1 Brand & Neutral */
     --color-sigap-primary: #0E7C7B;
-    --color-sigap-ink: #1B2B30;
+    --color-sigap-primary-600: #0B6463;
+    --color-sigap-primary-100: #D5ECEA;
+    --color-sigap-primary-50: #E8F4F3;
+    --color-sigap-aqua: #5CC8C4;
+    --color-sigap-aqua-50: #E6F7F6;
+    --color-sigap-canvas: #F4F7F7;
+    --color-sigap-surface: #FFFFFF;
+    --color-sigap-border: #E3EAEA;
+    --color-sigap-border-strong: #D3DEDD;
+    --color-sigap-ink: #13262B;
+    --color-sigap-ink-2: #3A4D52;
     --color-sigap-muted: #6B7C80;
-    --color-sigap-line: #DDE7E6;
-    --color-sigap-tint: #EEF6F5;
+    --color-sigap-subtle: #97A6A9;
+
+    /* §1.2 Equipment Status */
+    --color-status-fit: #2E9E6B;
+    --color-status-fit-tint: #E7F5EE;
+    --color-status-fit-text: #22774F;
+
+    --color-status-due: #E0A23B;
+    --color-status-due-tint: #FCF3E2;
+    --color-status-due-text: #A66F12;
+
+    --color-status-overdue: #D9534F;
+    --color-status-overdue-tint: #FBEAEA;
+    --color-status-overdue-text: #B83C38;
+
+    --color-status-testing: #3B82F6;
+    --color-status-testing-tint: #EAF1FE;
+    --color-status-testing-text: #2563EB;
+
+    --color-status-repair: #8A9699;
+    --color-status-repair-tint: #EFF2F2;
+    --color-status-repair-text: #55666A;
+
+    --color-status-unfit: #B83C38;
+    --color-status-unfit-tint: #FBEAEA;
+    --color-status-unfit-text: #9A2F2C;
+
+    /* Legacy aliases kept for compatibility */
+    --color-sigap-line: #E3EAEA;
+    --color-sigap-tint: #F4F7F7;
     --color-sigap-success: #2E9E6B;
     --color-sigap-warning: #E0A23B;
     --color-sigap-danger: #D9534F;
+
+    /* §1.5 Radii & Shadows */
+    --radius-sigap-sm: 8px;
+    --radius-sigap-md: 10px;
+    --radius-sigap-lg: 14px;
+    --radius-sigap-pill: 999px;
+    --shadow-sigap-card: 0 1px 2px rgba(19, 38, 43, 0.04);
+    --shadow-sigap-overlay: 0 12px 32px -12px rgba(19, 38, 43, 0.18);
 }
 
+/* Base surface & typography (§1.4) */
 .fi-body {
-    background-color: var(--color-sigap-tint);
+    background-color: var(--color-sigap-canvas);
     color: var(--color-sigap-ink);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 .fi-simple-layout {
-    background-color: var(--color-sigap-tint);
+    background-color: var(--color-sigap-canvas);
     background-image: url('/images/brand/pattern.svg');
     background-repeat: repeat;
 }
 
-/* Topbar & Sidebar surface */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Topbar (§2.2 — height 64px, surface, 1px border) */
 .fi-topbar {
-    background-color: #FFFFFF;
-    border-bottom: 1px solid var(--color-sigap-line);
+    min-height: 4rem;
+    background-color: var(--color-sigap-surface);
+    border-bottom: 1px solid var(--color-sigap-border);
     box-shadow: none;
     --tw-ring-shadow: 0 0 #0000;
 }
 
+/* Global search pill (§2.2) */
+.fi-global-search-field .fi-input-wrp {
+    border-radius: 999px;
+    background-color: var(--color-sigap-canvas);
+    border: 1px solid var(--color-sigap-border);
+    box-shadow: none;
+    --tw-ring-shadow: 0 0 #0000;
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.fi-global-search-field .fi-input-wrp:focus-within {
+    background-color: var(--color-sigap-surface);
+    border-color: var(--color-sigap-primary);
+    box-shadow: 0 0 0 3px var(--color-sigap-primary-100);
+}
+
+/* Sidebar (§2.1 — 248px, surface, 1px right border) */
 .fi-sidebar {
-    background-color: #FFFFFF !important;
-    border-inline-end: 1px solid var(--color-sigap-line);
+    background-color: var(--color-sigap-surface);
+    border-inline-end: 1px solid var(--color-sigap-border);
 }
 
 .fi-sidebar-header {
-    background-color: #FFFFFF !important;
-    border-bottom: 1px solid var(--color-sigap-line);
+    min-height: 4rem;
+    background-color: var(--color-sigap-surface);
+    border-bottom: 1px solid var(--color-sigap-border);
 }
 
 .fi-sidebar-nav {
-    padding-top: 1.25rem;
-    padding-bottom: 1.5rem;
-    padding-inline: 1rem;
-    gap: 1.25rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    padding-inline: 0.75rem;
+    gap: 0.875rem;
 }
 
 .fi-sidebar-nav-groups {
     margin-inline: 0;
-    gap: 1.25rem;
+    gap: 0.875rem;
 }
 
 .fi-sidebar-group-btn {
@@ -62,43 +135,97 @@
 
 .fi-sidebar-group-label {
     font-size: 0.6875rem;
+    line-height: 0.875rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.06em;
+    color: var(--color-sigap-subtle);
+}
+
+.fi-sidebar-item-btn {
+    min-height: 2.25rem;
+    border-radius: var(--radius-sigap-sm);
+    font-size: 0.84375rem;
+    font-weight: 500;
+    color: var(--color-sigap-ink-2);
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.fi-sidebar-item-active > .fi-sidebar-item-btn {
+    background-color: var(--color-sigap-primary-50);
+    color: var(--color-sigap-primary);
+    font-weight: 600;
+}
+
+.fi-sidebar-item-active > .fi-sidebar-item-btn .fi-sidebar-item-icon {
+    color: var(--color-sigap-primary);
+}
+
+/* Page header (§2.3) */
+.fi-header-heading {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--color-sigap-ink);
+}
+
+.fi-header-subheading {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
     color: var(--color-sigap-muted);
 }
 
-/* Cards, Sections, & Tables */
+/* Cards, Sections, Tables, Modals (§1.5, §3.12) */
 .fi-section:not(.fi-section-not-contained):not(.fi-aside),
 .fi-section:not(.fi-section-not-contained).fi-aside > .fi-section-content-ctn,
 .fi-ta-ctn,
 .fi-wi-stats-overview-stat,
 .fi-simple-main {
-    border-radius: 0.75rem;
-    box-shadow: none;
-    border: 1px solid var(--color-sigap-line);
+    background-color: var(--color-sigap-surface);
+    border-radius: var(--radius-sigap-lg);
+    border: 1px solid var(--color-sigap-border);
+    box-shadow: var(--shadow-sigap-card);
     --tw-ring-shadow: 0 0 #0000;
 }
 
-.fi-section-header-description,
-.fi-wi-stats-overview-stat-description,
-.fi-wi-stats-overview-stat-label {
+.fi-ta-header-cell-label {
+    font-size: 0.75rem;
+    font-weight: 500;
     color: var(--color-sigap-muted);
 }
 
-.fi-wi-stats-overview-stat {
-    background-color: #FFFFFF;
-    padding: 1.125rem 1.25rem;
+.fi-ta-row {
+    transition: background-color 150ms ease-out;
 }
 
-.fi-wi-stats-overview-stat-value {
-    font-size: 1.625rem;
-    line-height: 1.2;
+.fi-ta-row:hover {
+    background-color: var(--color-sigap-canvas);
+}
+
+/* Buttons (§3.14 — pill shape, 36px/40px) */
+.fi-btn {
+    border-radius: var(--radius-sigap-pill);
     font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--color-sigap-ink);
+    transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
 }
 
-.fi-wi-table .fi-ta-cell {
-    padding-block: 0.5rem;
+/* Inputs (§3.13 — radius 8px, focus ring primary-100) */
+.fi-input-wrp {
+    border-radius: var(--radius-sigap-sm);
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.fi-input-wrp:focus-within {
+    box-shadow: 0 0 0 3px var(--color-sigap-primary-100);
+}
+
+/* Reduced motion (§1.7) */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
 }

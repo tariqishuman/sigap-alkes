@@ -89,6 +89,11 @@ Dokumen ini mencatat asumsi teknis dan bisnis yang diambil selama pengembangan p
 3. **Ketahanan halaman error**: `resources/views/errors/layout.blade.php` membaca nama aplikasi, logo, dan favicon dari `SettingsService` di dalam blok `try/catch` dengan nilai bawaan (`SIGAP-Alkes`, `images/logo-its.png`, `images/brand/favicon.svg`) agar halaman 500/503 tetap ter-render saat koneksi database mati.
 4. **Ambang "Pertimbangkan ganti"**: Dipindahkan ke pengaturan `asset.replace_threshold_percent` dengan `config('sigap.replace_threshold_percent')` (`SIGAP_REPLACE_THRESHOLD_PERCENT`, default `50`) sebagai nilai awal bawaan.
 
+## UI Revamp v2 (`ui-revamp-v2`) — Tahap A
+1. **Topbar & Sidebar tanpa override view vendor (§8)**: Tombol split **"+ Tambah"** beserta nama + label role ditempatkan melalui render hook `PanelsRenderHook::GLOBAL_SEARCH_AFTER`, dan footer sidebar (**Pengaturan** + **Bantuan**) melalui `PanelsRenderHook::SIDEBAR_FOOTER`, sehingga tidak ada view vendor Filament yang di-publish/override.
+2. **Status badge terpadu**: Seluruh kolom dan entri status `EquipmentStatus` menggunakan komponen `<x-sigap.status-badge>` melalui `ViewColumn`/`ViewEntry` (`components.sigap.table-status-badge` & `components.sigap.infolist-status-badge`) agar warna, tint, titik penanda, dan tipografi 100% mengikuti tabel `design.md` §1.2.
+
+
 
 
 

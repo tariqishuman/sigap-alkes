@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Equipment\RelationManagers;
 
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Table;
 
 class StatusHistoriesRelationManager extends RelationManager
@@ -22,13 +23,13 @@ class StatusHistoriesRelationManager extends RelationManager
                     ->label('Waktu Perubahan')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
-                TextColumn::make('from_status')
+                ViewColumn::make('from_status')
                     ->label('Dari Status')
-                    ->badge()
+                    ->view('components.sigap.table-status-badge')
                     ->placeholder('Awal'),
-                TextColumn::make('to_status')
+                ViewColumn::make('to_status')
                     ->label('Ke Status')
-                    ->badge(),
+                    ->view('components.sigap.table-status-badge'),
                 TextColumn::make('reason')
                     ->label('Alasan / Pemicu')
                     ->wrap(),

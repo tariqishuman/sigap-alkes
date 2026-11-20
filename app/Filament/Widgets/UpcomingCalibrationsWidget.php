@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Filament\Resources\Equipment\EquipmentResource;
 use App\Models\Equipment;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,9 +55,9 @@ class UpcomingCalibrationsWidget extends TableWidget
                     ->weight('medium'),
                 TextColumn::make('room.name')
                     ->label('Ruangan'),
-                TextColumn::make('status')
+                ViewColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->view('components.sigap.table-status-badge'),
                 TextColumn::make('due_date')
                     ->label('Berlaku s.d.')
                     ->date('d M Y')

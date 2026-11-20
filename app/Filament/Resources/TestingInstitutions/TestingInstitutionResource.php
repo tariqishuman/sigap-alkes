@@ -21,6 +21,8 @@ class TestingInstitutionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCheckBadge;
 
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::CheckBadge;
+
     protected static string|UnitEnum|null $navigationGroup = 'Data Master';
 
     protected static ?string $navigationLabel = 'Lembaga Penguji';

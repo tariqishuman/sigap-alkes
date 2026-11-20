@@ -19,7 +19,9 @@ class RoomResource extends Resource
 {
     protected static ?string $model = Room::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice;
+
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::BuildingOffice;
 
     protected static string|UnitEnum|null $navigationGroup = 'Data Master';
 

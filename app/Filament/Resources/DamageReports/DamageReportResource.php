@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\DamageReports;
 
+use App\Enums\DamageReportStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\DamageReports\Pages\CreateDamageReport;
 use App\Filament\Resources\DamageReports\Pages\EditDamageReport;
@@ -26,6 +27,8 @@ class DamageReportResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::ExclamationTriangle;
+
     protected static string|UnitEnum|null $navigationGroup = 'Alat';
 
     protected static ?string $navigationLabel = 'Laporan Kerusakan';
@@ -35,6 +38,20 @@ class DamageReportResource extends Resource
     protected static ?string $pluralModelLabel = 'Laporan Kerusakan';
 
     protected static ?int $navigationSort = 3;
+
+    public static function getNavigationBadge(): ?string
+    {
+        $open = static::getEloquentQuery()
+            ->where('status', DamageReportStatus::Open)
+            ->count();
+
+        return $open > 0 ? (string) $open : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'danger';
+    }
 
     public static function getEloquentQuery(): Builder
     {

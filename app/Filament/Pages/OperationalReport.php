@@ -16,6 +16,7 @@ use Filament\Actions\ExportAction;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -29,7 +30,9 @@ class OperationalReport extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBarSquare;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
+
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::ChartBar;
 
     protected static string|UnitEnum|null $navigationGroup = 'Laporan';
 
@@ -171,9 +174,9 @@ class OperationalReport extends Page implements HasTable
                     ->description(fn (Equipment $record): string => $record->inventory_code),
                 TextColumn::make('room.name')
                     ->label('Ruangan'),
-                TextColumn::make('status')
+                ViewColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->view('components.sigap.table-status-badge'),
                 TextColumn::make('total_hours')
                     ->label('Total Jam Operasi')
                     ->alignEnd()

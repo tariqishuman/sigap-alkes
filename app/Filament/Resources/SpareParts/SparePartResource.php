@@ -21,19 +21,35 @@ class SparePartResource extends Resource
 {
     protected static ?string $model = SparePart::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Data Master';
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::ArchiveBox;
 
-    protected static ?string $navigationLabel = 'Suku Cadang';
+    protected static string|UnitEnum|null $navigationGroup = 'Kegiatan';
+
+    protected static ?string $navigationLabel = 'Stok Suku Cadang';
 
     protected static ?string $modelLabel = 'Suku Cadang';
 
-    protected static ?string $pluralModelLabel = 'Suku Cadang';
+    protected static ?string $pluralModelLabel = 'Stok Suku Cadang';
 
     protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationBadge(): ?string
+    {
+        $lowCount = SparePart::query()
+            ->whereColumn('stock', '<=', 'min_stock')
+            ->count();
+
+        return $lowCount > 0 ? (string) $lowCount : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
 
     public static function form(Schema $schema): Schema
     {

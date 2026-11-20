@@ -21,6 +21,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
@@ -28,7 +29,9 @@ class EquipmentResource extends Resource
 {
     protected static ?string $model = Equipment::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCpuChip;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCube;
+
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::Cube;
 
     protected static string|UnitEnum|null $navigationGroup = 'Alat';
 
@@ -41,6 +44,26 @@ class EquipmentResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'inventory_code', 'serial_number'];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return array_filter([
+            'Kode' => $record->inventory_code,
+            'Ruangan' => $record->room?->name,
+            'Status' => $record->status?->getLabel(),
+        ]);
+    }
 
     public static function getEloquentQuery(): Builder
     {

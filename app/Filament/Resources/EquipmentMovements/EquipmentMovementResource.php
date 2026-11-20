@@ -23,6 +23,8 @@ class EquipmentMovementResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::ArrowsRightLeft;
+
     protected static string|UnitEnum|null $navigationGroup = 'Kegiatan';
 
     protected static ?string $navigationLabel = 'Mutasi Alat';

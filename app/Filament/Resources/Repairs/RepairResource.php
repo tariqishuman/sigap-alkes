@@ -26,6 +26,8 @@ class RepairResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWrenchScrewdriver;
 
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::WrenchScrewdriver;
+
     protected static string|UnitEnum|null $navigationGroup = 'Kegiatan';
 
     protected static ?string $navigationLabel = 'Perbaikan';

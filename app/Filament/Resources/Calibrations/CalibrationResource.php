@@ -21,7 +21,9 @@ class CalibrationResource extends Resource
 {
     protected static ?string $model = Calibration::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
+
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::ShieldCheck;
 
     protected static string|UnitEnum|null $navigationGroup = 'Kegiatan';
 

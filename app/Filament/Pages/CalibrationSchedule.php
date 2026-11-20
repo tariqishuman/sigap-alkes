@@ -13,6 +13,7 @@ use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
@@ -28,6 +29,8 @@ class CalibrationSchedule extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::CalendarDays;
+
     protected static string|UnitEnum|null $navigationGroup = 'Alat';
 
     protected static ?string $navigationLabel = 'Jadwal Kalibrasi';
@@ -37,6 +40,21 @@ class CalibrationSchedule extends Page implements HasTable
     protected static ?int $navigationSort = 2;
 
     protected static ?string $slug = 'jadwal-kalibrasi';
+
+    public static function getNavigationBadge(): ?string
+    {
+        $overdue = Equipment::query()
+            ->where('is_active', true)
+            ->where('status', EquipmentStatus::Overdue)
+            ->count();
+
+        return $overdue > 0 ? (string) $overdue : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'danger';
+    }
 
     public static function canAccess(): bool
     {
@@ -74,9 +92,9 @@ class CalibrationSchedule extends Page implements HasTable
                     ->label('Ruangan'),
                 TextColumn::make('equipmentType.name')
                     ->label('Jenis'),
-                TextColumn::make('status')
+                ViewColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->view('components.sigap.table-status-badge'),
                 TextColumn::make('due_date')
                     ->label('Jatuh Tempo')
                     ->date('d M Y')

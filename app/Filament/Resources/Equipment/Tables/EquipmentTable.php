@@ -16,6 +16,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -53,9 +54,9 @@ class EquipmentTable
                 TextColumn::make('room.name')
                     ->label('Ruangan')
                     ->sortable(),
-                TextColumn::make('status')
+                ViewColumn::make('status')
                     ->label('Status')
-                    ->badge()
+                    ->view('components.sigap.table-status-badge')
                     ->sortable(),
                 TextColumn::make('valid_until_display')
                     ->label('Berlaku s.d.')

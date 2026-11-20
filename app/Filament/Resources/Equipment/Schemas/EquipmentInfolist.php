@@ -9,6 +9,7 @@ use App\Services\SettingsService;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
@@ -36,9 +37,9 @@ class EquipmentInfolist
                         TextEntry::make('name')
                             ->label('Nama Alat')
                             ->weight('bold'),
-                        TextEntry::make('status')
+                        ViewEntry::make('status')
                             ->label('Status Saat Ini')
-                            ->badge(),
+                            ->view('components.sigap.infolist-status-badge'),
                         TextEntry::make('room.name')
                             ->label('Ruangan'),
                         TextEntry::make('equipmentType.name')

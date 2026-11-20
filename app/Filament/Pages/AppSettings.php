@@ -20,7 +20,6 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
-use UnitEnum;
 
 /**
  * @property-read Schema $form
@@ -29,9 +28,11 @@ class AppSettings extends Page implements HasSchemas
 {
     use InteractsWithSchemas;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog8Tooth;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Pengaturan';
+    protected static string|BackedEnum|null $activeNavigationIcon = Heroicon::Cog6Tooth;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $navigationLabel = 'Pengaturan Aplikasi';
 
