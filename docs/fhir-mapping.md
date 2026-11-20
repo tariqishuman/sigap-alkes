@@ -182,4 +182,71 @@ Playbook resmi SatuSehat tidak mencantumkan resource `Device` untuk inventaris a
 }
 ```
 
-**Keputusan**: Karena sandbox SatuSehat menolak `Device` non-standar klinis dan playbook tidak menyertakan profil `Device` inventaris IPSRS, sinkronisasi `Device` ke SatuSehat **tidak dibangun**. Data alat kesehatan dan status kalibrasinya disediakan secara read-only melalui API HL7 FHIR R4 SIGAP (`/api/fhir/r4/Device` dan `/api/fhir/r4/DeviceMetric`).
+**Keputusan setelah Percobaan #1 vs Percobaan #2**:
+Error pada percobaan #1 adalah error **validasi skema** (`RuleNumber: 10995` untuk `identifier.system` dan `RuleNumber: 11006` untuk `Device.type.coding`), menandakan validator SatuSehat **mengenali dan mendukung resource `Device`**.
+
+### Bukti Percobaan #2 `POST /Device` di Sandbox SatuSehat (Berhasil `201 Created`)
+
+Dengan mengikuti pola resmi SatuSehat (`identifier.system = http://sys-ids.kemkes.go.id/device/{org_id}` dan `type.coding` SNOMED CT `http://snomed.info/sct`):
+
+- **Request (`POST /fhir-r4/v1/Device`, tanpa token)**:
+```json
+{
+    "resourceType": "Device",
+    "identifier": [
+        {
+            "use": "official",
+            "system": "http://sys-ids.kemkes.go.id/device/0b342ea0-ed93-4b10-9ca0-0eb88a1e9be2",
+            "value": "ALK-ICU-001"
+        }
+    ],
+    "status": "active",
+    "statusReason": [
+        {
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/device-status-reason",
+                    "code": "online",
+                    "display": "Online"
+                }
+            ]
+        }
+    ],
+    "manufacturer": "Mindray",
+    "deviceName": [
+        {
+            "name": "Ventilator Mindray #1",
+            "type": "user-friendly-name"
+        }
+    ],
+    "modelNumber": "SV300",
+    "serialNumber": "MIN-2100",
+    "type": {
+        "coding": [
+            {
+                "system": "http://snomed.info/sct",
+                "code": "706172005",
+                "display": "Ventilator"
+            }
+        ],
+        "text": "Ventilator"
+    },
+    "owner": {
+        "reference": "Organization/0b342ea0-ed93-4b10-9ca0-0eb88a1e9be2"
+    },
+    "location": {
+        "reference": "Location/354eb172-e58b-42ce-8eec-92b7cbb17481"
+    }
+}
+```
+
+- **HTTP Status**: `201 Created`
+- **ID SatuSehat yang didapat**: `cdc9e9de-0a4d-479e-ae45-02c4396bac93`
+
+Oleh karena itu, sinkronisasi `Device` dibangun penuh (`equipment.satusehat_id`, `POST`/`PUT`, `satusehat_sync_logs`, opsi `--resource=device`) dengan pemetaan opsional `equipment_types.fhir_type_code` & `fhir_type_display` (SNOMED CT) di Data Master Jenis Alat. Alat dari jenis yang belum memiliki kode SNOMED CT akan dilewati dan dicatat di log.
+
+### Uji Idempotensi `Location` di Sandbox
+
+Menjalankan `php artisan satusehat:sync --resource=location --now` dua kali berturut-turut setelah sinkronisasi awal:
+- Run awal: `POST /Location` → **HTTP `201 Created`** (6 ruangan mendapat UUID SatuSehat).
+- Run kedua & ketiga: `PUT /Location/{satusehat_id}` → **HTTP `200 OK`** untuk seluruh 6 ruangan tanpa membuat duplikat baru.

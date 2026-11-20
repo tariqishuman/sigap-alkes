@@ -111,9 +111,16 @@ class FhirResourceMapper
                     'type' => 'user-friendly-name',
                 ],
             ],
-            'type' => [
+            'type' => array_filter([
+                'coding' => filled($equipment->equipmentType?->fhir_type_code) ? [
+                    [
+                        'system' => 'http://snomed.info/sct',
+                        'code' => $equipment->equipmentType->fhir_type_code,
+                        'display' => $equipment->equipmentType->fhir_type_display ?: $equipment->equipmentType->name,
+                    ],
+                ] : null,
                 'text' => $equipment->equipmentType?->name ?? 'Alat Kesehatan',
-            ],
+            ], fn ($v): bool => $v !== null),
             'owner' => [
                 'reference' => 'Organization/hospital',
                 'display' => $this->settings->hospitalName(),

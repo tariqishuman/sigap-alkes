@@ -204,6 +204,148 @@ class SatuSehatSyncService
     }
 
     /**
+     * Sync a single active Equipment to SatuSehat Device (POST if new, PUT if satusehat_id already exists).
+     * Equipment whose EquipmentType has no SNOMED CT code (fhir_type_code) is skipped and logged.
+     *
+     * @return array{status: string, satusehat_id: ?string, http_status: ?int, action: string, message: string}
+     */
+    public function syncDevice(Equipment $equipment): array
+    {
+        if (! $this->client->isEnabled()) {
+            return ['status' => 'skipped', 'satusehat_id' => $equipment->satusehat_id, 'http_status' => null, 'action' => 'skip', 'message' => 'Integrasi SatuSehat tidak aktif.'];
+        }
+
+        $equipment->loadMissing(['equipmentType', 'room']);
+        $typeCode = trim((string) ($equipment->equipmentType?->fhir_type_code ?? ''));
+
+        if ($typeCode === '') {
+            $reason = "Dilewati: jenis alat {$equipment->equipmentType?->name} belum memiliki kode SNOMED CT.";
+            $this->log('Device', $equipment->id, 'skip', 'skipped', null, $reason);
+
+            return ['status' => 'skipped', 'satusehat_id' => $equipment->satusehat_id, 'http_status' => null, 'action' => 'skip', 'message' => $reason];
+        }
+
+        $parentOrgId = $this->client->organizationId();
+        $mappedStatus = $this->mapper->mapDeviceStatus($equipment->status);
+
+        $payload = [
+            'resourceType' => 'Device',
+            'identifier' => [
+                [
+                    'use' => 'official',
+                    'system' => "http://sys-ids.kemkes.go.id/device/{$parentOrgId}",
+                    'value' => $equipment->inventory_code,
+                ],
+            ],
+            'status' => $mappedStatus['status'],
+            'statusReason' => [
+                [
+                    'coding' => [
+                        [
+                            'system' => 'http://terminology.hl7.org/CodeSystem/device-status-reason',
+                            'code' => $mappedStatus['reason_code'],
+                            'display' => $mappedStatus['reason_display'],
+                        ],
+                    ],
+                ],
+            ],
+            'deviceName' => [
+                [
+                    'name' => $equipment->name,
+                    'type' => 'user-friendly-name',
+                ],
+            ],
+            'type' => [
+                'coding' => [
+                    [
+                        'system' => 'http://snomed.info/sct',
+                        'code' => $typeCode,
+                        'display' => $equipment->equipmentType->fhir_type_display ?: $equipment->equipmentType->name,
+                    ],
+                ],
+                'text' => $equipment->equipmentType->name,
+            ],
+            'owner' => [
+                'reference' => "Organization/{$parentOrgId}",
+            ],
+        ];
+
+        if (filled($equipment->brand)) {
+            $payload['manufacturer'] = $equipment->brand;
+        }
+
+        if (filled($equipment->model)) {
+            $payload['modelNumber'] = $equipment->model;
+        }
+
+        if (filled($equipment->serial_number)) {
+            $payload['serialNumber'] = $equipment->serial_number;
+        }
+
+        if (filled($equipment->room?->satusehat_id)) {
+            $payload['location'] = [
+                'reference' => "Location/{$equipment->room->satusehat_id}",
+            ];
+        }
+
+        $isUpdate = filled($equipment->satusehat_id);
+        $action = $isUpdate ? 'update' : 'create';
+
+        if ($isUpdate) {
+            $payload['id'] = $equipment->satusehat_id;
+        }
+
+        try {
+            $response = $isUpdate
+                ? $this->client->put('Device', (string) $equipment->satusehat_id, $payload)
+                : $this->client->post('Device', $payload);
+
+            $summary = $this->summarizeResponse($response);
+
+            if ($response->successful()) {
+                $id = (string) ($response->json('id') ?: $equipment->satusehat_id);
+
+                if ($id !== '' && $equipment->satusehat_id !== $id) {
+                    $equipment->update(['satusehat_id' => $id]);
+                }
+
+                $this->log('Device', $equipment->id, $action, 'success', $response->status(), "{$equipment->inventory_code} ({$id})");
+
+                return ['status' => 'success', 'satusehat_id' => $id, 'http_status' => $response->status(), 'action' => $action, 'message' => "Device {$equipment->inventory_code} berhasil disinkronkan ({$id})."];
+            }
+
+            $this->log('Device', $equipment->id, $action, 'failed', $response->status(), $summary);
+
+            return ['status' => 'failed', 'satusehat_id' => $equipment->satusehat_id, 'http_status' => $response->status(), 'action' => $action, 'message' => $summary];
+        } catch (Throwable $e) {
+            $msg = $this->sanitizeMessage($e->getMessage());
+            $this->log('Device', $equipment->id, $action, 'failed', null, $msg);
+
+            return ['status' => 'failed', 'satusehat_id' => $equipment->satusehat_id, 'http_status' => null, 'action' => $action, 'message' => $msg];
+        }
+    }
+
+    /**
+     * Sync all active Equipment to SatuSehat Device.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function syncAllDevices(): array
+    {
+        if (! $this->client->isEnabled()) {
+            return [];
+        }
+
+        $results = [];
+        foreach (Equipment::query()->where('is_active', true)->with(['equipmentType', 'room'])->orderBy('id')->get() as $eq) {
+            $res = $this->syncDevice($eq);
+            $results[] = array_merge(['equipment_id' => $eq->id, 'inventory_code' => $eq->inventory_code], $res);
+        }
+
+        return $results;
+    }
+
+    /**
      * Single sandbox probe for POST /Device to document SatuSehat's behavior (evidence for docs/fhir-mapping.md).
      *
      * @return array{http_status: ?int, request_payload: array<string, mixed>, response_body: string}

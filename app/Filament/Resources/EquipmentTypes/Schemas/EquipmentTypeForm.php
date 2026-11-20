@@ -54,6 +54,17 @@ class EquipmentTypeForm
                             ->maxValue(100)
                             ->suffix('%')
                             ->required(),
+                        TextInput::make('fhir_type_code')
+                            ->label('Kode SNOMED CT (SatuSehat)')
+                            ->placeholder('Contoh: 706172005')
+                            ->helperText('Opsional. Diperlukan agar alat jenis ini ikut disinkronkan ke SatuSehat.')
+                            ->maxLength(50)
+                            ->nullable(),
+                        TextInput::make('fhir_type_display')
+                            ->label('Nama Terminologi SNOMED CT')
+                            ->placeholder('Contoh: Ventilator')
+                            ->maxLength(150)
+                            ->nullable(),
                     ]),
             ]);
     }

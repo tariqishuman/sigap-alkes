@@ -33,6 +33,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'acquisition_cost',
     'residual_value',
     'qr_token',
+    'satusehat_id',
     'photo_path',
     'is_active',
     'notes',

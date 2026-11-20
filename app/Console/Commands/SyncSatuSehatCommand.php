@@ -8,9 +8,9 @@ use Illuminate\Console\Command;
 
 class SyncSatuSehatCommand extends Command
 {
-    protected $signature = 'satusehat:sync {--resource= : organization atau location} {--now : Jalankan langsung tanpa menunggu worker antrean}';
+    protected $signature = 'satusehat:sync {--resource= : organization, location, atau device} {--now : Jalankan langsung tanpa menunggu worker antrean}';
 
-    protected $description = 'Sinkronisasi sub-organisasi IPSRS dan Location ruangan ke SatuSehat (sandbox/production)';
+    protected $description = 'Sinkronisasi sub-organisasi IPSRS, Location ruangan, dan Device alat ke SatuSehat (sandbox/production)';
 
     public function handle(SatuSehatClient $client): int
     {
@@ -21,8 +21,8 @@ class SyncSatuSehatCommand extends Command
         }
 
         $resource = $this->option('resource');
-        if ($resource !== null && ! in_array($resource, ['organization', 'location'], true)) {
-            $this->error('Opsi --resource hanya menerima: organization atau location.');
+        if ($resource !== null && ! in_array($resource, ['organization', 'location', 'device'], true)) {
+            $this->error('Opsi --resource hanya menerima: organization, location, atau device.');
 
             return self::INVALID;
         }

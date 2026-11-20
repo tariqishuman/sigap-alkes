@@ -123,6 +123,7 @@ SIGAP-Alkes menyediakan REST API **HL7 FHIR R4 read-only** (`/api/fhir/r4`, `Con
    # Sinkronisasi spesifik langsung tanpa menunggu worker
    php artisan satusehat:sync --resource=organization --now
    php artisan satusehat:sync --resource=location --now
+   php artisan satusehat:sync --resource=device --now
    ```
 
 #### Contoh Penggunaan API HL7 FHIR R4 SIGAP

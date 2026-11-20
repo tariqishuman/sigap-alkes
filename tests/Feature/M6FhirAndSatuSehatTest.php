@@ -322,4 +322,51 @@ describe('SatuSehat Sandbox Sync (Http::fake only)', function () {
 
         Http::assertNothingSent();
     });
+
+    it('POSTs Device with SNOMED CT code, saves equipment.satusehat_id, PUTs on update, and skips types without code', function () {
+        $this->room->update(['satusehat_id' => 'loc-uuid-101']);
+        $this->type->update(['fhir_type_code' => '706172005', 'fhir_type_display' => 'Ventilator']);
+
+        $mappedEq = makeFhirEquipment($this->room, $this->type, 'DEV-SYNC-01', EquipmentStatus::FitForUse, 'SN-DEV-1');
+
+        $unmappedType = EquipmentType::create([
+            'name' => 'Alat Tanpa SNOMED',
+            'requires_calibration' => false,
+            'calibration_interval_months' => 12,
+            'useful_life_years' => 5,
+            'fhir_type_code' => null,
+        ]);
+        $unmappedEq = makeFhirEquipment($this->room, $unmappedType, 'DEV-SKIP-01', EquipmentStatus::FitForUse, 'SN-SKIP-1');
+
+        Http::fake([
+            '*/oauth2/v1/accesstoken*' => Http::response(['access_token' => 'fake-token-dev', 'expires_in' => 3600], 200),
+            '*/fhir-r4/v1/Device' => Http::response(['resourceType' => 'Device', 'id' => 'dev-uuid-201'], 201),
+            '*/fhir-r4/v1/Device/dev-uuid-201' => Http::response(['resourceType' => 'Device', 'id' => 'dev-uuid-201'], 200),
+        ]);
+
+        // First run via Artisan command: mappedEq POSTs (201), unmappedEq skipped & logged
+        $this->artisan('satusehat:sync', ['--resource' => 'device', '--now' => true])
+            ->assertSuccessful();
+
+        expect($mappedEq->fresh()->satusehat_id)->toBe('dev-uuid-201')
+            ->and($unmappedEq->fresh()->satusehat_id)->toBeNull();
+
+        $skipLog = SatuSehatSyncLog::where('resource', 'Device')
+            ->where('local_id', $unmappedEq->id)
+            ->latest('id')
+            ->firstOrFail();
+        expect($skipLog->status)->toBe('skipped')
+            ->and($skipLog->response_summary)->toContain('belum memiliki kode SNOMED CT');
+
+        // Second run: mappedEq PUTs (200)
+        $res2 = app(SatuSehatSyncService::class)->syncDevice($mappedEq->fresh());
+        expect($res2['status'])->toBe('success')
+            ->and($res2['action'])->toBe('update');
+
+        Http::assertSent(fn (Request $req) => $req->method() === 'POST'
+            && str_ends_with($req->url(), '/Device')
+            && data_get($req->data(), 'identifier.0.system') === 'http://sys-ids.kemkes.go.id/device/10000004'
+            && data_get($req->data(), 'type.coding.0.code') === '706172005');
+        Http::assertSent(fn (Request $req) => $req->method() === 'PUT' && str_ends_with($req->url(), '/Device/dev-uuid-201'));
+    });
 });

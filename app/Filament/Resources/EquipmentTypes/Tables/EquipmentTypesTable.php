@@ -38,6 +38,10 @@ class EquipmentTypesTable
                     ->label('Nilai Residu')
                     ->suffix('%')
                     ->sortable(),
+                TextColumn::make('fhir_type_code')
+                    ->label('Kode SNOMED')
+                    ->fontFamily('mono')
+                    ->placeholder('–'),
                 TextColumn::make('equipment_count')
                     ->label('Jumlah Alat')
                     ->counts('equipment')

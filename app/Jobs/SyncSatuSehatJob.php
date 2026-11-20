@@ -27,5 +27,9 @@ class SyncSatuSehatJob implements ShouldQueue
         if ($this->resource === null || $this->resource === 'location') {
             $syncService->syncAllLocations();
         }
+
+        if ($this->resource === null || $this->resource === 'device') {
+            $syncService->syncAllDevices();
+        }
     }
 }

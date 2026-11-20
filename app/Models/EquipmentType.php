@@ -16,6 +16,8 @@ use Spatie\Activitylog\Support\LogOptions;
     'calibration_interval_months',
     'useful_life_years',
     'residual_value_percent',
+    'fhir_type_code',
+    'fhir_type_display',
 ])]
 class EquipmentType extends Model
 {
