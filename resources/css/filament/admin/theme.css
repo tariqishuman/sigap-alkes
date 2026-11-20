@@ -17,9 +17,9 @@
     --color-sigap-border: #E3EAEA;
     --color-sigap-border-strong: #D3DEDD;
     --color-sigap-ink: #13262B;
-    --color-sigap-ink-2: #3A4D52;
-    --color-sigap-muted: #6B7C80;
-    --color-sigap-subtle: #97A6A9;
+    --color-sigap-ink-2: #314449;
+    --color-sigap-muted: #56686C;
+    --color-sigap-subtle: #839498;
 
     /* §1.2 Equipment Status */
     --color-status-fit: #2E9E6B;
@@ -240,6 +240,17 @@
 .fi-sidebar {
     background-color: var(--color-sigap-surface);
     border-inline-end: 1px solid var(--color-sigap-border);
+    min-height: 100dvh;
+}
+
+@media (min-width: 1024px) {
+    .fi-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100dvh;
+        align-self: stretch;
+        min-height: 100%;
+    }
 }
 
 .fi-sidebar-header {
@@ -304,16 +315,16 @@
 }
 
 .fi-sidebar-item-btn {
-    height: 36px;
-    min-height: 36px;
+    height: 40px;
+    min-height: 40px;
     padding-block: 0;
-    padding-inline: 0.5rem;
-    gap: 0.5rem;
-    border-radius: var(--radius-sigap-sm);
-    font-size: 0.8125rem;
+    padding-inline: 0.625rem;
+    gap: 0.625rem;
+    border-radius: var(--radius-sigap-md);
+    font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-sigap-ink-2);
-    transition: background-color 150ms ease-out, color 150ms ease-out;
+    transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fi-sidebar-item-btn:hover {
@@ -321,8 +332,8 @@
 }
 
 .fi-sidebar-item-icon {
-    width: 18px;
-    height: 18px;
+    width: 19px;
+    height: 19px;
     color: var(--color-sigap-muted);
 }
 
@@ -338,22 +349,22 @@
     font-weight: 600;
 }
 
-/* Page header (§2.3) */
+/* Page header (§2.3 — enlarged for effortless readability) */
 .fi-header-heading {
-    font-size: 1.375rem;
-    line-height: 1.75rem;
+    font-size: 1.625rem;
+    line-height: 2rem;
     font-weight: 700;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
     color: var(--color-sigap-ink);
 }
 
 .fi-header-subheading {
-    font-size: 0.8125rem;
-    line-height: 1.125rem;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
     color: var(--color-sigap-muted);
 }
 
-/* Cards, Sections, Tables, Modals (§1.5, §3.12) */
+/* Cards, Sections, Tables, Modals (§1.5, §3.12 — smoother elevation & transitions) */
 .fi-section:not(.fi-section-not-contained):not(.fi-aside),
 .fi-section:not(.fi-section-not-contained).fi-aside > .fi-section-content-ctn,
 .fi-ta-ctn,
@@ -362,43 +373,107 @@
     background-color: var(--color-sigap-surface);
     border-radius: var(--radius-sigap-lg);
     border: 1px solid var(--color-sigap-border);
-    box-shadow: var(--shadow-sigap-card);
+    box-shadow: 0 2px 6px rgba(19, 38, 43, 0.045);
     --tw-ring-shadow: 0 0 #0000;
+    transition: box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fi-section-header-heading {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+}
+
+.fi-section-header-description {
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+    color: var(--color-sigap-muted);
 }
 
 .fi-ta-header-cell,
 .fi-ta-header-cell > *,
 .fi-ta-header-cell-label,
 .fi-ta-header-cell-sort-btn {
-    font-size: 0.75rem !important;
-    font-weight: 500 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
     color: var(--color-sigap-muted) !important;
     text-transform: none !important;
 }
 
+.fi-ta-cell {
+    font-size: 0.9375rem;
+}
+
+.fi-ta-text-item-label {
+    font-size: 0.9375rem;
+    line-height: 1.4;
+}
+
 .fi-ta-row {
-    transition: background-color 150ms ease-out;
+    transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fi-ta-row:hover {
     background-color: var(--color-sigap-canvas);
 }
 
-/* Buttons (§3.14 — pill shape, 36px/40px) */
+/* Buttons (§3.14 — pill shape, larger comfortable touch targets >= 42px) */
 .fi-btn {
     border-radius: var(--radius-sigap-pill);
+    min-height: 42px;
+    padding-inline: 1.125rem;
+    font-size: 0.9375rem;
     font-weight: 600;
-    transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+    transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Inputs (§3.13 — radius 8px, focus ring primary-100) */
+.fi-btn:active {
+    transform: scale(0.985);
+}
+
+/* Form labels, helper text, inputs, radios & checkboxes (larger & clearer for senior users) */
+.fi-fo-field-label-content {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-sigap-ink);
+}
+
+.fi-fo-field-wrp-helper-text,
+.fi-fo-radio-label-description {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--color-sigap-muted);
+}
+
+.fi-fo-radio-label-text {
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+/* Inputs (§3.13 — radius 10px, 44px height, smooth focus ring) */
 .fi-input-wrp {
-    border-radius: var(--radius-sigap-sm);
-    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+    border-radius: var(--radius-sigap-md);
+    min-height: 44px;
+    transition: border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fi-input,
+.fi-select-input,
+.fi-textarea {
+    font-size: 0.9375rem !important;
+    line-height: 1.45 !important;
 }
 
 .fi-input-wrp:focus-within {
     box-shadow: 0 0 0 3px var(--color-sigap-primary-100);
+}
+
+.fi-radio-input,
+.fi-checkbox-input {
+    width: 1.125rem;
+    height: 1.125rem;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
 }
 
 /* Dashboard filter bar compact styling (§4.1) */

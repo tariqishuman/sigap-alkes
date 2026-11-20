@@ -20,6 +20,7 @@ use App\Notifications\Channels\WebPushChannel;
 use App\Notifications\CriticalReportEscalationNotification;
 use App\Notifications\DamageReportedNotification;
 use App\Notifications\EquipmentOperationalNotification;
+use App\Notifications\TestPushNotification;
 use App\Notifications\UnsafeReportRateLimitNotification;
 use App\Services\DamageReportService;
 use App\Services\EquipmentStatusService;
@@ -546,7 +547,9 @@ describe('R3 Bagian 4 — Pemeliharaan preventif (PM)', function () {
             'performed_at' => '2026-08-15',
             'checklist_results' => [
                 ['item' => 'Kebersihan & kondisi fisik', 'status' => 'good', 'note' => null],
+                ['item' => 'Kabel & konektor', 'status' => 'good', 'note' => null],
                 ['item' => 'Baterai', 'status' => 'needs_attention', 'note' => 'Baterai cepat drop'],
+                ['item' => 'Alarm berfungsi', 'status' => 'good', 'note' => null],
             ],
             'notes' => 'Perlu penggantian baterai segera.',
         ], $this->teknisi);
@@ -575,12 +578,20 @@ describe('R3 Bagian 4 — Pemeliharaan preventif (PM)', function () {
         $icuPm = $pmService->record([
             'equipment_id' => $icuEq->id,
             'performed_at' => today()->toDateString(),
-            'checklist_results' => [['item' => 'Kebersihan', 'status' => 'good', 'note' => null]],
+            'checklist_results' => [
+                ['item' => 'Kebersihan', 'status' => 'good', 'note' => null],
+                ['item' => 'Kabel', 'status' => 'good', 'note' => null],
+                ['item' => 'Alarm', 'status' => 'good', 'note' => null],
+            ],
         ], $this->teknisi);
         $igdPm = $pmService->record([
             'equipment_id' => $igdEq->id,
             'performed_at' => today()->toDateString(),
-            'checklist_results' => [['item' => 'Kebersihan', 'status' => 'good', 'note' => null]],
+            'checklist_results' => [
+                ['item' => 'Kebersihan', 'status' => 'good', 'note' => null],
+                ['item' => 'Kabel', 'status' => 'good', 'note' => null],
+                ['item' => 'Alarm', 'status' => 'good', 'note' => null],
+            ],
         ], $this->admin);
 
         $manajemen = User::factory()->create(['name' => 'Manajemen PM']);
@@ -835,5 +846,155 @@ describe('R3 Bagian 6 — Notifikasi push, alert tiers, Saya tangani, dan eskala
         Carbon::setTestNow(Carbon::parse('2026-11-20 10:20:00'));
         $this->artisan('damage-reports:escalate-critical')->assertSuccessful();
         Notification::assertSentToTimes($manajemen, CriticalReportEscalationNotification::class, 1);
+    });
+});
+
+describe('R3 Hardening — Integritas waktu lapor, checklist PM, dan push subscription', function () {
+    it('enforces reported_at rules: rejects future, > 7 days, missing late reason, and unauthorized role backdating', function () {
+        Notification::fake();
+        Carbon::setTestNow(Carbon::parse('2026-11-20 12:00:00'));
+        $service = app(DamageReportService::class);
+        $eq = makeR3Equipment($this->typeCalibrated, $this->icuRoom, 'R3-TIME-01', EquipmentStatus::FitForUse);
+
+        // 1. Future date rejected
+        expect(fn () => $service->report([
+            'equipment_id' => $eq->id,
+            'reported_at' => '2026-11-20 14:00:00',
+            'is_safe_to_use' => true,
+            'complaint' => 'Layar monitor berkedip saat digunakan.',
+        ], $this->teknisi))->toThrow(ValidationException::class);
+
+        // 2. > 7 days ago rejected
+        expect(fn () => $service->report([
+            'equipment_id' => $eq->id,
+            'reported_at' => '2026-11-12 10:00:00',
+            'late_report_reason' => 'Terlambat input karena shift malam.',
+            'is_safe_to_use' => true,
+            'complaint' => 'Layar monitor berkedip saat digunakan.',
+        ], $this->teknisi))->toThrow(ValidationException::class);
+
+        // 3. kepala_ruangan & magang cannot backdate reported_at
+        expect(fn () => $service->report([
+            'equipment_id' => $eq->id,
+            'reported_at' => '2026-11-20 08:00:00',
+            'is_safe_to_use' => true,
+            'complaint' => 'Layar monitor berkedip saat digunakan.',
+        ], $this->kepalaIcu))->toThrow(ValidationException::class);
+
+        expect(fn () => $service->report([
+            'equipment_id' => $eq->id,
+            'reported_at' => '2026-11-20 08:00:00',
+            'is_safe_to_use' => true,
+            'complaint' => 'Layar monitor berkedip saat digunakan.',
+        ], $this->magang))->toThrow(ValidationException::class);
+
+        // 4. Teknisi backdating > 1 hour WITHOUT late_report_reason rejected
+        expect(fn () => $service->report([
+            'equipment_id' => $eq->id,
+            'reported_at' => '2026-11-20 08:00:00',
+            'is_safe_to_use' => true,
+            'complaint' => 'Layar monitor berkedip saat digunakan.',
+        ], $this->teknisi))->toThrow(ValidationException::class);
+
+        // 5. Teknisi backdating 4 hours WITH late_report_reason succeeds & records lateRecordingHours() = 4
+        $report = $service->report([
+            'equipment_id' => $eq->id,
+            'reported_at' => '2026-11-20 08:00:00',
+            'late_report_reason' => 'Dicatat setelah penanganan darurat ruang ICU selesai.',
+            'is_safe_to_use' => true,
+            'complaint' => 'Layar monitor berkedip saat digunakan.',
+        ], $this->teknisi);
+
+        expect($report->late_report_reason)->toContain('penanganan darurat')
+            ->and($report->lateRecordingHours())->toBe(4);
+    });
+
+    it('rejects PM checklist without selected status, missing note on needs_attention, or removed mandatory item', function () {
+        $pmType = EquipmentType::create([
+            'name' => 'Ventilator Hardening',
+            'requires_calibration' => true,
+            'calibration_interval_months' => 12,
+            'pm_interval_months' => 3,
+            'pm_checklist' => ['Filter HEPA', 'Sensor O2', 'Alarm apnea'],
+            'requires_installation' => false,
+        ]);
+
+        $eq = makeR3Equipment($pmType, $this->icuRoom, 'R3-PM-HARD', EquipmentStatus::FitForUse);
+        $service = app(PreventiveMaintenanceService::class);
+
+        // 1. Missing condition (status = null) rejected
+        expect(fn () => $service->record([
+            'equipment_id' => $eq->id,
+            'performed_at' => today()->toDateString(),
+            'checklist_results' => [
+                ['item' => 'Filter HEPA', 'status' => 'good', 'note' => null],
+                ['item' => 'Sensor O2', 'status' => null, 'note' => null],
+                ['item' => 'Alarm apnea', 'status' => 'good', 'note' => null],
+            ],
+        ], $this->teknisi))->toThrow(ValidationException::class);
+
+        // 2. needs_attention without note rejected
+        expect(fn () => $service->record([
+            'equipment_id' => $eq->id,
+            'performed_at' => today()->toDateString(),
+            'checklist_results' => [
+                ['item' => 'Filter HEPA', 'status' => 'good', 'note' => null],
+                ['item' => 'Sensor O2', 'status' => 'needs_attention', 'note' => ''],
+                ['item' => 'Alarm apnea', 'status' => 'good', 'note' => null],
+            ],
+        ], $this->teknisi))->toThrow(ValidationException::class);
+
+        // 3. Manipulated request removing mandatory item ("Alarm apnea") rejected
+        expect(fn () => $service->record([
+            'equipment_id' => $eq->id,
+            'performed_at' => today()->toDateString(),
+            'checklist_results' => [
+                ['item' => 'Filter HEPA', 'status' => 'good', 'note' => null],
+                ['item' => 'Sensor O2', 'status' => 'good', 'note' => null],
+            ],
+        ], $this->teknisi))->toThrow(ValidationException::class);
+
+        // 4. All mandatory items + optional additional item succeeds
+        $pm = $service->record([
+            'equipment_id' => $eq->id,
+            'performed_at' => today()->toDateString(),
+            'checklist_results' => [
+                ['item' => 'Filter HEPA', 'status' => 'good', 'note' => null],
+                ['item' => 'Sensor O2', 'status' => 'needs_attention', 'note' => 'Kalibrasi sensor O2 diperlukan'],
+                ['item' => 'Alarm apnea', 'status' => 'good', 'note' => null],
+                ['item' => 'Roda troli (tambahan)', 'status' => 'good', 'note' => null],
+            ],
+        ], $this->teknisi);
+
+        expect($pm->checklist_results)->toHaveCount(4);
+    });
+
+    it('stores push subscription via endpoint and dispatches test push notification to stored subscription', function () {
+        Notification::fake();
+
+        $this->actingAs($this->teknisi)
+            ->postJson(route('push-subscriptions.store'), [
+                'endpoint' => 'https://fcm.googleapis.com/fcm/send/r3-test-device-1',
+                'keys' => [
+                    'p256dh' => 'BOr7fakePublicKeyForTest1234567890',
+                    'auth' => 'fakeAuthToken123456',
+                ],
+                'contentEncoding' => 'aesgcm',
+            ])
+            ->assertOk()
+            ->assertJson(['status' => 'subscribed']);
+
+        expect($this->teknisi->pushSubscriptions()->count())->toBe(1);
+
+        $this->actingAs($this->teknisi)
+            ->postJson(route('push-subscriptions.test'))
+            ->assertOk()
+            ->assertJson(['status' => 'sent']);
+
+        Notification::assertSentTo(
+            $this->teknisi,
+            TestPushNotification::class,
+            fn ($n, $channels) => in_array(WebPushChannel::class, $channels, true),
+        );
     });
 });

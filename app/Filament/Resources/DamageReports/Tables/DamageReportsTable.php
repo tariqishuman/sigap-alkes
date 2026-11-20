@@ -30,6 +30,9 @@ class DamageReportsTable
             TextColumn::make('reported_at')
                 ->label('Waktu Lapor')
                 ->dateTime('d M Y H:i')
+                ->description(fn (DamageReport $record): ?string => ($h = $record->lateRecordingHours()) !== null
+                    ? "dicatat {$h} jam setelah kejadian"
+                    : null)
                 ->sortable(),
         ];
 

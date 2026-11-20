@@ -992,9 +992,9 @@ class DummyDataSeeder extends Seeder
 
             $openReportTarget1 = Equipment::where('inventory_code', 'ALK-ICU-004')->first();
             if ($openReportTarget1) {
+                Carbon::setTestNow($realNow->copy()->subHours(3));
                 $damageReportService->report([
                     'equipment_id' => $openReportTarget1->id,
-                    'reported_at' => $realNow->copy()->subHours(3)->toDateTimeString(),
                     'is_safe_to_use' => true,
                     'complaint' => 'Layar monitor sesekali berkedip saat alarm SpO2 aktif.',
                 ], $kepalaIcu);
@@ -1002,9 +1002,9 @@ class DummyDataSeeder extends Seeder
 
             $openReportTarget2 = Equipment::where('inventory_code', 'ALK-IGD-003')->first();
             if ($openReportTarget2) {
+                Carbon::setTestNow($realNow->copy()->subHours(1));
                 $damageReportService->report([
                     'equipment_id' => $openReportTarget2->id,
-                    'reported_at' => $realNow->copy()->subHours(1)->toDateTimeString(),
                     'is_safe_to_use' => true,
                     'complaint' => 'Kertas printer EKG tersendat saat mencetak 12 lead.',
                 ], $admin);

@@ -19,6 +19,12 @@ class CreatePreventiveMaintenance extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        $mandatory = array_values(is_array($data['mandatory_checklist'] ?? null) ? $data['mandatory_checklist'] : []);
+        $additional = array_values(is_array($data['additional_checklist'] ?? null) ? $data['additional_checklist'] : []);
+
+        $data['checklist_results'] = array_merge($mandatory, $additional);
+        unset($data['mandatory_checklist'], $data['additional_checklist']);
+
         return app(PreventiveMaintenanceService::class)->record($data, Auth::user());
     }
 

@@ -3,11 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
+use App\Models\PushSubscription;
 use App\Notifications\TestPushNotification;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationPreferences extends Page
@@ -58,14 +60,17 @@ class NotificationPreferences extends Page
             return;
         }
 
+        $deviceCount = $user->pushSubscriptions()->count();
         $user->notify(new TestPushNotification);
 
-        $this->dispatch('sigap-test-push-sent', title: 'Notifikasi uji SIGAP-Alkes', body: 'Notifikasi push pada perangkat ini aktif dan siap menerima peringatan alat kesehatan.', url: url('/admin'));
+        $body = $deviceCount > 0
+            ? "Notifikasi push uji berhasil dikirim ke {$deviceCount} perangkat terdaftar dan lonceng notifikasi."
+            : 'Notifikasi uji dikirim ke lonceng notifikasi. Aktifkan notifikasi di perangkat ini terlebih dahulu untuk menguji Web Push.';
 
         Notification::make()
             ->success()
             ->title('Notifikasi uji SIGAP-Alkes')
-            ->body('Notifikasi push uji berhasil dikirim ke perangkat ini dan lonceng notifikasi.')
+            ->body($body)
             ->send();
     }
 
@@ -94,8 +99,11 @@ class NotificationPreferences extends Page
             ]);
     }
 
-    public function getDeviceCount(): int
+    /**
+     * @return Collection<int, PushSubscription>
+     */
+    public function getDevices(): Collection
     {
-        return Auth::user()?->pushSubscriptions()->count() ?? 0;
+        return Auth::user()?->pushSubscriptions()->latest('updated_at')->get() ?? collect();
     }
 }

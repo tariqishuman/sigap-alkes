@@ -4,22 +4,27 @@ namespace App\Filament\Resources\PreventiveMaintenances\Schemas;
 
 use App\Models\Equipment;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class PreventiveMaintenanceForm
 {
     /**
-     * Build default checklist rows for a given equipment ID.
+     * Build mandatory checklist rows for a given equipment ID.
+     * Condition has NO default value so the technician must explicitly select Baik / Tidak baik.
      *
-     * @return array<int, array{item: string, status: string, note: null}>
+     * @return array<int, array{item: string, status: null, note: null}>
      */
     public static function defaultChecklistForEquipment(?int $equipmentId): array
     {
@@ -41,7 +46,7 @@ class PreventiveMaintenanceForm
 
         return array_map(fn (string $item): array => [
             'item' => $item,
-            'status' => 'good',
+            'status' => null,
             'note' => null,
         ], $defaultItems);
     }
@@ -71,7 +76,7 @@ class PreventiveMaintenanceForm
                             ->live()
                             ->afterStateUpdated(function (?string $state, Set $set): void {
                                 if (filled($state)) {
-                                    $set('checklist_results', self::defaultChecklistForEquipment((int) $state));
+                                    $set('mandatory_checklist', self::defaultChecklistForEquipment((int) $state));
                                 }
                             })
                             ->required(),
@@ -81,16 +86,57 @@ class PreventiveMaintenanceForm
                             ->maxDate(today())
                             ->required(),
                     ]),
-                Section::make('Daftar Periksa (Checklist)')
-                    ->description('Tandai setiap butir pemeriksaan. Jika ada butir Tidak baik, Anda akan ditawarkan langsung membuat laporan kerusakan setelah menyimpan.')
+                Section::make('Daftar Periksa Wajib (Standar Jenis Alat)')
+                    ->description('Setiap butir wajib dipilih kondisinya (Baik atau Tidak baik). Catatan wajib diisi bila memilih Tidak baik.')
                     ->schema([
-                        Repeater::make('checklist_results')
-                            ->label('Daftar pemeriksaan')
+                        Repeater::make('mandatory_checklist')
+                            ->label('Daftar pemeriksaan wajib')
                             ->hiddenLabel()
                             ->default(fn (): array => self::defaultChecklistForEquipment($preselectedEquipmentId))
+                            ->addable(false)
+                            ->deletable(false)
+                            ->reorderable(false)
+                            ->schema([
+                                Hidden::make('item')->required(),
+                                Placeholder::make('item_label')
+                                    ->label('Butir Pemeriksaan')
+                                    ->content(fn (Get $get): HtmlString => new HtmlString(
+                                        '<span class="font-medium text-[#13262B]">'.e((string) ($get('item') ?? '-')).'</span>'
+                                    ))
+                                    ->columnSpan(5),
+                                Radio::make('status')
+                                    ->label('Kondisi')
+                                    ->options([
+                                        'good' => 'Baik',
+                                        'needs_attention' => 'Tidak baik',
+                                    ])
+                                    ->inline()
+                                    ->live()
+                                    ->required()
+                                    ->columnSpan(3),
+                                TextInput::make('note')
+                                    ->label('Catatan')
+                                    ->placeholder(fn (Get $get): string => $get('status') === 'needs_attention'
+                                        ? 'Wajib isi catatan temuan...'
+                                        : 'Opsional')
+                                    ->required(fn (Get $get): bool => $get('status') === 'needs_attention')
+                                    ->maxLength(500)
+                                    ->columnSpan(4),
+                            ])
+                            ->columns(12)
+                            ->required(),
+                    ]),
+                Section::make('Butir Pemeriksaan Tambahan & Catatan Umum')
+                    ->description('Opsional — tambahkan butir pemeriksaan ekstra di luar daftar standar jenis alat jika diperlukan.')
+                    ->schema([
+                        Repeater::make('additional_checklist')
+                            ->label('Butir tambahan')
+                            ->hiddenLabel()
+                            ->defaultItems(0)
+                            ->addActionLabel('Tambah butir pemeriksaan')
                             ->schema([
                                 TextInput::make('item')
-                                    ->label('Butir Pemeriksaan')
+                                    ->label('Butir Pemeriksaan Tambahan')
                                     ->required()
                                     ->maxLength(255)
                                     ->columnSpan(5),
@@ -100,20 +146,20 @@ class PreventiveMaintenanceForm
                                         'good' => 'Baik',
                                         'needs_attention' => 'Tidak baik',
                                     ])
-                                    ->default('good')
                                     ->inline()
+                                    ->live()
                                     ->required()
                                     ->columnSpan(3),
                                 TextInput::make('note')
                                     ->label('Catatan')
-                                    ->placeholder('Opsional')
+                                    ->placeholder(fn (Get $get): string => $get('status') === 'needs_attention'
+                                        ? 'Wajib isi catatan temuan...'
+                                        : 'Opsional')
+                                    ->required(fn (Get $get): bool => $get('status') === 'needs_attention')
                                     ->maxLength(500)
                                     ->columnSpan(4),
                             ])
-                            ->columns(12)
-                            ->addActionLabel('Tambah butir pemeriksaan')
-                            ->minItems(1)
-                            ->required(),
+                            ->columns(12),
                         Textarea::make('notes')
                             ->label('Catatan Umum Pemeliharaan')
                             ->placeholder('Ringkasan kondisi alat atau tindakan ringan yang dilakukan...')

@@ -33,9 +33,9 @@ class CalibrationSchedule extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Alat';
 
-    protected static ?string $navigationLabel = 'Jadwal Kalibrasi';
+    protected static ?string $navigationLabel = 'Jadwal';
 
-    protected static ?string $title = 'Jadwal Kalibrasi';
+    protected static ?string $title = 'Jadwal Kalibrasi & Pemeliharaan';
 
     protected static ?int $navigationSort = 2;
 
