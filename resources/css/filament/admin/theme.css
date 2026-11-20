@@ -81,6 +81,7 @@
 
 /* Topbar (§2.2 — height 64px, surface, 1px border) */
 .fi-topbar {
+    height: 4rem;
     min-height: 4rem;
     background-color: var(--color-sigap-surface);
     border-bottom: 1px solid var(--color-sigap-border);
@@ -88,14 +89,92 @@
     --tw-ring-shadow: 0 0 #0000;
 }
 
-/* Global search pill (§2.2) */
+@media (min-width: 1024px) {
+    .fi-topbar {
+        padding-inline-start: 0;
+        padding-inline-end: 1.5rem;
+        gap: 0;
+    }
+
+    /* Sidebar header seam inside desktop topbar: logo left, 30px bordered collapse box right */
+    .fi-topbar-start {
+        width: 248px;
+        flex: 0 0 248px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-inline: 1.25rem 0.875rem;
+        border-inline-end: 1px solid var(--color-sigap-border);
+        background-color: var(--color-sigap-surface);
+    }
+
+    .fi-topbar-collapse-sidebar-btn-ctn {
+        order: 2;
+        margin-inline-start: auto;
+    }
+
+    .fi-topbar-end {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        padding-inline-start: 1.5rem;
+        margin-inline-start: 0;
+    }
+}
+
+.fi-topbar-close-collapse-sidebar-btn,
+.fi-topbar-open-collapse-sidebar-btn {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    border: 1px solid var(--color-sigap-border);
+    border-radius: var(--radius-sigap-sm);
+    color: var(--color-sigap-muted);
+    background-color: var(--color-sigap-surface);
+    display: inline-grid;
+    place-items: center;
+    transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.fi-topbar-close-collapse-sidebar-btn:hover,
+.fi-topbar-open-collapse-sidebar-btn:hover {
+    background-color: var(--color-sigap-canvas);
+    color: var(--color-sigap-ink);
+    border-color: var(--color-sigap-border-strong);
+}
+
+.fi-topbar-close-collapse-sidebar-btn svg,
+.fi-topbar-open-collapse-sidebar-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* Global search pill (§2.2 — left side of topbar, max 420px, canvas bg, kbd Ctrl K) */
+.fi-global-search-ctn {
+    flex: 0 1 420px;
+    width: 100%;
+    max-width: 420px;
+    margin-inline-end: auto;
+}
+
+.fi-global-search {
+    width: 100%;
+}
+
 .fi-global-search-field .fi-input-wrp {
+    height: 38px;
     border-radius: 999px;
     background-color: var(--color-sigap-canvas);
     border: 1px solid var(--color-sigap-border);
     box-shadow: none;
     --tw-ring-shadow: 0 0 #0000;
-    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+    padding-inline-end: 0.5rem;
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out;
 }
 
 .fi-global-search-field .fi-input-wrp:focus-within {
@@ -104,7 +183,50 @@
     box-shadow: 0 0 0 3px var(--color-sigap-primary-100);
 }
 
-/* Sidebar (§2.1 — 248px, surface, 1px right border) */
+.fi-global-search-field .fi-input {
+    font-size: 0.8125rem;
+    color: var(--color-sigap-ink);
+}
+
+.fi-global-search-field .fi-input::placeholder {
+    color: var(--color-sigap-subtle);
+}
+
+.fi-global-search-field .fi-input-wrp-suffix {
+    display: inline-flex;
+    align-items: center;
+    padding-inline: 0;
+}
+
+.fi-global-search-field .fi-input-wrp-suffix > span,
+.fi-global-search-field .fi-input-wrp-suffix {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--color-sigap-muted);
+}
+
+.fi-global-search-field .fi-input-wrp-suffix > span {
+    background-color: var(--color-sigap-surface);
+    border: 1px solid var(--color-sigap-border);
+    border-radius: 6px;
+    padding: 3px 7px;
+    white-space: nowrap;
+}
+
+/* User avatar (§2.2 — 34px circle) */
+.fi-user-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+}
+
+.fi-user-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 999px;
+}
+
+/* Sidebar (§2.1 — 248px, surface, 1px right border, 36px item, 14px group gap) */
 .fi-sidebar {
     background-color: var(--color-sigap-surface);
     border-inline-end: 1px solid var(--color-sigap-border);
@@ -117,20 +239,22 @@
 }
 
 .fi-sidebar-nav {
-    padding-top: 1rem;
+    padding-top: 0.875rem;
     padding-bottom: 1rem;
-    padding-inline: 0.75rem;
-    gap: 0.875rem;
+    padding-inline: 0.875rem;
+    gap: 14px;
 }
 
 .fi-sidebar-nav-groups {
     margin-inline: 0;
-    gap: 0.875rem;
+    gap: 14px;
+    row-gap: 14px;
 }
 
 .fi-sidebar-group-btn {
     padding-inline: 0.625rem;
-    padding-block: 0.25rem;
+    padding-top: 0;
+    padding-bottom: 0.375rem;
 }
 
 .fi-sidebar-group-label {
@@ -142,8 +266,15 @@
     color: var(--color-sigap-subtle);
 }
 
+.fi-sidebar-group-items {
+    gap: 2px;
+}
+
 .fi-sidebar-item-btn {
-    min-height: 2.25rem;
+    height: 36px;
+    min-height: 36px;
+    padding-block: 0;
+    padding-inline: 0.625rem;
     border-radius: var(--radius-sigap-sm);
     font-size: 0.84375rem;
     font-weight: 500;
@@ -151,14 +282,26 @@
     transition: background-color 150ms ease-out, color 150ms ease-out;
 }
 
-.fi-sidebar-item-active > .fi-sidebar-item-btn {
+.fi-sidebar-item-btn:hover {
+    background-color: var(--color-sigap-canvas);
+}
+
+.fi-sidebar-item-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--color-sigap-muted);
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
     background-color: var(--color-sigap-primary-50);
     color: var(--color-sigap-primary);
     font-weight: 600;
 }
 
-.fi-sidebar-item-active > .fi-sidebar-item-btn .fi-sidebar-item-icon {
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label,
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-icon {
     color: var(--color-sigap-primary);
+    font-weight: 600;
 }
 
 /* Page header (§2.3) */

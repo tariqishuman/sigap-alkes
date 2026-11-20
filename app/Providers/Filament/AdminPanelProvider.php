@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\AvatarProviders\SigapAvatarProvider;
 use App\Filament\Pages\Dashboard;
 use App\Services\SettingsService;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
@@ -41,9 +42,11 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(false)
             ->font('Plus Jakarta Sans')
             ->maxContentWidth(Width::Full)
+            ->defaultAvatarProvider(SigapAvatarProvider::class)
             ->sidebarWidth('248px')
             ->sidebarCollapsibleOnDesktop()
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->globalSearchFieldSuffix(fn (): string => 'Ctrl K')
             ->databaseNotifications()
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
@@ -52,6 +55,10 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_AFTER,
                 fn () => view('filament.topbar.quick-create'),
+            )
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_AFTER,
+                fn () => view('filament.topbar.user-identity'),
             )
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_FOOTER,
