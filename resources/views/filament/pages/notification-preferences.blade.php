@@ -15,7 +15,7 @@
             busy: false,
             statusMessage: '',
             vapidPublicKey: @js($vapidPublicKey),
-            csrf: document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '',
+            csrf: @js(csrf_token()),
 
             urlBase64ToUint8Array(base64String) {
                 const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -117,24 +117,15 @@
                 this.busy = true;
                 this.statusMessage = '';
                 try {
-                    const res = await fetch(@js(route('push-subscriptions.test')), {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': this.csrf,
-                            'Accept': 'application/json',
-                        },
-                    });
-                    const data = await res.json();
-
+                    await this.$wire.sendTestPush();
                     if (this.supported && Notification.permission === 'granted') {
                         const reg = await navigator.serviceWorker.register('/sw.js');
                         await navigator.serviceWorker.ready;
-                        await reg.showNotification(data.title || 'Notifikasi uji SIGAP-Alkes', {
-                            body: data.body || 'Notifikasi push pada perangkat ini aktif.',
-                            icon: '/images/brand/logo-mark.png',
+                        await reg.showNotification('Notifikasi uji SIGAP-Alkes', {
+                            body: 'Notifikasi push pada perangkat ini aktif dan siap menerima peringatan alat kesehatan.',
+                            icon: '/images/brand/logo-mark.svg',
                             tag: 'sigap-test-push',
-                            data: { url: data.url || '/admin' },
+                            data: { url: '/admin' },
                         });
                     }
                     this.statusMessage = 'Notifikasi uji berhasil dikirim ke perangkat ini dan lonceng notifikasi.';
@@ -187,8 +178,8 @@
 
                         <button
                             type="button"
-                            x-bind:disabled="busy"
                             @click="sendTestPush()"
+                            x-bind:disabled="busy"
                             class="inline-flex items-center rounded-full border border-[#0E7C7B] bg-[#E8F4F3] px-4 py-2 text-xs font-semibold text-[#0E7C7B] hover:bg-[#D5ECEA] disabled:opacity-50 cursor-pointer"
                         >
                             Kirim notifikasi uji

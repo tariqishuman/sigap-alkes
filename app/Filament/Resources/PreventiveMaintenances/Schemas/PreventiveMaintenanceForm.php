@@ -85,7 +85,8 @@ class PreventiveMaintenanceForm
                     ->description('Tandai setiap butir pemeriksaan. Jika ada butir Tidak baik, Anda akan ditawarkan langsung membuat laporan kerusakan setelah menyimpan.')
                     ->schema([
                         Repeater::make('checklist_results')
-                            ->label('')
+                            ->label('Daftar pemeriksaan')
+                            ->hiddenLabel()
                             ->default(fn (): array => self::defaultChecklistForEquipment($preselectedEquipmentId))
                             ->schema([
                                 TextInput::make('item')

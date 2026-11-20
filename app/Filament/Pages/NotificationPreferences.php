@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
+use App\Notifications\TestPushNotification;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -47,6 +48,24 @@ class NotificationPreferences extends Page
         Notification::make()
             ->success()
             ->title('Preferensi notifikasi disimpan')
+            ->send();
+    }
+
+    public function sendTestPush(): void
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $user->notify(new TestPushNotification);
+
+        $this->dispatch('sigap-test-push-sent', title: 'Notifikasi uji SIGAP-Alkes', body: 'Notifikasi push pada perangkat ini aktif dan siap menerima peringatan alat kesehatan.', url: url('/admin'));
+
+        Notification::make()
+            ->success()
+            ->title('Notifikasi uji SIGAP-Alkes')
+            ->body('Notifikasi push uji berhasil dikirim ke perangkat ini dan lonceng notifikasi.')
             ->send();
     }
 

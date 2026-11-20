@@ -22,8 +22,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'SIGAP-Alkes';
     const options = {
         body: data.body || '',
-        icon: '/images/brand/logo-mark.png',
-        badge: '/images/brand/logo-mark.png',
+        icon: '/images/brand/logo-mark.svg',
+        badge: '/images/brand/logo-mark.svg',
         tag: data.tag || 'sigap-alkes-notification',
         renotify: true,
         requireInteraction: Boolean(data.requireInteraction),
