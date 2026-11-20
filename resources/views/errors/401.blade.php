@@ -1,4 +1,4 @@
-@extends('errors.sigap')
+@extends('errors.layout')
 
 @section('code', '401')
 @section('title', 'Silakan masuk dulu')

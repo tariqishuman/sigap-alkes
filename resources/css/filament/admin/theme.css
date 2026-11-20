@@ -86,7 +86,19 @@
     color: var(--color-sigap-muted);
 }
 
+.fi-wi-stats-overview-stat {
+    background-color: #FFFFFF;
+    padding: 1.125rem 1.25rem;
+}
+
 .fi-wi-stats-overview-stat-value {
+    font-size: 1.625rem;
+    line-height: 1.2;
     font-weight: 600;
+    letter-spacing: -0.02em;
     color: var(--color-sigap-ink);
+}
+
+.fi-wi-table .fi-ta-cell {
+    padding-block: 0.5rem;
 }

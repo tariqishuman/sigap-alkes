@@ -1,8 +1,13 @@
+@php
+    $settings = app(\App\Services\SettingsService::class);
+    $appName = $settings->appName();
+    $hospitalName = $settings->hospitalName();
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Uptime &amp; Kepatuhan Kalibrasi — SIGAP-Alkes</title>
+    <title>Laporan Uptime &amp; Kepatuhan Kalibrasi — {{ $appName }}</title>
     <style>
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 9pt; color: #1B2B30; }
         h1 { font-size: 14pt; color: #0E7C7B; margin: 0 0 4px 0; }
@@ -19,8 +24,9 @@
     </style>
 </head>
 <body>
-    <h1>SIGAP-Alkes — Laporan Uptime &amp; Kepatuhan Kalibrasi</h1>
+    <h1>{{ $appName }} — Laporan Uptime &amp; Kepatuhan Kalibrasi</h1>
     <div class="meta">
+        <strong>{{ $hospitalName }}</strong> &nbsp;|&nbsp;
         Periode: <strong>{{ $summary['period_label'] }}</strong> &nbsp;|&nbsp;
         Ruangan: <strong>{{ $summary['room_label'] }}</strong> &nbsp;|&nbsp;
         Dicetak: {{ $generatedAt }} WIB

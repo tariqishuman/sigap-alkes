@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Equipment\Schemas;
 use App\Models\Equipment;
 use App\Services\DepreciationCalculator;
 use App\Services\QrLabelService;
+use App\Services\SettingsService;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -140,7 +141,7 @@ class EquipmentInfolist
                             ->badge()
                             ->color('warning')
                             ->state('Pertimbangkan ganti')
-                            ->helperText(fn (): string => 'Biaya perbaikan sudah mencapai '.config('sigap.replace_threshold_percent', 50).'% dari nilai buku.')
+                            ->helperText(fn (): string => 'Biaya perbaikan sudah mencapai '.app(SettingsService::class)->replaceThresholdPercent().'% dari nilai buku.')
                             ->visible(fn (Equipment $record): bool => app(DepreciationCalculator::class)->shouldConsiderReplacement($record)),
                     ]),
             ]);

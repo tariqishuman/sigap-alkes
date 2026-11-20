@@ -104,6 +104,10 @@ Perhitungan nilai buku menggunakan metode garis lurus bulanan (*straight-line de
 - Pencatatan buku stok (`spare_part_movements`) secara atomik melalui `SparePartStockService` untuk stok masuk (`in`), pemakaian otomatis pada perbaikan aktif (`out`), pengembalian selisih (`return`), dan *stock opname* (`adjustment`).
 - Stok tidak pernah negatif dan otomatis mengirim notifikasi database ke `admin_ipsrs` saat stok mencapai atau di bawah `min_stock`.
 
+### 5. Pengaturan Aplikasi & Kesiapan SatuSehat
+- Halaman **Pengaturan → Pengaturan Aplikasi** (khusus `super_admin`) untuk mengatur identitas aplikasi/RS (nama, alamat, telepon, logo, favicon, zona waktu), jadwal & kanal pengingat kalibrasi, ambang rekomendasi *"Pertimbangkan ganti"* (`%`), URL publik QR & teks label, serta konfigurasi **Integrasi SatuSehat** (*sandbox/production*, Organization ID, Client ID, dan Client Secret terenkripsi beserta tombol **Tes koneksi**).
+- Halaman error kustom (`401`, `403`, `404`, `419`, `429`, `500`, `503`) dan 404 QR publik menggunakan layout seragam yang tetap dapat dirender meskipun koneksi database sedang tidak tersedia.
+
 ---
 
 ## Panduan Instalasi Lokal
@@ -128,11 +132,11 @@ cp .env.example .env
 php artisan key:generate
 
 # 4. Atur koneksi database (DB_DATABASE, DB_USERNAME, DB_PASSWORD) di file .env
-#    lalu jalankan migrasi dan seeder role + 5 akun demo
+#    lalu jalankan migrasi dan seeder role, pengaturan default, & 7 akun demo
 php artisan migrate
-php artisan db:seed --class=RoleAndPermissionSeeder
+php artisan db:seed
 
-# 5. (Opsional) Isi database dengan data sintetis 12 bulan (6 ruangan, 10 jenis, 60 alat)
+# 5. (Opsional) Isi database dengan data sintetis 12 bulan (6 ruangan, 10 jenis, 60 alat, & riwayat stok)
 php artisan sigap:seed-dummy
 
 # 6. Buat symlink storage publik dan build aset frontend
@@ -203,6 +207,7 @@ Seluruh akun demo menggunakan kata sandi **`password`**:
 - [x] **M3 — Kerusakan, Perbaikan, & Mutasi (`PRD F3`)**: Pelaporan kerusakan oleh Kepala Ruangan, pencatatan tindak lanjut perbaikan dan suku cadang oleh Teknisi, serta pencatatan mutasi ruangan.
 - [x] **M4 — Laporan & Nilai Aset (`PRD F5 & F6`)**: Kalkulator *Uptime* dan Kepatuhan Kalibrasi, penanda rekomendasi penggantian aset, *Dashboard* analitik, serta ekspor laporan Excel/PDF dan format ASPAK.
 - [x] **M5 — Seeder Sintetis & Finalisasi**: Seeder sintetis deterministik 12 bulan (6 ruangan, 10 jenis, 60 alat), halaman error kustom, audit penuh hak akses per peran, dan dokumentasi README.
+- [x] **R1 & Pengaturan Aplikasi**: Penyempurnaan teks UI *production-ready*, buku stok suku cadang, penyusutan bulanan, peran baru (`badan_kalibrasi` & `magang`), halaman **Pengaturan Aplikasi** (termasuk kredensial SatuSehat terenkripsi), serta redesain UX Dasbor & tabel operasional.
 - [ ] **M6 — Integrasi Interoperabilitas HL7 FHIR R4 *(Future Todo)***: Pemetaan entitas non-pasien ke resource standar HL7 FHIR R4 (`Equipment` $\rightarrow$ `Device`, `Room` $\rightarrow$ `Location`, `Calibration` $\rightarrow$ `DeviceMetric`, `TestingInstitution` $\rightarrow$ `Organization`), penyediaan REST API `/api/fhir/r4/*`, serta sinkronisasi status kelaikan alat ke SIMRS / SatuSehat.
 
 ---

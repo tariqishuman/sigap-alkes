@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\SettingsService;
 use Database\Seeders\ClearDummyDataSeeder;
 use Database\Seeders\DummyDataSeeder;
 use Illuminate\Foundation\Inspiring;
@@ -46,5 +47,10 @@ Artisan::command('sigap:watermark {state=off : Pilihan: on atau off}', function 
 })->purpose('Aktifkan atau matikan watermark Kelompok 2 dengan cepat (sigap:watermark on|off)');
 
 // Status first, so reminders are sent against up-to-date equipment.
+$reminderTime = app(SettingsService::class)->get('reminder.send_time', '07:00');
+if (! is_string($reminderTime) || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $reminderTime)) {
+    $reminderTime = '07:00';
+}
+
 Schedule::command('equipment:evaluate-status')->dailyAt('00:10');
-Schedule::command('calibration:send-reminders')->dailyAt('07:00');
+Schedule::command('calibration:send-reminders')->dailyAt($reminderTime);

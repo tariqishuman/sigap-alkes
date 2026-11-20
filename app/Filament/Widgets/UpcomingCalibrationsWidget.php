@@ -13,14 +13,11 @@ use Illuminate\Support\Facades\Auth;
 
 class UpcomingCalibrationsWidget extends TableWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
 
     protected static ?string $heading = '10 Alat Jatuh Tempo Terdekat';
 
-    protected int|string|array $columnSpan = [
-        'md' => 2,
-        'xl' => 1,
-    ];
+    protected int|string|array $columnSpan = 'full';
 
     public static function canView(): bool
     {
@@ -49,11 +46,12 @@ class UpcomingCalibrationsWidget extends TableWidget
                 : null)
             ->columns([
                 TextColumn::make('inventory_code')
-                    ->label('Kode')
-                    ->fontFamily('mono'),
+                    ->label('Kode Inventaris')
+                    ->fontFamily('mono')
+                    ->weight('medium'),
                 TextColumn::make('name')
-                    ->label('Alat')
-                    ->limit(24),
+                    ->label('Nama Alat')
+                    ->weight('medium'),
                 TextColumn::make('room.name')
                     ->label('Ruangan'),
                 TextColumn::make('status')
@@ -62,7 +60,8 @@ class UpcomingCalibrationsWidget extends TableWidget
                 TextColumn::make('due_date')
                     ->label('Berlaku s.d.')
                     ->date('d M Y')
-                    ->placeholder('Belum ada'),
+                    ->placeholder('Belum ada sertifikat')
+                    ->alignEnd(),
             ]);
     }
 }

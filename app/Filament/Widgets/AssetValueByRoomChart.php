@@ -10,13 +10,18 @@ use Illuminate\Support\Facades\Auth;
 
 class AssetValueByRoomChart extends ChartWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 3;
 
-    protected ?string $heading = 'Total Nilai Buku Aset per Ruangan (Rp)';
+    protected ?string $heading = 'Total Nilai Buku Aset per Ruangan (Juta Rp)';
 
     protected ?string $description = 'Estimasi nilai buku seluruh alat aktif';
 
-    protected int|string|array $columnSpan = 'full';
+    protected ?string $maxHeight = '280px';
+
+    protected int|string|array $columnSpan = [
+        'default' => 'full',
+        'xl' => 6,
+    ];
 
     public static function canView(): bool
     {
@@ -48,19 +53,45 @@ class AssetValueByRoomChart extends ChartWidget
             }
 
             $labels[] = $room->name;
-            $values[] = (float) $roomTotal;
+            $values[] = round((float) $roomTotal / 1_000_000, 1);
         }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Nilai Buku (Rp)',
+                    'label' => 'Nilai Buku (Juta Rp)',
                     'data' => $values,
                     'backgroundColor' => '#0E7C7B',
+                    'hoverBackgroundColor' => '#0B6463',
                     'borderRadius' => 6,
+                    'maxBarThickness' => 52,
                 ],
             ],
             'labels' => $labels,
+        ];
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'display' => false,
+                ],
+            ],
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'grid' => [
+                        'color' => 'rgba(221, 231, 230, 0.7)',
+                    ],
+                ],
+                'x' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
         ];
     }
 

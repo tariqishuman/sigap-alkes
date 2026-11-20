@@ -141,7 +141,7 @@ class DepreciationCalculator
         ?CarbonInterface $asOf = null,
         ?int $thresholdPercent = null,
     ): bool {
-        $threshold = $thresholdPercent ?? (int) config('sigap.replace_threshold_percent', 50);
+        $threshold = $thresholdPercent ?? app(SettingsService::class)->replaceThresholdPercent();
         $repairCost = $equipment->totalRepairCost();
         $bookValue = $this->calculateForEquipment($equipment, $asOf)['book_value'];
 

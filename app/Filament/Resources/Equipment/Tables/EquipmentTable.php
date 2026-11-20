@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\Equipment\Tables;
 
 use App\Enums\EquipmentStatus;
+use App\Filament\Resources\Equipment\EquipmentResource;
 use App\Models\Equipment;
 use App\Services\QrLabelService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
@@ -27,27 +29,29 @@ class EquipmentTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->recordUrl(fn (Equipment $record): ?string => EquipmentResource::canView($record)
+                ? EquipmentResource::getUrl('view', ['record' => $record])
+                : null)
             ->columns([
                 ImageColumn::make('photo_path')
                     ->label('Foto')
                     ->disk('public')
                     ->defaultImageUrl(url('/images/equipment-placeholder.svg'))
                     ->square()
-                    ->imageSize(44),
-                TextColumn::make('inventory_code')
-                    ->label('Kode Inventaris')
-                    ->searchable()
-                    ->sortable()
-                    ->fontFamily('mono'),
+                    ->imageSize(38),
                 TextColumn::make('name')
-                    ->label('Nama')
-                    ->searchable()
-                    ->sortable(),
+                    ->label('Alat')
+                    ->searchable(['name', 'inventory_code'])
+                    ->sortable()
+                    ->weight('medium')
+                    ->limit(32)
+                    ->description(fn (Equipment $record): string => sprintf(
+                        '%s • %s',
+                        $record->inventory_code,
+                        $record->equipmentType?->name ?? '-',
+                    )),
                 TextColumn::make('room.name')
                     ->label('Ruangan')
-                    ->sortable(),
-                TextColumn::make('equipmentType.name')
-                    ->label('Jenis')
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Status')
@@ -65,6 +69,7 @@ class EquipmentTable
                 TextColumn::make('book_value')
                     ->label('Nilai Buku')
                     ->visible(fn (): bool => Auth::user()?->canViewCosts() ?? false)
+                    ->alignEnd()
                     ->state(fn (Equipment $record): string => 'Rp'.number_format((float) $record->book_value, 0, ',', '.')),
                 IconColumn::make('is_active')
                     ->label('Aktif')
@@ -89,27 +94,29 @@ class EquipmentTable
                     ->default(true),
             ])
             ->recordActions([
-                ViewAction::make()
-                    ->label('Detail'),
-                EditAction::make()
-                    ->label('Ubah'),
-                Action::make('print_qr')
-                    ->label('Cetak label QR')
-                    ->icon(Heroicon::OutlinedQrCode)
-                    ->visible(fn (): bool => Auth::user()?->can('Update:Equipment') ?? false)
-                    ->action(fn (Equipment $record) => app(QrLabelService::class)->downloadLabelsPdf(
-                        collect([$record]),
-                        "label-qr-{$record->inventory_code}.pdf",
-                    )),
-                Action::make('deactivate')
-                    ->label('Nonaktifkan')
-                    ->icon(Heroicon::OutlinedNoSymbol)
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Nonaktifkan Alat Kesehatan')
-                    ->modalDescription('Alat yang dinonaktifkan tidak dihapus dari sistem agar riwayat kalibrasi dan perbaikan tetap tersimpan.')
-                    ->visible(fn (Equipment $record): bool => $record->is_active && (Auth::user()?->can('Update:Equipment') ?? false))
-                    ->action(fn (Equipment $record) => $record->update(['is_active' => false])),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->label('Detail'),
+                    EditAction::make()
+                        ->label('Ubah'),
+                    Action::make('print_qr')
+                        ->label('Cetak label QR')
+                        ->icon(Heroicon::OutlinedQrCode)
+                        ->visible(fn (): bool => Auth::user()?->can('Update:Equipment') ?? false)
+                        ->action(fn (Equipment $record) => app(QrLabelService::class)->downloadLabelsPdf(
+                            collect([$record]),
+                            "label-qr-{$record->inventory_code}.pdf",
+                        )),
+                    Action::make('deactivate')
+                        ->label('Nonaktifkan')
+                        ->icon(Heroicon::OutlinedNoSymbol)
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Nonaktifkan Alat Kesehatan')
+                        ->modalDescription('Alat yang dinonaktifkan tidak dihapus dari sistem agar riwayat kalibrasi dan perbaikan tetap tersimpan.')
+                        ->visible(fn (Equipment $record): bool => $record->is_active && (Auth::user()?->can('Update:Equipment') ?? false))
+                        ->action(fn (Equipment $record) => $record->update(['is_active' => false])),
+                ])->tooltip('Aksi lainnya'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

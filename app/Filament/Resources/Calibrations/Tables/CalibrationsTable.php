@@ -24,13 +24,11 @@ class CalibrationsTable
                     ->label('Tanggal Uji')
                     ->date('d M Y')
                     ->sortable(),
-                TextColumn::make('equipment.inventory_code')
-                    ->label('Kode Inventaris')
-                    ->fontFamily('mono')
-                    ->searchable(),
                 TextColumn::make('equipment.name')
                     ->label('Alat')
-                    ->searchable(),
+                    ->weight('medium')
+                    ->searchable(['name', 'inventory_code'])
+                    ->description(fn (Calibration $record): string => $record->equipment?->inventory_code ?? '-'),
                 TextColumn::make('result')
                     ->label('Hasil')
                     ->badge(),

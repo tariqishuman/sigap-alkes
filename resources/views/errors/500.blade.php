@@ -1,4 +1,4 @@
-@extends('errors.sigap')
+@extends('errors.layout')
 
 @section('code', '500')
 @section('title', 'Terjadi gangguan pada sistem')

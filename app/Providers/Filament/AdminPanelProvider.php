@@ -2,18 +2,19 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
+use App\Services\SettingsService;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\View\PanelsRenderHook;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -25,18 +26,21 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        $settings = app(SettingsService::class);
+
         return $panel
             ->default()
             ->id('admin')
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->brandName('SIGAP-Alkes')
+            ->brandName(fn (): string => $settings->appName())
             ->brandLogo(fn () => view('filament.brand'))
             ->brandLogoHeight('2.25rem')
-            ->favicon(asset('images/brand/favicon.svg'))
+            ->favicon(fn (): string => $settings->faviconUrl())
             ->login()
             ->darkMode(false)
             ->font('Poppins')
+            ->maxContentWidth(Width::Full)
             ->sidebarCollapsibleOnDesktop()
             ->databaseNotifications()
             ->renderHook(
@@ -48,7 +52,19 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('components.watermark-kelompok2'),
             )
             ->colors([
-                'primary' => Color::hex('#0E7C7B'),
+                'primary' => [
+                    50 => '#EEF6F5',
+                    100 => '#D5ECEA',
+                    200 => '#ADDAD6',
+                    300 => '#7BC2BC',
+                    400 => '#4BA69F',
+                    500 => '#0E7C7B',
+                    600 => '#0B6463',
+                    700 => '#09504F',
+                    800 => '#083F3E',
+                    900 => '#063231',
+                    950 => '#031E1E',
+                ],
                 'success' => Color::hex('#2E9E6B'),
                 'warning' => Color::hex('#E0A23B'),
                 'danger' => Color::hex('#D9534F'),
@@ -68,9 +84,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            ->widgets([
-                AccountWidget::class,
-            ])
+            ->widgets([])
             ->plugins([
                 FilamentShieldPlugin::make()
                     ->navigationGroup('Pengaturan')

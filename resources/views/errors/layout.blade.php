@@ -1,8 +1,16 @@
-{{--
-    Layout halaman error SIGAP-Alkes.
-    Dipakai oleh errors/401, 403, 404, 419, 429, 500, 503.
-    Sengaja berdiri sendiri (tanpa Vite/Filament) supaya tetap tampil walau aplikasi sedang bermasalah.
---}}
+@php
+    $appName = 'SIGAP-Alkes';
+    $logoUrl = asset('images/logo-its.png');
+    $faviconUrl = asset('images/brand/favicon.svg');
+
+    try {
+        $settings = app(\App\Services\SettingsService::class);
+        $appName = $settings->appName();
+        $logoUrl = $settings->logoUrl();
+        $faviconUrl = $settings->faviconUrl();
+    } catch (\Throwable) {
+    }
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -12,8 +20,8 @@
     @hasSection('refresh')
         <meta http-equiv="refresh" content="@yield('refresh')">
     @endif
-    <title>@yield('code') · @yield('title') — SIGAP-Alkes</title>
-    <link rel="icon" href="{{ asset('favicon.ico') }}">
+    <title>@yield('code') · @yield('title') — {{ $appName }}</title>
+    <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet" />
     <style>
@@ -43,12 +51,7 @@
         .card {
             width: 100%;
             max-width: 28rem;
-            background: #FFFFFF;
-            border: 1px solid var(--line);
-            border-radius: 1rem;
-            padding: 1.75rem 1.5rem 1.5rem;
             text-align: center;
-            box-shadow: 0 1px 2px rgba(27, 43, 48, .04), 0 12px 32px -12px rgba(14, 124, 123, .18);
         }
         .brand {
             display: inline-flex;
@@ -138,8 +141,8 @@
 <body>
     <main class="card">
         <div class="brand">
-            <img src="{{ asset('images/logo-its.png') }}" alt="Logo ITS">
-            <span>SIGAP-Alkes</span>
+            <img src="{{ $logoUrl }}" alt="Logo {{ $appName }}">
+            <span>{{ $appName }}</span>
         </div>
 
         <img class="illustration" src="{{ asset('images/errors/'.trim($__env->yieldContent('code')).'.svg') }}" alt="" aria-hidden="true">
@@ -157,6 +160,6 @@
         </div>
     </main>
 
-    <footer>SIGAP-Alkes · Sistem Inventaris &amp; Kalibrasi Alat Kesehatan</footer>
+    <footer>{{ $appName }} · Sistem Inventaris &amp; Kalibrasi Alat Kesehatan</footer>
 </body>
 </html>

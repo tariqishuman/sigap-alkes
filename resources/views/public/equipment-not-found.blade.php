@@ -1,4 +1,4 @@
-@extends('errors.sigap')
+@extends('errors.layout')
 
 @section('code', '404')
 @section('title', 'Alat tidak ditemukan')
