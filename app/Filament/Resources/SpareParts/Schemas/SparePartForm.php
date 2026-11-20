@@ -13,7 +13,7 @@ class SparePartForm
         return $schema
             ->components([
                 Section::make('Data Suku Cadang')
-                    ->columns(2)
+                    ->columns(3)
                     ->schema([
                         TextInput::make('name')
                             ->label('Nama Suku Cadang')
@@ -26,6 +26,13 @@ class SparePartForm
                             ->default('pcs')
                             ->required()
                             ->maxLength(50),
+                        TextInput::make('min_stock')
+                            ->label('Stok Minimum')
+                            ->integer()
+                            ->minValue(0)
+                            ->default(0)
+                            ->helperText('Batas peringatan stok menipis.')
+                            ->required(),
                     ]),
             ]);
     }

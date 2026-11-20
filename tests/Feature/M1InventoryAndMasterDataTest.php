@@ -225,7 +225,8 @@ it('enforces Shield permissions per role for all M1 resources (403 for unauthori
     $this->actingAs($teknisi)->get('/admin/rooms')->assertForbidden();
     $this->actingAs($teknisi)->get('/admin/equipment-types')->assertForbidden();
     $this->actingAs($teknisi)->get('/admin/testing-institutions')->assertForbidden();
-    $this->actingAs($teknisi)->get('/admin/spare-parts')->assertForbidden();
+    $this->actingAs($teknisi)->get('/admin/spare-parts')->assertOk();
+    $this->actingAs($teknisi)->get('/admin/spare-parts/create')->assertForbidden();
 
     // kepala_ruangan: can view equipment list, 403 on create/edit equipment & all Master Data
     $this->flushSession();

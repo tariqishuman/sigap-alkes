@@ -5,6 +5,8 @@ namespace App\Filament\Resources\SpareParts;
 use App\Filament\Resources\SpareParts\Pages\CreateSparePart;
 use App\Filament\Resources\SpareParts\Pages\EditSparePart;
 use App\Filament\Resources\SpareParts\Pages\ListSpareParts;
+use App\Filament\Resources\SpareParts\Pages\ViewSparePart;
+use App\Filament\Resources\SpareParts\RelationManagers\StockMovementsRelationManager;
 use App\Filament\Resources\SpareParts\Schemas\SparePartForm;
 use App\Filament\Resources\SpareParts\Tables\SparePartsTable;
 use App\Models\SparePart;
@@ -45,7 +47,9 @@ class SparePartResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            StockMovementsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
@@ -53,6 +57,7 @@ class SparePartResource extends Resource
         return [
             'index' => ListSpareParts::route('/'),
             'create' => CreateSparePart::route('/create'),
+            'view' => ViewSparePart::route('/{record}'),
             'edit' => EditSparePart::route('/{record}/edit'),
         ];
     }

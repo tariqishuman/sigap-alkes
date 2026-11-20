@@ -101,7 +101,7 @@ class RepairForm
                                     ->options(fn (): array => SparePart::query()
                                         ->orderBy('name')
                                         ->get()
-                                        ->mapWithKeys(fn (SparePart $sp): array => [$sp->id => "{$sp->name} ({$sp->unit})"])
+                                        ->mapWithKeys(fn (SparePart $sp): array => [$sp->id => "{$sp->name} ({$sp->unit}) — Stok: {$sp->stock}"])
                                         ->all())
                                     ->searchable()
                                     ->required(),

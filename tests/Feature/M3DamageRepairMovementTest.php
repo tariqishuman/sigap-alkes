@@ -28,6 +28,7 @@ use App\Services\DamageReportService;
 use App\Services\EquipmentMovementService;
 use App\Services\EquipmentStatusService;
 use App\Services\RepairService;
+use App\Services\SparePartStockService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -76,14 +77,17 @@ beforeEach(function () {
         'accreditation_number' => 'LK-045-IDN',
     ]);
 
-    $this->battery = SparePart::create(['name' => 'Baterai Lithium-Ion 12V', 'unit' => 'pcs']);
-    $this->sensor = SparePart::create(['name' => 'Sensor SpO2 Dewasa', 'unit' => 'pcs']);
+    $this->battery = SparePart::create(['name' => 'Baterai Lithium-Ion 12V', 'unit' => 'pcs', 'min_stock' => 2]);
+    $this->sensor = SparePart::create(['name' => 'Sensor SpO2 Dewasa', 'unit' => 'pcs', 'min_stock' => 2]);
 
     $this->superAdmin = User::where('email', 'superadmin@sigap-alkes.test')->firstOrFail();
     $this->admin = User::where('email', 'admin@sigap-alkes.test')->firstOrFail();
     $this->teknisi = User::where('email', 'teknisi@sigap-alkes.test')->firstOrFail();
     $this->kepalaIcu = User::where('email', 'kepalaruangan@sigap-alkes.test')->firstOrFail();
     $this->manajemen = User::where('email', 'manajemen@sigap-alkes.test')->firstOrFail();
+
+    app(SparePartStockService::class)->stockIn($this->battery, 20, 'Stok awal test', $this->admin->id);
+    app(SparePartStockService::class)->stockIn($this->sensor, 20, 'Stok awal test', $this->admin->id);
 });
 
 function makeM3Equipment(EquipmentType $type, Room $room, string $code, bool $makeFit = false, ?TestingInstitution $inst = null, ?string $validUntil = null): Equipment

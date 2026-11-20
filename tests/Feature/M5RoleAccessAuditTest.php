@@ -109,6 +109,7 @@ it('enforces the full PRD §3 role access matrix across all resources and pages'
             RepairResource::getUrl('create'),
             EquipmentMovementResource::getUrl('index'),
             EquipmentMovementResource::getUrl('create'),
+            SparePartResource::getUrl('index'),
         ],
         [
             EquipmentResource::getUrl('create'),
@@ -117,7 +118,7 @@ it('enforces the full PRD §3 role access matrix across all resources and pages'
             RoomResource::getUrl('index'),
             EquipmentTypeResource::getUrl('index'),
             TestingInstitutionResource::getUrl('index'),
-            SparePartResource::getUrl('index'),
+            SparePartResource::getUrl('create'),
             UserResource::getUrl('index'),
             RoleResource::getUrl('index'),
         ],

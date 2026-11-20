@@ -12,6 +12,7 @@ use App\Models\Repair;
 use App\Models\RepairSparePart;
 use App\Models\Room;
 use App\Models\SparePart;
+use App\Models\SparePartMovement;
 use App\Models\StatusHistory;
 use App\Models\TestingInstitution;
 use App\Models\User;
@@ -32,6 +33,7 @@ class ClearDummyDataSeeder extends Seeder
             EquipmentMovement::query()->delete();
             StatusHistory::query()->delete();
             Equipment::query()->delete();
+            SparePartMovement::query()->delete();
             SparePart::query()->delete();
             TestingInstitution::query()->delete();
             EquipmentType::query()->delete();

@@ -16,6 +16,7 @@ use App\Services\DamageReportService;
 use App\Services\EquipmentMovementService;
 use App\Services\EquipmentStatusService;
 use App\Services\RepairService;
+use App\Services\SparePartStockService;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -46,6 +47,7 @@ class DummyDataSeeder extends Seeder
         $damageReportService = app(DamageReportService::class);
         $repairService = app(RepairService::class);
         $movementService = app(EquipmentMovementService::class);
+        $stockService = app(SparePartStockService::class);
 
         try {
             // 1. Ruangan (6 ruangan rumah sakit)
@@ -199,25 +201,35 @@ class DummyDataSeeder extends Seeder
                 ),
             ];
 
-            // 4. Suku Cadang (8 item)
+            // 4. Suku Cadang (8 item) + stok awal 14 bulan lalu lewat SparePartStockService
             $sparePartSpecs = [
-                ['name' => 'Baterai Lithium-Ion 12V Medis', 'unit' => 'pcs', 'price' => '850000.00'],
-                ['name' => 'Sensor SpO2 Dewasa Reusable', 'unit' => 'pcs', 'price' => '475000.00'],
-                ['name' => 'Kabel Trunk ECG 10 Lead', 'unit' => 'set', 'price' => '620000.00'],
-                ['name' => 'Selang Silikon Suction Medis', 'unit' => 'meter', 'price' => '95000.00'],
-                ['name' => 'Filter Bakteri / HEPA Ventilator', 'unit' => 'pcs', 'price' => '340000.00'],
-                ['name' => 'Manset NIBP Dewasa', 'unit' => 'pcs', 'price' => '210000.00'],
-                ['name' => 'Elemen Pemanas Baby Incubator', 'unit' => 'pcs', 'price' => '1450000.00'],
-                ['name' => 'Fuse Pengaman 2A Medis', 'unit' => 'pcs', 'price' => '45000.00'],
+                ['name' => 'Baterai Lithium-Ion 12V Medis', 'unit' => 'pcs', 'price' => '850000.00', 'min_stock' => 6, 'initial' => 30],
+                ['name' => 'Sensor SpO2 Dewasa Reusable', 'unit' => 'pcs', 'price' => '475000.00', 'min_stock' => 8, 'initial' => 24],
+                ['name' => 'Kabel Trunk ECG 10 Lead', 'unit' => 'set', 'price' => '620000.00', 'min_stock' => 5, 'initial' => 25],
+                ['name' => 'Selang Silikon Suction Medis', 'unit' => 'meter', 'price' => '95000.00', 'min_stock' => 10, 'initial' => 32],
+                ['name' => 'Filter Bakteri / HEPA Ventilator', 'unit' => 'pcs', 'price' => '340000.00', 'min_stock' => 8, 'initial' => 28],
+                ['name' => 'Manset NIBP Dewasa', 'unit' => 'pcs', 'price' => '210000.00', 'min_stock' => 6, 'initial' => 26],
+                ['name' => 'Elemen Pemanas Baby Incubator', 'unit' => 'pcs', 'price' => '1450000.00', 'min_stock' => 6, 'initial' => 22],
+                ['name' => 'Fuse Pengaman 2A Medis', 'unit' => 'pcs', 'price' => '45000.00', 'min_stock' => 10, 'initial' => 35],
             ];
 
+            $stockInitTime = $realNow->copy()->subMonthsNoOverflow(14)->startOfMonth()->setTime(8, 0);
+            Carbon::setTestNow($stockInitTime);
+
             $spareParts = [];
-            foreach ($sparePartSpecs as $spItem) {
+            foreach ($sparePartSpecs as $idx => $spItem) {
                 $sp = SparePart::updateOrCreate(
                     ['name' => $spItem['name']],
-                    ['unit' => $spItem['unit']],
+                    ['unit' => $spItem['unit'], 'min_stock' => $spItem['min_stock']],
                 );
-                $spareParts[] = ['model' => $sp, 'price' => $spItem['price']];
+                $stockService->stockIn(
+                    $sp,
+                    $spItem['initial'],
+                    sprintf('Penerimaan stok awal gudang IPSRS (DO-2025-%03d)', $idx + 1),
+                    $admin->id,
+                    $stockInitTime,
+                );
+                $spareParts[] = ['model' => $sp->fresh(), 'price' => $spItem['price']];
             }
 
             // 5. Buat 60 unit alat (10 per ruangan) pada 14 bulan lalu agar seluruh 12 bulan terakhir terisi penuh.
@@ -716,10 +728,32 @@ class DummyDataSeeder extends Seeder
                 ], $teknisi->id);
             }
 
-            // 9h. Evaluasi final pada waktu sekarang & tambah 2 laporan kerusakan terbuka baru di ICU/IGD
+            // 9h. Evaluasi final pada waktu sekarang & tambah stok opname / stok menipis realistis
             Carbon::setTestNow($realNow);
             foreach (Equipment::where('is_active', true)->get() as $equipment) {
                 $statusService->evaluate($equipment);
+            }
+
+            // Pastikan minimal 2 suku cadang berada di bawah / sama dengan min_stock melalui opname realistis
+            $lowTarget1 = $spareParts[1]['model']->fresh();
+            if ($lowTarget1->stock > $lowTarget1->min_stock) {
+                $stockService->adjust(
+                    $lowTarget1,
+                    max(2, $lowTarget1->min_stock - 3),
+                    'Penyesuaian stock opname bulanan gudang IPSRS (unit rusak saat penyimpanan)',
+                    $admin->id,
+                    $realNow->copy()->subDays(2),
+                );
+            }
+            $lowTarget2 = $spareParts[6]['model']->fresh();
+            if ($lowTarget2->stock > $lowTarget2->min_stock) {
+                $stockService->adjust(
+                    $lowTarget2,
+                    max(2, $lowTarget2->min_stock - 2),
+                    'Penyesuaian stock opname bulanan gudang IPSRS',
+                    $admin->id,
+                    $realNow->copy()->subDay(),
+                );
             }
 
             // Bersihkan notifikasi lama dari simulasi historis, lalu buat 2 laporan terbuka terbaru agar lonceng notifikasi relevan

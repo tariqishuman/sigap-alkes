@@ -102,6 +102,8 @@ class RoleAndPermissionSeeder extends Seeder
             'ViewAny:EquipmentMovement',
             'View:EquipmentMovement',
             'Create:EquipmentMovement',
+            'ViewAny:SparePart',
+            'View:SparePart',
         ]);
 
         // 4. kepala_ruangan: Lihat alat di ruangannya saja; buat & ubah laporan kerusakan open di ruangannya (PRD §3)
