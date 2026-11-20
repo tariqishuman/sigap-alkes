@@ -1,8 +1,3 @@
-{{--
-    Layout halaman error SIGAP-Alkes.
-    Dipakai oleh errors/401, 403, 404, 419, 429, 500, 503.
-    Sengaja berdiri sendiri (tanpa Vite/Filament) supaya tetap tampil walau aplikasi sedang bermasalah.
---}}
 @php
     $appName = 'SIGAP-Alkes';
     $logoUrl = asset('images/logo-its.png');
@@ -14,7 +9,6 @@
         $logoUrl = $settings->logoUrl();
         $faviconUrl = $settings->faviconUrl();
     } catch (\Throwable) {
-        // Fallback ke nilai bawaan jika database sedang tidak tersedia.
     }
 @endphp
 <!DOCTYPE html>

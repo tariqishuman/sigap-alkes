@@ -22,7 +22,7 @@ it('renders the admin login page with the custom illustration and SVG favicon', 
         ->assertSee('images/brand/favicon.svg');
 });
 
-it('renders the public equipment 404 page using the unified errors.sigap layout', function () {
+it('renders the public equipment 404 page using the unified errors.layout layout', function () {
     $this->get('/alat/token-tidak-valid')
         ->assertNotFound()
         ->assertSee('Error 404')
