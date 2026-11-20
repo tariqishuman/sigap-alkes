@@ -15,6 +15,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'equipment_id',
     'reported_by',
     'reported_at',
+    'late_report_reason',
     'complaint',
     'is_safe_to_use',
     'photos',
@@ -79,6 +80,24 @@ class DamageReport extends Model
     public function isAcknowledged(): bool
     {
         return $this->acknowledged_by !== null;
+    }
+
+    /**
+     * Whole hours between reported_at and created_at when recorded > 1 hour after the incident.
+     */
+    public function lateRecordingHours(): ?int
+    {
+        if (! $this->reported_at || ! $this->created_at) {
+            return null;
+        }
+
+        $diffMinutes = (int) $this->reported_at->diffInMinutes($this->created_at, false);
+
+        if ($diffMinutes <= 60) {
+            return null;
+        }
+
+        return max(1, (int) round($diffMinutes / 60));
     }
 
     public function repair(): HasOne

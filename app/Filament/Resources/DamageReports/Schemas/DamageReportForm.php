@@ -4,14 +4,17 @@ namespace App\Filament\Resources\DamageReports\Schemas;
 
 use App\Enums\UserRole;
 use App\Models\Equipment;
+use App\Services\DamageReportService;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DamageReportForm
@@ -50,12 +53,51 @@ class DamageReportForm
                             ->disabledOn('edit')
                             ->required(),
                         DateTimePicker::make('reported_at')
-                            ->label('Waktu Lapor')
-                            ->default(now())
-                            ->maxDate(now())
+                            ->label('Waktu Kejadian / Lapor')
+                            ->default(fn () => now())
+                            ->minDate(fn () => now()->subDays(7))
+                            ->maxDate(fn () => now())
                             ->seconds(false)
-                            ->disabledOn('edit')
+                            ->live()
+                            ->disabled(fn (string $operation): bool => $operation === 'edit'
+                                || ! (Auth::user() && app(DamageReportService::class)->canManageReportVerification(Auth::user())))
+                            ->dehydrated(fn (string $operation): bool => $operation === 'create'
+                                && (Auth::user() && app(DamageReportService::class)->canManageReportVerification(Auth::user())))
+                            ->helperText(fn (): string => Auth::user() && app(DamageReportService::class)->canManageReportVerification(Auth::user())
+                                ? 'Teknisi/Admin IPSRS dapat mencatat kejadian lampau maksimal 7 hari ke belakang.'
+                                : 'Otomatis diisi waktu saat ini.')
                             ->required(),
+                        Textarea::make('late_report_reason')
+                            ->label('Kenapa dicatat terlambat?')
+                            ->placeholder('Jelaskan alasan pencatatan lebih dari 1 jam setelah kejadian...')
+                            ->rows(2)
+                            ->minLength(5)
+                            ->maxLength(500)
+                            ->visible(function (Get $get, string $operation): bool {
+                                if ($operation !== 'create' || ! (Auth::user() && app(DamageReportService::class)->canManageReportVerification(Auth::user()))) {
+                                    return false;
+                                }
+
+                                $val = $get('reported_at');
+                                if (blank($val)) {
+                                    return false;
+                                }
+
+                                return Carbon::parse($val)->lessThan(now()->subHour());
+                            })
+                            ->required(function (Get $get, string $operation): bool {
+                                if ($operation !== 'create' || ! (Auth::user() && app(DamageReportService::class)->canManageReportVerification(Auth::user()))) {
+                                    return false;
+                                }
+
+                                $val = $get('reported_at');
+                                if (blank($val)) {
+                                    return false;
+                                }
+
+                                return Carbon::parse($val)->lessThan(now()->subHour());
+                            })
+                            ->columnSpanFull(),
                         Radio::make('is_safe_to_use')
                             ->label('Apakah alat masih aman dipakai?')
                             ->options([

@@ -12,9 +12,11 @@ use App\Models\User;
 use App\Notifications\DamageReportedNotification;
 use App\Notifications\EquipmentOperationalNotification;
 use App\Notifications\UnsafeReportRateLimitNotification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DamageReportService
@@ -43,6 +45,10 @@ class DamageReportService
             $data['is_safe_to_use'] = true;
         }
 
+        $canBackdate = $this->canManageReportVerification($reporter);
+        $now = now();
+        $oldestAllowed = $now->copy()->subDays(7);
+
         $validated = Validator::make($data, [
             'equipment_id' => ['required', 'exists:equipment,id', function ($attribute, $value, $fail) use ($equipment, $reporter) {
                 if (! $equipment?->is_active) {
@@ -55,7 +61,40 @@ class DamageReportService
                     $fail('Kepala ruangan hanya boleh melaporkan kerusakan alat di ruangannya sendiri.');
                 }
             }],
-            'reported_at' => ['nullable', 'date', 'before_or_equal:now'],
+            'reported_at' => ['nullable', 'date', function ($attribute, $value, $fail) use ($canBackdate, $now, $oldestAllowed) {
+                if (blank($value)) {
+                    return;
+                }
+
+                $parsed = Carbon::parse($value);
+
+                if ($parsed->greaterThan($now->copy()->addMinute())) {
+                    $fail('Waktu lapor tidak boleh di masa depan.');
+
+                    return;
+                }
+
+                if (! $canBackdate) {
+                    if (abs($parsed->diffInMinutes($now, false)) > 5) {
+                        $fail('Hanya teknisi atau Admin IPSRS yang dapat mengubah waktu kejadian.');
+                    }
+
+                    return;
+                }
+
+                if ($parsed->lessThan($oldestAllowed)) {
+                    $fail('Waktu lapor maksimal 7 hari ke belakang dari sekarang.');
+                }
+            }],
+            'late_report_reason' => [
+                Rule::requiredIf(fn (): bool => $canBackdate
+                    && filled($data['reported_at'] ?? null)
+                    && Carbon::parse($data['reported_at'])->lessThan($now->copy()->subHour())),
+                'nullable',
+                'string',
+                'min:5',
+                'max:500',
+            ],
             'complaint' => ['required', 'string', 'min:10', 'max:2000'],
             'is_safe_to_use' => ['required', 'boolean'],
             'photos' => ['nullable', 'array', 'max:3'],
@@ -63,6 +102,7 @@ class DamageReportService
         ], [], [
             'equipment_id' => 'alat',
             'reported_at' => 'waktu lapor',
+            'late_report_reason' => 'alasan pencatatan terlambat',
             'complaint' => 'keluhan',
             'is_safe_to_use' => 'keamanan pemakaian alat',
             'photos' => 'foto kerusakan',
@@ -70,7 +110,12 @@ class DamageReportService
 
         $isSafeToUse = (bool) $validated['is_safe_to_use'];
         $photos = array_values(array_filter($validated['photos'] ?? [], fn ($p) => is_string($p) && $p !== ''));
-        $reportedAt = $validated['reported_at'] ?? now();
+        $reportedAt = $canBackdate && filled($validated['reported_at'] ?? null)
+            ? Carbon::parse($validated['reported_at'])
+            : $now;
+        $lateReason = $canBackdate && filled($validated['late_report_reason'] ?? null)
+            ? trim((string) $validated['late_report_reason'])
+            : null;
         $isMagangOnly = $this->isMagangOnly($reporter);
 
         if (! $isSafeToUse) {
@@ -98,6 +143,7 @@ class DamageReportService
             $isSafeToUse,
             $photos,
             $reportedAt,
+            $lateReason,
             $isMagangOnly,
             &$shouldNotify,
             &$wasMerged,
@@ -162,6 +208,7 @@ class DamageReportService
                 'equipment_id' => $equipment->id,
                 'reported_by' => $reporter->id,
                 'reported_at' => $reportedAt,
+                'late_report_reason' => $lateReason,
                 'complaint' => $validated['complaint'],
                 'is_safe_to_use' => $isSafeToUse,
                 'photos' => $photos !== [] ? $photos : null,

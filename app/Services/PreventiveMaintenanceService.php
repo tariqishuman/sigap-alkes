@@ -34,15 +34,45 @@ class PreventiveMaintenanceService
                 }
             }],
             'performed_at' => ['required', 'date', 'before_or_equal:today'],
-            'checklist_results' => ['required', 'array', 'min:1'],
+            'checklist_results' => ['required', 'array', 'min:1', function ($attribute, $value, $fail) use ($equipment) {
+                $requiredItems = array_values(array_filter(
+                    is_array($equipment?->equipmentType?->pm_checklist) ? $equipment->equipmentType->pm_checklist : [],
+                    fn ($v) => is_string($v) && trim($v) !== '',
+                ));
+
+                if ($requiredItems === []) {
+                    return;
+                }
+
+                $submittedNames = collect(is_array($value) ? $value : [])
+                    ->map(fn ($row) => mb_strtolower(trim((string) ($row['item'] ?? ''))))
+                    ->filter()
+                    ->all();
+
+                $missing = [];
+                foreach ($requiredItems as $req) {
+                    if (! in_array(mb_strtolower(trim($req)), $submittedNames, true)) {
+                        $missing[] = $req;
+                    }
+                }
+
+                if ($missing !== []) {
+                    $fail('Butir pemeriksaan wajib dari jenis alat tidak boleh dihapus: '.implode(', ', $missing).'.');
+                }
+            }],
             'checklist_results.*.item' => ['required', 'string', 'max:255'],
             'checklist_results.*.status' => ['required', 'in:good,needs_attention'],
-            'checklist_results.*.note' => ['nullable', 'string', 'max:500'],
+            'checklist_results.*.note' => ['nullable', 'string', 'max:500', 'required_if:checklist_results.*.status,needs_attention'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], [], [
+        ], [
+            'checklist_results.*.status.required' => 'Kondisi (Baik / Tidak baik) wajib dipilih untuk setiap butir pemeriksaan.',
+            'checklist_results.*.note.required_if' => 'Catatan wajib diisi untuk setiap butir pemeriksaan yang bertanda Tidak baik.',
+        ], [
             'equipment_id' => 'alat',
             'performed_at' => 'tanggal pelaksanaan',
             'checklist_results' => 'daftar pemeriksaan',
+            'checklist_results.*.status' => 'kondisi pemeriksaan',
+            'checklist_results.*.note' => 'catatan pemeriksaan',
             'notes' => 'catatan',
         ])->validate();
 

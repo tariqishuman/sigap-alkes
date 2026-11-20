@@ -8,7 +8,15 @@
         <div>
             <div class="text-xs text-gray-500">Pelapor & Waktu</div>
             <div class="font-medium">{{ $record->reportedByUser?->name ?? '-' }}</div>
-            <div class="text-xs text-gray-500">{{ $record->reported_at?->translatedFormat('d M Y H:i') ?? '-' }}</div>
+            <div class="text-xs text-gray-500">
+                {{ $record->reported_at?->translatedFormat('d M Y H:i') ?? '-' }}
+                @if (($lateHours = $record->lateRecordingHours()) !== null)
+                    <span class="text-amber-700">• dicatat {{ $lateHours }} jam setelah kejadian</span>
+                @endif
+            </div>
+            @if ($record->late_report_reason)
+                <div class="mt-0.5 text-xs text-gray-600">Alasan: {{ $record->late_report_reason }}</div>
+            @endif
         </div>
         <div>
             <div class="text-xs text-gray-500">Keamanan Pemakaian</div>
