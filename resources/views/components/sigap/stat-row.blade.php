@@ -7,7 +7,8 @@
     $colsClass = match ($count) {
         1 => 'grid-cols-1',
         2 => 'grid-cols-2',
-        default => 'grid-cols-3',
+        3 => 'grid-cols-3',
+        default => 'grid-cols-2 sm:grid-cols-4',
     };
 @endphp
 
