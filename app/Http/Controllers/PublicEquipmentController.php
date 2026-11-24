@@ -22,7 +22,7 @@ class PublicEquipmentController extends Controller
         }
 
         $equipment = Equipment::query()
-            ->with(['room', 'equipmentType', 'latestValidCalibration'])
+            ->with(['room', 'equipmentType', 'latestValidCalibration', 'latestPreventiveMaintenance'])
             ->where('qr_token', $qr_token)
             ->first();
 
@@ -91,6 +91,9 @@ class PublicEquipmentController extends Controller
 
         $brandModel = trim(($equipment->brand ?? '').' '.($equipment->model ?? ''));
 
+        $hasPmSchedule = (bool) $equipment->equipmentType?->pm_interval_months;
+        $lastPm = $hasPmSchedule ? $equipment->latestPreventiveMaintenance : null;
+
         return response()->view('public.equipment-status', [
             'inventoryCode' => $equipment->inventory_code,
             'equipmentName' => $equipment->name,
@@ -105,8 +108,14 @@ class PublicEquipmentController extends Controller
             'validUntilFormatted' => $validUntilFormatted,
             'certificateStatusLine' => $certificateStatusLine,
             'updatedAtFormatted' => $updatedAtFormatted,
+            'hasPmSchedule' => $hasPmSchedule,
+            'lastPmFormatted' => $lastPm?->performed_at?->translatedFormat('d F Y') ?? 'Belum pernah',
+            'nextPmFormatted' => $lastPm?->next_due_at?->translatedFormat('d F Y') ?? 'Belum terjadwal',
             'reportUrl' => $equipment->is_active
                 ? route('public.equipment.report', ['qr_token' => $equipment->qr_token])
+                : null,
+            'pmUrl' => ($equipment->is_active && $hasPmSchedule)
+                ? route('public.equipment.pm.form', ['qr_token' => $equipment->qr_token])
                 : null,
         ]);
     }

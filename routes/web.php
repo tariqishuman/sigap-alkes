@@ -5,6 +5,7 @@ use App\Http\Controllers\DamageReportAcknowledgeController;
 use App\Http\Controllers\DamageReportPhotoController;
 use App\Http\Controllers\PublicEquipmentController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\QrPreventiveMaintenanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,6 +19,14 @@ Route::get('/alat/{qr_token}', [PublicEquipmentController::class, 'show'])
 Route::get('/alat/{qr_token}/lapor', [PublicEquipmentController::class, 'report'])
     ->middleware('throttle:60,1')
     ->name('public.equipment.report');
+
+Route::get('/alat/{qr_token}/pm', [QrPreventiveMaintenanceController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('public.equipment.pm.form');
+
+Route::post('/alat/{qr_token}/pm', [QrPreventiveMaintenanceController::class, 'store'])
+    ->middleware('throttle:60,1')
+    ->name('public.equipment.pm.store');
 
 Route::get('/admin/damage-reports/{damageReport}/photos/{index}', [DamageReportPhotoController::class, 'show'])
     ->middleware('auth')

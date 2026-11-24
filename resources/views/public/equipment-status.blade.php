@@ -176,6 +176,16 @@
             font-weight: 700;
             color: #0E7C7B;
         }
+        .pm-info-box {
+            background-color: #F4F7F7;
+            border: 1px solid #E3EAEA;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem 1rem;
+        }
         .report-cta {
             display: flex;
             align-items: center;
@@ -184,7 +194,7 @@
             width: 100%;
             min-height: 44px;
             padding: 0 1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.625rem;
             border-radius: 999px;
             background-color: #FFFFFF;
             border: 1px solid #D3DEDD;
@@ -193,6 +203,9 @@
             font-weight: 600;
             text-decoration: none;
             transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .cta-stack {
+            margin-bottom: 1rem;
         }
         .report-cta:hover {
             background-color: #E8F4F3;
@@ -277,13 +290,39 @@
             </div>
         </div>
 
-        @if (! empty($reportUrl))
-            <a href="{{ $reportUrl }}" class="report-cta">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
-                </svg>
-                <span>Laporkan kerusakan</span>
-            </a>
+        @if (! empty($hasPmSchedule))
+            <div class="pm-info-box">
+                <div>
+                    <div class="meta-label">Pemeliharaan terakhir</div>
+                    <div class="meta-value">{{ $lastPmFormatted }}</div>
+                </div>
+                <div>
+                    <div class="meta-label">Berikutnya</div>
+                    <div class="meta-value">{{ $nextPmFormatted }}</div>
+                </div>
+            </div>
+        @endif
+
+        @if (! empty($reportUrl) || ! empty($pmUrl))
+            <div class="cta-stack">
+                @if (! empty($reportUrl))
+                    <a href="{{ $reportUrl }}" class="report-cta">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                        </svg>
+                        <span>Laporkan kerusakan</span>
+                    </a>
+                @endif
+
+                @if (! empty($pmUrl))
+                    <a href="{{ $pmUrl }}" class="report-cta" style="margin-bottom: 0;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                        <span>Catat pemeliharaan</span>
+                    </a>
+                @endif
+            </div>
         @endif
 
         <div class="footer">

@@ -63,7 +63,9 @@ class PreventiveMaintenanceService
             'checklist_results.*.item' => ['required', 'string', 'max:255'],
             'checklist_results.*.status' => ['required', 'in:good,needs_attention'],
             'checklist_results.*.note' => ['nullable', 'string', 'max:500', 'required_if:checklist_results.*.status,needs_attention'],
+            'checklist_results.*.photo' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'recorded_via' => ['nullable', 'in:panel,qr_scan'],
         ], [
             'checklist_results.*.status.required' => 'Kondisi (Baik / Tidak baik) wajib dipilih untuk setiap butir pemeriksaan.',
             'checklist_results.*.note.required_if' => 'Catatan wajib diisi untuk setiap butir pemeriksaan yang bertanda Tidak baik.',
@@ -76,11 +78,12 @@ class PreventiveMaintenanceService
             'notes' => 'catatan',
         ])->validate();
 
-        $normalizedChecklist = array_values(array_map(fn (array $row): array => [
+        $normalizedChecklist = array_values(array_map(fn (array $row): array => array_filter([
             'item' => trim((string) $row['item']),
             'status' => $row['status'] === 'needs_attention' ? 'needs_attention' : 'good',
             'note' => filled($row['note'] ?? null) ? trim((string) $row['note']) : null,
-        ], $validated['checklist_results']));
+            'photo' => filled($row['photo'] ?? null) ? trim((string) $row['photo']) : null,
+        ], fn ($v, $k) => $k !== 'photo' || $v !== null, ARRAY_FILTER_USE_BOTH), $validated['checklist_results']));
 
         $hasUnhealthy = collect($normalizedChecklist)->contains(fn (array $row): bool => $row['status'] === 'needs_attention');
 
@@ -100,6 +103,7 @@ class PreventiveMaintenanceService
             'result' => $result,
             'notes' => filled($validated['notes'] ?? null) ? trim((string) $validated['notes']) : null,
             'next_due_at' => $nextDueAt,
+            'recorded_via' => $validated['recorded_via'] ?? 'panel',
         ]);
     }
 

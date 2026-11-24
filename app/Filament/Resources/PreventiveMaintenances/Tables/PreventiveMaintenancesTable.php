@@ -39,6 +39,11 @@ class PreventiveMaintenancesTable
                 ->label('Hasil')
                 ->badge()
                 ->sortable(),
+            TextColumn::make('recorded_via')
+                ->label('Sumber')
+                ->badge()
+                ->formatStateUsing(fn (?string $state): string => $state === 'qr_scan' ? 'via scan QR' : 'Panel')
+                ->color(fn (?string $state): string => $state === 'qr_scan' ? 'primary' : 'gray'),
             TextColumn::make('next_due_at')
                 ->label('Jadwal Berikutnya')
                 ->date('d M Y')

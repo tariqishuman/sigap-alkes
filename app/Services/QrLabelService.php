@@ -36,7 +36,7 @@ class QrLabelService
         $settings = app(SettingsService::class);
 
         $items = $equipmentList->map(function (Equipment $equipment) use ($settings): array {
-            $equipment->loadMissing(['room', 'equipmentType']);
+            $equipment->loadMissing(['room', 'equipmentType', 'latestValidCalibration']);
 
             return [
                 'equipment' => $equipment,

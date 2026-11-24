@@ -104,6 +104,7 @@
                 /** @var \App\Models\Equipment $eq */
                 $eq = $item['equipment'];
                 $brandModel = trim(($eq->brand ?? '') . ' ' . ($eq->model ?? ''));
+                $calValidUntil = $eq->latestValidCalibration?->valid_until?->translatedFormat('d M Y');
             @endphp
             <div class="label-card">
                 <table class="label-table">
@@ -119,6 +120,9 @@
                                 <div class="meta-line">Tipe: {{ \Illuminate\Support\Str::limit($brandModel, 24) }}</div>
                             @endif
                             <div class="meta-line">Ruang: {{ \Illuminate\Support\Str::limit($eq->room?->name ?? '-', 22) }}</div>
+                            @if ($eq->equipmentType?->requires_calibration)
+                                <div class="meta-line">Kalibrasi berlaku s.d. {{ $calValidUntil ?? '-' }}</div>
+                            @endif
                             <div class="scan-hint">{{ $labelFooterText ?? 'Scan QR untuk cek status alat' }}</div>
                         </td>
                     </tr>

@@ -17,6 +17,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'result',
     'notes',
     'next_due_at',
+    'recorded_via',
 ])]
 class PreventiveMaintenance extends Model
 {

@@ -102,7 +102,7 @@
         </div>
 
         <span class="badge">Akses terbatas</span>
-        <h1>Tidak dapat melaporkan kerusakan untuk alat ini</h1>
+        <h1>{{ $heading ?? 'Tidak dapat melaporkan kerusakan untuk alat ini' }}</h1>
         <p>{{ $message }}</p>
 
         <div class="actions">
