@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Services\DashboardMetricsService;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\Widget;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
 class AssetValueByRoomWidget extends Widget
@@ -15,6 +16,14 @@ class AssetValueByRoomWidget extends Widget
     protected static ?int $sort = 5;
 
     protected static bool $isLazy = false;
+
+    public function placeholder(): View
+    {
+        return view('filament.widgets.skeleton-card', [
+            'variant' => 'bars',
+            'title' => 'Memuat nilai buku per ruangan',
+        ]);
+    }
 
     protected string $view = 'filament.widgets.asset-value-by-room';
 

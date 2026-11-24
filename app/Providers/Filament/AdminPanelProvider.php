@@ -37,6 +37,13 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->spa(hasPrefetching: true)
+            ->spaUrlExceptions([
+                '*/alat/*',
+                '*/certificate',
+                '*/photos/*',
+                '*/acknowledge/*',
+            ])
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->brandName(fn (): string => $settings->appName())
             ->brandLogo(fn () => view('filament.brand'))
@@ -61,6 +68,10 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): HtmlString => new HtmlString('<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0E7C7B">'),
+            )
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                fn () => view('components.sigap.global-loader'),
             )
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,

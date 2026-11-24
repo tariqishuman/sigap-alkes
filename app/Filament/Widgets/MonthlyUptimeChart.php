@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Services\DashboardMetricsService;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
 class MonthlyUptimeChart extends ChartWidget
@@ -15,6 +16,14 @@ class MonthlyUptimeChart extends ChartWidget
     protected static ?int $sort = 4;
 
     protected static bool $isLazy = true;
+
+    public function placeholder(): View
+    {
+        return view('filament.widgets.skeleton-card', [
+            'variant' => 'line',
+            'title' => 'Memuat grafik uptime 12 bulan',
+        ]);
+    }
 
     protected ?string $heading = 'Uptime 12 Bulan Terakhir';
 

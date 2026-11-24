@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Services\DashboardMetricsService;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
 class DamagesBreakdownChart extends ChartWidget
@@ -15,6 +16,14 @@ class DamagesBreakdownChart extends ChartWidget
     protected static ?int $sort = 2;
 
     protected static bool $isLazy = true;
+
+    public function placeholder(): View
+    {
+        return view('filament.widgets.skeleton-card', [
+            'variant' => 'chart',
+            'title' => 'Memuat grafik kerusakan',
+        ]);
+    }
 
     protected ?string $heading = 'Kerusakan per Jenis Alat';
 
