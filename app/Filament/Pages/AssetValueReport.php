@@ -49,6 +49,7 @@ class AssetValueReport extends Page implements HasTable
             UserRole::SuperAdmin->value,
             UserRole::AdminIpsrs->value,
             UserRole::Manajemen->value,
+            UserRole::Demo->value,
         ]) ?? false;
     }
 

@@ -63,7 +63,7 @@ class User extends Authenticatable implements FilamentUser
         ]);
 
         if (! $isOperator) {
-            if ($this->hasRole(UserRole::Magang->value)) {
+            if ($this->hasAnyRole([UserRole::Magang->value, UserRole::Demo->value])) {
                 return false;
             }
 
@@ -115,6 +115,7 @@ class User extends Authenticatable implements FilamentUser
             UserRole::AdminIpsrs->value,
             UserRole::Teknisi->value,
             UserRole::Manajemen->value,
+            UserRole::Demo->value,
         ]);
     }
 

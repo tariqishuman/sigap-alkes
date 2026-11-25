@@ -171,6 +171,7 @@ class Dashboard extends BaseDashboard
             UserRole::SuperAdmin->value,
             UserRole::AdminIpsrs->value,
             UserRole::Manajemen->value,
+            UserRole::Demo->value,
         ]) ?? false;
     }
 

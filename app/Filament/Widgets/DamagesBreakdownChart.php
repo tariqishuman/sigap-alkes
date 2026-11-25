@@ -44,6 +44,7 @@ class DamagesBreakdownChart extends ChartWidget
             UserRole::SuperAdmin->value,
             UserRole::AdminIpsrs->value,
             UserRole::Manajemen->value,
+            UserRole::Demo->value,
         ]) ?? false;
     }
 

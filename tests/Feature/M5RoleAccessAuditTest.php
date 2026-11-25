@@ -376,3 +376,51 @@ it('hides asset values and repair costs from magang and badan_kalibrasi while al
         ->assertDontSee('Nilai Aset')
         ->assertDontSee('30.000.000');
 });
+
+it('grants demo role read-only access to all menus, reports, and master data without write access', function () {
+    $demo = User::where('email', 'demo@sigap-alkes.test')->firstOrFail();
+    $this->actingAs($demo);
+
+    $allowedUrls = [
+        '/admin',
+        EquipmentResource::getUrl('index'),
+        CalibrationSchedule::getUrl(),
+        DamageReportResource::getUrl('index'),
+        CalibrationResource::getUrl('index'),
+        RepairResource::getUrl('index'),
+        EquipmentMovementResource::getUrl('index'),
+        OperationalReport::getUrl(),
+        AssetValueReport::getUrl(),
+        RoomResource::getUrl('index'),
+        EquipmentTypeResource::getUrl('index'),
+        TestingInstitutionResource::getUrl('index'),
+        SparePartResource::getUrl('index'),
+        UserResource::getUrl('index'),
+        RoleResource::getUrl('index'),
+    ];
+
+    foreach ($allowedUrls as $url) {
+        $this->get($url)->assertOk();
+    }
+
+    $forbiddenUrls = [
+        EquipmentResource::getUrl('create'),
+        DamageReportResource::getUrl('create'),
+        CalibrationResource::getUrl('create'),
+        RepairResource::getUrl('create'),
+        EquipmentMovementResource::getUrl('create'),
+        RoomResource::getUrl('create'),
+        EquipmentTypeResource::getUrl('create'),
+        TestingInstitutionResource::getUrl('create'),
+        SparePartResource::getUrl('create'),
+        UserResource::getUrl('create'),
+        RoleResource::getUrl('create'),
+        '/admin/pengaturan-aplikasi',
+    ];
+
+    foreach ($forbiddenUrls as $url) {
+        $this->get($url)->assertForbidden();
+    }
+
+    expect($demo->canViewCosts())->toBeTrue();
+});

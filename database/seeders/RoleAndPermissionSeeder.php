@@ -169,6 +169,14 @@ class RoleAndPermissionSeeder extends Seeder
             'View:EquipmentMovement',
         ]);
 
+        // 8. demo: Akses lihat saja (read-only) ke semua menu, data master, operasional, dan laporan
+        $demoPermissions = [];
+        foreach ($models as $model) {
+            $demoPermissions[] = "ViewAny:{$model}";
+            $demoPermissions[] = "View:{$model}";
+        }
+        $roles[UserRole::Demo->value]->syncPermissions($demoPermissions);
+
         // Ruangan default untuk akun demo kepala ruangan
         $icuRoom = Room::firstOrCreate(
             ['name' => 'Ruang ICU'],
@@ -234,6 +242,13 @@ class RoleAndPermissionSeeder extends Seeder
                 'name' => 'Mahasiswa Magang Elektromedis',
                 'email' => 'magang@sigap-alkes.test',
                 'role' => UserRole::Magang,
+                'room_id' => null,
+                'testing_institution_id' => null,
+            ],
+            [
+                'name' => 'Akun Demo (Lihat Saja)',
+                'email' => 'demo@sigap-alkes.test',
+                'role' => UserRole::Demo,
                 'room_id' => null,
                 'testing_institution_id' => null,
             ],
