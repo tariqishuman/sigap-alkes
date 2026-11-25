@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $equipmentName }} ({{ $inventoryCode }}) — Status Alat | {{ $appName }}</title>
+    <title>{{ $equipmentName }} ({{ $inventoryCode }}) — Status Alat | {{ $hospitalName }}</title>
     <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700&display=swap" rel="stylesheet" />
@@ -327,7 +327,7 @@
 
         <div class="footer">
             <span>Diperbarui {{ $updatedAtFormatted }}</span>
-            <span>{{ $appName }}</span>
+            <span>{{ $hospitalName }}</span>
         </div>
     </main>
     @include('components.watermark-kelompok2')

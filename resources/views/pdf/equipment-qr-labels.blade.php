@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Label QR Alat Kesehatan — {{ $appName ?? 'SIGAP-Alkes' }}</title>
+    <title>Label QR Alat Kesehatan — {{ $hospitalName ?? 'SIGAP-Alkes' }}</title>
     <style>
         @page {
             size: A4 portrait;
